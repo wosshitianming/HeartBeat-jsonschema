@@ -1,0 +1,37 @@
+.selector {
+  display: grid;
+  gap: 6px;
+}
+
+.option {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.25));
+  border-radius: 10px;
+  background: var(--surface-muted, rgba(255, 255, 255, 0.04));
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.option.active {
+  border-color: color-mix(in srgb, var(--accent, #1677ff) 55%, transparent);
+  background: color-mix(in srgb, var(--accent, #1677ff) 10%, transparent);
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text, #e8eaed);
+}
+
+.description {
+  font-size: 10px;
+  color: var(--sidebar-muted, var(--text-soft, #9aa0a6));
+}

@@ -1,0 +1,1340 @@
+package top.kx.heartbeat.application.platform;
+
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import top.kx.heartbeat.application.auth.AuthenticationSessionService;
+import top.kx.heartbeat.domain.auth.CurrentUserProvider;
+import top.kx.heartbeat.domain.auth.LoginResultStatus;
+import top.kx.heartbeat.application.common.model.DomainRecord;
+import top.kx.heartbeat.application.platform.port.PlatformAdminRepository;
+import top.kx.heartbeat.domain.platform.PlatformMenuType;
+import top.kx.heartbeat.domain.security.DataScope;
+import top.kx.heartbeat.domain.user.model.valueobject.UserStatus;
+
+import javax.annotation.Resource;
+import java.time.Instant;
+import java.util.*;
+import java.util.regex.Pattern;
+
+/**
+ * 平台后台管理应用服务。
+ *
+ * <p>负责用户、菜单、角色、租户、系统配置等后台资源的应用层编排。</p>
+ */
+@Service
+public class PlatformAdministrationService {
+
+    /**
+     * 默认超级管理员用户标识。
+     */
+    private static final String DEFAULT_ADMIN_USER_ID = "1";
+
+    /**
+     * 旧版外观主题偏好键。
+     */
+    private static final String LEGACY_APPEARANCE_THEME_KEY = "appearance.theme";
+
+    /**
+     * 外观颜色模式偏好键。
+     */
+    private static final String APPEARANCE_COLOR_MODE_KEY = "appearance.colorMode";
+
+    /**
+     * 外观流体布局偏好键。
+     */
+    private static final String APPEARANCE_FLUID_ENABLED_KEY = "appearance.fluidEnabled";
+
+    /**
+     * 外观强调色偏好键。
+     */
+    private static final String APPEARANCE_ACCENT_COLOR_KEY = "appearance.accentColor";
+
+    /**
+     * 外观视觉风格偏好键。
+     */
+    private static final String APPEARANCE_VISUAL_STYLE_KEY = "appearance.visualStyle";
+
+    /**
+     * 默认颜色模式。
+     */
+    private static final AppearanceColorMode DEFAULT_COLOR_MODE = AppearanceColorMode.DARK;
+
+    /**
+     * 默认是否启用流体布局。
+     */
+    private static final boolean DEFAULT_FLUID_ENABLED = true;
+
+    /**
+     * 默认强调色。
+     */
+    private static final String DEFAULT_ACCENT_COLOR = "#1677ff";
+
+    /**
+     * 默认视觉风格。
+     */
+    private static final AppearanceVisualStyle DEFAULT_VISUAL_STYLE = AppearanceVisualStyle.GLASS;
+
+    /**
+     * 旧版专业主题标识。
+     */
+    private static final String LEGACY_PROFESSIONAL_THEME = "professional";
+
+    /**
+     * 强调色格式表达式。
+     */
+    private static final Pattern ACCENT_COLOR_PATTERN =
+            Pattern.compile("^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$");
+
+    /**
+     * 平台后台管理仓储。
+     */
+    @Resource
+    private PlatformAdminRepository platformAdminRepository;
+
+    /**
+     * 认证会话应用服务。
+     */
+    @Resource
+    private AuthenticationSessionService authenticationSessionService;
+
+    /**
+     * 当前用户提供器。
+     */
+    @Resource
+    private CurrentUserProvider currentUserProvider;
+
+    /**
+     * 密码编码器。
+     */
+    @Resource
+    private PasswordEncoder passwordEncoder;
+
+    /**
+     * 查询当前登录用户资料。
+     *
+     * @return 当前登录用户资料。
+     */
+    public Map<String, Object> currentUser() {
+        // 使用当前登录用户标识查询用户资料。
+        return currentUser(currentUserProvider.currentUserId());
+    }
+
+    /**
+     * 查询指定用户资料。
+     *
+     * @param userId 用户标识。
+     * @return 指定用户资料。
+     */
+    public Map<String, Object> currentUser(String userId) {
+        // 解析用户标识，空值时回落到默认管理员。
+        String resolvedUserId = resolvedUserId(userId);
+        // 查询用户行数据，未查到时使用内置管理员兜底。
+        Map<String, Object> user = platformAdminRepository.findUserById(resolvedUserId)
+                .map(DomainRecord::toMap)
+                .orElseGet(this::fallbackUser);
+        // 移除敏感字段后构建接口返回结构。
+        Map<String, Object> result = publicUser(user);
+        // 附加当前用户角色编码列表。
+        result.put("roles", platformAdminRepository.listRoleCodesByUserId(resolvedUserId));
+        // 附加当前用户权限编码列表。
+        result.put("permissions", platformAdminRepository.listPermissionsByUserId(String.valueOf(user.get("id"))));
+        // 附加当前用户数据权限范围。
+        result.put("dataScope", resolveDataScope(resolvedUserId));
+        // 返回当前用户资料。
+        return result;
+    }
+
+    /**
+     * 查询当前登录用户外观偏好。
+     *
+     * @return 当前登录用户外观偏好。
+     */
+    public Map<String, Object> appearancePreference() {
+        // 使用当前登录用户标识查询外观偏好。
+        return appearancePreference(currentUserProvider.currentUserId());
+    }
+
+    /**
+     * 查询指定用户外观偏好。
+     *
+     * @param userId 用户标识。
+     * @return 指定用户外观偏好。
+     */
+    public Map<String, Object> appearancePreference(String userId) {
+        // 解析用户标识，空值时回落到默认管理员。
+        String resolvedUserId = resolvedUserId(userId);
+        // 查询颜色模式偏好。
+        Optional<Map<String, Object>> colorPreference =
+                optionalMap(platformAdminRepository.findUserPreference(resolvedUserId, APPEARANCE_COLOR_MODE_KEY));
+        // 查询流体布局偏好。
+        Optional<Map<String, Object>> fluidPreference =
+                optionalMap(platformAdminRepository.findUserPreference(resolvedUserId, APPEARANCE_FLUID_ENABLED_KEY));
+        // 查询强调色偏好。
+        Optional<Map<String, Object>> accentPreference =
+                optionalMap(platformAdminRepository.findUserPreference(resolvedUserId, APPEARANCE_ACCENT_COLOR_KEY));
+        // 查询视觉风格偏好。
+        Optional<Map<String, Object>> visualPreference =
+                optionalMap(platformAdminRepository.findUserPreference(resolvedUserId, APPEARANCE_VISUAL_STYLE_KEY));
+
+        // 新版偏好任意一项存在时按新版结构返回。
+        if (colorPreference.isPresent() || fluidPreference.isPresent() || accentPreference.isPresent()
+                || visualPreference.isPresent()) {
+            // 解析颜色模式，缺省时使用默认颜色模式。
+            String colorMode = colorPreference
+                    .map(preference -> stringValue(preference.get("preferenceValue")))
+                    .orElse(DEFAULT_COLOR_MODE.getCode());
+            // 解析流体布局开关，缺省时使用默认流体布局开关。
+            boolean fluidEnabled = fluidPreference
+                    .map(preference -> Boolean.parseBoolean(stringValue(preference.get("preferenceValue"))))
+                    .orElse(DEFAULT_FLUID_ENABLED);
+            // 解析强调色，缺省时使用默认强调色。
+            String accentColor = accentPreference
+                    .map(preference -> normalizeAccentColor(stringValue(preference.get("preferenceValue"))))
+                    .orElse(DEFAULT_ACCENT_COLOR);
+            // 解析视觉风格，缺省时使用默认视觉风格。
+            String visualStyle = visualPreference
+                    .map(preference -> normalizeVisualStyle(stringValue(preference.get("preferenceValue"))))
+                    .orElse(DEFAULT_VISUAL_STYLE.getCode());
+            // 返回新版外观偏好结构。
+            return appearanceResult(colorMode, fluidEnabled, accentColor, visualStyle);
+        }
+
+        // 新版偏好不存在时兼容读取旧版主题偏好。
+        return platformAdminRepository.findUserPreference(resolvedUserId, LEGACY_APPEARANCE_THEME_KEY)
+                .map(DomainRecord::toMap)
+                .map(this::legacyAppearanceResult)
+                .orElseGet(() -> appearanceResult(
+                        DEFAULT_COLOR_MODE.getCode(),
+                        DEFAULT_FLUID_ENABLED,
+                        DEFAULT_ACCENT_COLOR,
+                        DEFAULT_VISUAL_STYLE.getCode()
+                ));
+    }
+
+    /**
+     * 更新当前登录用户外观偏好。
+     *
+     * @param command 外观偏好更新命令。
+     * @return 更新后的外观偏好。
+     */
+    @Transactional
+    public Map<String, Object> updateAppearancePreference(Map<String, Object> command) {
+        // 使用当前登录用户标识更新外观偏好。
+        return updateAppearancePreference(currentUserProvider.currentUserId(), command);
+    }
+
+    /**
+     * 更新指定用户外观偏好。
+     *
+     * @param userId 用户标识。
+     * @param command 外观偏好更新命令。
+     * @return 更新后的外观偏好。
+     */
+    @Transactional
+    public Map<String, Object> updateAppearancePreference(String userId, Map<String, Object> command) {
+        // 查询当前外观偏好作为局部更新的默认值来源。
+        Map<String, Object> current = appearancePreference(userId);
+        // 解析颜色模式入参，未传时沿用当前值。
+        String colorMode = command.containsKey("colorMode")
+                ? stringValue(command.get("colorMode"))
+                : stringValue(current.get("colorMode"));
+        // 解析流体布局入参，未传时沿用当前值。
+        boolean fluidEnabled = command.containsKey("fluidEnabled")
+                ? booleanValue(command.get("fluidEnabled"), "fluidEnabled")
+                : Boolean.TRUE.equals(current.get("fluidEnabled"));
+        // 解析强调色入参，未传时沿用当前值。
+        String accentColor = command.containsKey("accentColor")
+                ? normalizeAccentColor(stringValue(command.get("accentColor")))
+                : stringValue(current.get("accentColor"));
+        // 解析视觉风格入参，未传时沿用当前值。
+        String visualStyle = command.containsKey("visualStyle")
+                ? normalizeVisualStyle(stringValue(command.get("visualStyle")))
+                : stringValue(current.get("visualStyle"));
+
+        // 固化原始颜色模式入参，供异常消息安全引用。
+        String requestedColorMode = colorMode;
+        // 使用颜色模式枚举校验并规范化颜色模式编码。
+        colorMode = AppearanceColorMode.fromCode(requestedColorMode)
+                .orElseThrow(() -> new IllegalArgumentException("不支持的颜色模式: " + requestedColorMode))
+                .getCode();
+
+        // 解析用户标识，空值时回落到默认管理员。
+        String resolvedUserId = resolvedUserId(userId);
+        // 保存颜色模式偏好。
+        platformAdminRepository.saveUserPreference(resolvedUserId, APPEARANCE_COLOR_MODE_KEY, colorMode);
+        // 保存流体布局偏好。
+        platformAdminRepository.saveUserPreference(
+                resolvedUserId,
+                APPEARANCE_FLUID_ENABLED_KEY,
+                String.valueOf(fluidEnabled)
+        );
+        // 保存强调色偏好。
+        platformAdminRepository.saveUserPreference(resolvedUserId, APPEARANCE_ACCENT_COLOR_KEY, accentColor);
+        // 保存视觉风格偏好。
+        platformAdminRepository.saveUserPreference(resolvedUserId, APPEARANCE_VISUAL_STYLE_KEY, visualStyle);
+        // 返回更新后的外观偏好。
+        return appearanceResult(colorMode, fluidEnabled, accentColor, visualStyle);
+    }
+
+    /**
+     * 使用账号密码登录后台平台。
+     *
+     * @param command 登录命令。
+     * @return 登录结果。
+     */
+    @Transactional
+    public Map<String, Object> login(Map<String, Object> command) {
+        // 读取登录用户名。
+        String username = stringValue(command.get("username"));
+        // 读取登录密码。
+        String password = stringValue(command.get("password"));
+        // 按用户名查询用户记录。
+        Optional<Map<String, Object>> userOptional = optionalMap(platformAdminRepository.findUserByUsername(username));
+        // 用户不存在或密码不匹配时记录失败日志并中断登录。
+        if (!userOptional.isPresent() || !matches(password, stringValue(userOptional.get().get("passwordHash")))) {
+            // 写入失败登录日志。
+            platformAdminRepository.recordLogin(username, LoginResultStatus.FAIL.getCode(), "用户名或密码错误");
+            // 抛出用户名或密码错误异常。
+            throw new IllegalArgumentException("用户名或密码错误");
+        }
+
+        // 写入成功登录日志。
+        platformAdminRepository.recordLogin(username, LoginResultStatus.SUCCESS.getCode(), "账号密码登录成功");
+        // 过滤用户敏感字段。
+        Map<String, Object> user = publicUser(userOptional.get());
+        // 创建认证会话并复制为可扩展返回结构。
+        Map<String, Object> result = new LinkedHashMap<>(authenticationSessionService.createSession(
+                String.valueOf(user.get("id")),
+                String.valueOf(user.get("username")),
+                String.valueOf(user.get("tenantId"))));
+        // 附加当前登录用户资料。
+        result.put("user", user);
+        // 附加当前登录用户权限编码列表。
+        result.put("permissions", platformAdminRepository.listPermissionsByUserId(String.valueOf(user.get("id"))));
+        // 返回登录结果。
+        return result;
+    }
+
+    /**
+     * 查询完整菜单树。
+     *
+     * @return 完整菜单树。
+     */
+    public List<Map<String, Object>> listMenus() {
+        // 查询菜单记录并构建包含按钮节点的树结构。
+        return buildTree(maps(platformAdminRepository.listMenus()), true);
+    }
+
+    /**
+     * 查询当前登录用户路由树。
+     *
+     * @return 当前登录用户路由树。
+     */
+    public List<Map<String, Object>> routes() {
+        // 使用当前登录用户标识查询路由树。
+        return routes(currentUserProvider.currentUserId());
+    }
+
+    /**
+     * 查询指定用户路由树。
+     *
+     * @param userId 用户标识。
+     * @return 指定用户路由树。
+     */
+    public List<Map<String, Object>> routes(String userId) {
+        // 查询授权菜单记录并构建不包含按钮节点的路由树。
+        return buildTree(maps(platformAdminRepository.listAuthorizedMenus(resolvedUserId(userId))), false);
+    }
+
+    /**
+     * 查询菜单树选择器数据。
+     *
+     * @return 菜单树选择器数据。
+     */
+    public List<Map<String, Object>> menuTreeSelect() {
+        // 构建完整菜单树。
+        List<Map<String, Object>> tree = buildTree(maps(platformAdminRepository.listMenus()), true);
+        // 将菜单树转换为选择器节点结构。
+        return toTreeSelect(tree);
+    }
+
+    /**
+     * 创建菜单。
+     *
+     * @param command 菜单创建命令。
+     * @return 新建菜单记录。
+     */
+    @Transactional
+    public Map<String, Object> createMenu(Map<String, Object> command) {
+        // 委托仓储创建菜单并返回字段 Map。
+        return platformAdminRepository.createMenu(command).toMap();
+    }
+
+    /**
+     * 更新菜单。
+     *
+     * @param id 菜单标识。
+     * @param command 菜单更新命令。
+     * @return 更新后的菜单记录。
+     */
+    @Transactional
+    public Map<String, Object> updateMenu(String id, Map<String, Object> command) {
+        // 委托仓储更新菜单并返回字段 Map。
+        return platformAdminRepository.updateMenu(id, command).toMap();
+    }
+
+    /**
+     * 删除菜单。
+     *
+     * @param id 菜单标识。
+     */
+    @Transactional
+    public void deleteMenu(String id) {
+        // 委托仓储删除菜单。
+        platformAdminRepository.deleteMenu(id);
+    }
+
+    /**
+     * 查询角色菜单授权详情。
+     *
+     * @param roleId 角色标识。
+     * @return 角色菜单授权详情。
+     */
+    public Map<String, Object> roleMenuDetail(String roleId) {
+        // 角色不存在时抛出业务参数异常。
+        if (!platformAdminRepository.roleExists(roleId)) {
+            // 抛出角色不存在异常。
+            throw new IllegalArgumentException("角色不存在: " + roleId);
+        }
+        // 创建角色菜单详情返回结构。
+        Map<String, Object> result = new LinkedHashMap<>();
+        // 写入角色标识。
+        result.put("roleId", roleId);
+        // 写入角色已授权菜单标识列表。
+        result.put("menuIds", platformAdminRepository.listRoleMenuIds(roleId));
+        // 写入菜单树选择器数据。
+        result.put("menuTree", menuTreeSelect());
+        // 返回角色菜单授权详情。
+        return result;
+    }
+
+    /**
+     * 分配角色菜单。
+     *
+     * @param roleId 角色标识。
+     * @param menuIds 菜单标识列表。
+     */
+    @Transactional
+    public void assignRoleMenus(String roleId, List<String> menuIds) {
+        // 角色不存在时抛出业务参数异常。
+        if (!platformAdminRepository.roleExists(roleId)) {
+            // 抛出角色不存在异常。
+            throw new IllegalArgumentException("角色不存在: " + roleId);
+        }
+        // 规范化菜单标识列表，去掉空值和重复值。
+        List<String> normalized = menuIds == null
+                ? Collections.emptyList()
+                : menuIds.stream().map(this::stringValue).filter(id -> StringUtils.isNotEmpty(id)).distinct()
+                .collect(java.util.stream.Collectors.toList());
+        // 保存角色与菜单的授权关系。
+        platformAdminRepository.saveRoleMenus(roleId, normalized);
+    }
+
+    /**
+     * 查询用户资源列表。
+     *
+     * @return 用户资源列表。
+     */
+    public List<Map<String, Object>> listUsers() {
+        // 查询用户列表后按当前用户数据权限过滤并移除敏感字段。
+        return filterUsersByDataScope(maps(platformAdminRepository.listUsers()), currentUserProvider.currentUserId()).stream()
+                .map(this::publicUser)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * 创建用户资源。
+     *
+     * @param command 用户创建命令。
+     * @return 新建用户资源。
+     */
+    @Transactional
+    public Map<String, Object> createUser(Map<String, Object> command) {
+        // 通过平台管理仓储创建用户记录。
+        return platformAdminRepository.createUser(command).toMap();
+    }
+
+    /**
+     * 更新用户资源。
+     *
+     * @param id 用户标识。
+     * @param command 用户更新命令。
+     * @return 更新后的用户资源。
+     */
+    @Transactional
+    public Map<String, Object> updateUser(String id, Map<String, Object> command) {
+        // 通过平台管理仓储更新用户记录。
+        return platformAdminRepository.updateUser(id, command).toMap();
+    }
+
+    /**
+     * 删除用户资源。
+     *
+     * @param id 用户标识。
+     */
+    @Transactional
+    public void deleteUser(String id) {
+        // 通过平台管理仓储删除用户记录。
+        platformAdminRepository.deleteUser(id);
+    }
+
+    /**
+     * 查询部门资源列表。
+     *
+     * @return 部门资源列表。
+     */
+    public List<Map<String, Object>> listDepartments() {
+        // 通过平台管理仓储查询部门列表。
+        return maps(platformAdminRepository.listDepartments());
+    }
+
+    /**
+     * 创建部门资源。
+     *
+     * @param command 部门创建命令。
+     * @return 新建部门资源。
+     */
+    @Transactional
+    public Map<String, Object> createDepartment(Map<String, Object> command) {
+        // 通过平台管理仓储创建部门记录。
+        return platformAdminRepository.createDepartment(command).toMap();
+    }
+
+    /**
+     * 更新部门资源。
+     *
+     * @param id 部门标识。
+     * @param command 部门更新命令。
+     * @return 更新后的部门资源。
+     */
+    @Transactional
+    public Map<String, Object> updateDepartment(String id, Map<String, Object> command) {
+        // 通过平台管理仓储更新部门记录。
+        return platformAdminRepository.updateDepartment(id, command).toMap();
+    }
+
+    /**
+     * 删除部门资源。
+     *
+     * @param id 部门标识。
+     */
+    @Transactional
+    public void deleteDepartment(String id) {
+        // 通过平台管理仓储删除部门记录。
+        platformAdminRepository.deleteDepartment(id);
+    }
+
+    /**
+     * 查询角色资源列表。
+     *
+     * @return 角色资源列表。
+     */
+    public List<Map<String, Object>> listRoles() {
+        // 通过平台管理仓储查询角色列表。
+        return maps(platformAdminRepository.listRoles());
+    }
+
+    /**
+     * 创建角色资源。
+     *
+     * @param command 角色创建命令。
+     * @return 新建角色资源。
+     */
+    @Transactional
+    public Map<String, Object> createRole(Map<String, Object> command) {
+        // 通过平台管理仓储创建角色记录。
+        return platformAdminRepository.createRole(command).toMap();
+    }
+
+    /**
+     * 更新角色资源。
+     *
+     * @param id 角色标识。
+     * @param command 角色更新命令。
+     * @return 更新后的角色资源。
+     */
+    @Transactional
+    public Map<String, Object> updateRole(String id, Map<String, Object> command) {
+        // 通过平台管理仓储更新角色记录。
+        return platformAdminRepository.updateRole(id, command).toMap();
+    }
+
+    /**
+     * 删除角色资源。
+     *
+     * @param id 角色标识。
+     */
+    @Transactional
+    public void deleteRole(String id) {
+        // 通过平台管理仓储删除角色记录。
+        platformAdminRepository.deleteRole(id);
+    }
+
+    /**
+     * 查询参数配置资源列表。
+     *
+     * @return 参数配置资源列表。
+     */
+    public List<Map<String, Object>> listConfigurations() {
+        // 通过平台管理仓储查询参数配置列表。
+        return maps(platformAdminRepository.listConfigurations());
+    }
+
+    /**
+     * 创建参数配置资源。
+     *
+     * @param command 参数配置创建命令。
+     * @return 新建参数配置资源。
+     */
+    @Transactional
+    public Map<String, Object> createConfiguration(Map<String, Object> command) {
+        // 通过平台管理仓储创建参数配置记录。
+        return platformAdminRepository.createConfiguration(command).toMap();
+    }
+
+    /**
+     * 更新参数配置资源。
+     *
+     * @param id 参数配置标识。
+     * @param command 参数配置更新命令。
+     * @return 更新后的参数配置资源。
+     */
+    @Transactional
+    public Map<String, Object> updateConfiguration(String id, Map<String, Object> command) {
+        // 通过平台管理仓储更新参数配置记录。
+        return platformAdminRepository.updateConfiguration(id, command).toMap();
+    }
+
+    /**
+     * 删除参数配置资源。
+     *
+     * @param id 参数配置标识。
+     */
+    @Transactional
+    public void deleteConfiguration(String id) {
+        // 通过平台管理仓储删除参数配置记录。
+        platformAdminRepository.deleteConfiguration(id);
+    }
+
+    /**
+     * 查询社交登录渠道资源列表。
+     *
+     * @return 社交登录渠道资源列表。
+     */
+    public List<Map<String, Object>> listSocialProviders() {
+        // 通过平台管理仓储查询社交登录渠道列表。
+        return maps(platformAdminRepository.listSocialProviders());
+    }
+
+    /**
+     * 创建社交登录渠道资源。
+     *
+     * @param command 社交登录渠道创建命令。
+     * @return 新建社交登录渠道资源。
+     */
+    @Transactional
+    public Map<String, Object> createSocialProvider(Map<String, Object> command) {
+        // 通过平台管理仓储创建社交登录渠道记录。
+        return platformAdminRepository.createSocialProvider(command).toMap();
+    }
+
+    /**
+     * 更新社交登录渠道资源。
+     *
+     * @param id 社交登录渠道标识。
+     * @param command 社交登录渠道更新命令。
+     * @return 更新后的社交登录渠道资源。
+     */
+    @Transactional
+    public Map<String, Object> updateSocialProvider(String id, Map<String, Object> command) {
+        // 通过平台管理仓储更新社交登录渠道记录。
+        return platformAdminRepository.updateSocialProvider(id, command).toMap();
+    }
+
+    /**
+     * 删除社交登录渠道资源。
+     *
+     * @param id 社交登录渠道标识。
+     */
+    @Transactional
+    public void deleteSocialProvider(String id) {
+        // 通过平台管理仓储删除社交登录渠道记录。
+        platformAdminRepository.deleteSocialProvider(id);
+    }
+
+    /**
+     * 查询登录日志资源列表。
+     *
+     * @return 登录日志资源列表。
+     */
+    public List<Map<String, Object>> listLoginLogs() {
+        // 通过平台管理仓储查询登录日志列表。
+        return maps(platformAdminRepository.listLoginLogs());
+    }
+
+    /**
+     * 查询租户资源列表。
+     *
+     * @return 租户资源列表。
+     */
+    public List<Map<String, Object>> listTenants() {
+        // 通过平台管理仓储查询租户列表。
+        return maps(platformAdminRepository.listTenants());
+    }
+
+    /**
+     * 查询岗位资源列表。
+     *
+     * @return 岗位资源列表。
+     */
+    public List<Map<String, Object>> listPosts() {
+        // 通过平台管理仓储查询岗位列表。
+        return maps(platformAdminRepository.listPosts());
+    }
+
+    /**
+     * 查询字典类型资源列表。
+     *
+     * @return 字典类型资源列表。
+     */
+    public List<Map<String, Object>> listDictTypes() {
+        // 通过平台管理仓储查询字典类型列表。
+        return maps(platformAdminRepository.listDictTypes());
+    }
+
+    /**
+     * 查询字典数据资源列表。
+     *
+     * @return 字典数据资源列表。
+     */
+    public List<Map<String, Object>> listDictData() {
+        // 通过平台管理仓储查询字典数据列表。
+        return maps(platformAdminRepository.listDictData());
+    }
+
+    /**
+     * 查询通知公告资源列表。
+     *
+     * @return 通知公告资源列表。
+     */
+    public List<Map<String, Object>> listNotices() {
+        // 通过平台管理仓储查询通知公告列表。
+        return maps(platformAdminRepository.listNotices());
+    }
+
+    /**
+     * 查询操作日志资源列表。
+     *
+     * @return 操作日志资源列表。
+     */
+    public List<Map<String, Object>> listOperationLogs() {
+        // 通过平台管理仓储查询操作日志列表。
+        return maps(platformAdminRepository.listOperationLogs());
+    }
+
+    /**
+     * 查询在线会话资源列表。
+     *
+     * @return 在线会话资源列表。
+     */
+    public List<Map<String, Object>> listOnlineSessions() {
+        // 通过平台管理仓储查询在线会话列表。
+        return maps(platformAdminRepository.listOnlineSessions());
+    }
+
+    /**
+     * 查询 OAuth 客户端资源列表。
+     *
+     * @return OAuth 客户端资源列表。
+     */
+    public List<Map<String, Object>> listOauthClients() {
+        // 通过平台管理仓储查询 OAuth 客户端列表。
+        return maps(platformAdminRepository.listOauthClients());
+    }
+
+    /**
+     * 构建菜单树。
+     *
+     * @param menus 菜单平铺列表。
+     * @param includeButtons 是否包含按钮节点。
+     * @return 菜单树。
+     */
+    private List<Map<String, Object>> buildTree(List<Map<String, Object>> menus, boolean includeButtons) {
+        // 创建菜单标识到菜单节点的有序索引。
+        Map<String, Map<String, Object>> byId = new LinkedHashMap<>();
+        // 遍历菜单平铺列表。
+        for (Map<String, Object> menu : menus) {
+            // 读取菜单类型。
+            String type = stringValue(menu.get("type"));
+            // 菜单树隐藏按钮时使用枚举判断节点类型。
+            if (!includeButtons && PlatformMenuType.BUTTON.matches(type)) {
+                // 跳过按钮节点。
+                continue;
+            }
+            // 复制菜单节点，避免直接修改仓储返回对象。
+            Map<String, Object> copy = new LinkedHashMap<>(menu);
+            // 初始化子节点集合。
+            copy.put("children", new ArrayList<Map<String, Object>>());
+            // 将菜单节点放入有序索引。
+            byId.put(stringValue(copy.get("id")), copy);
+        }
+
+        // 创建根节点列表。
+        List<Map<String, Object>> roots = new ArrayList<>();
+        // 遍历已索引菜单节点。
+        for (Map<String, Object> menu : byId.values()) {
+            // 读取父节点标识。
+            String parentId = stringValue(menu.get("parentId"));
+            // 父节点存在时挂载到父节点 children。
+            if (StringUtils.isNotEmpty(parentId) && byId.containsKey(parentId)) {
+                // 将当前节点加入父节点 children。
+                childList(byId.get(parentId)).add(menu);
+            } else {
+                // 父节点不存在时作为根节点。
+                roots.add(menu);
+            }
+        }
+        // 按排序号递归排序菜单树。
+        sortTree(roots);
+        // 返回菜单树根节点。
+        return roots;
+    }
+
+    /**
+     * 读取菜单子节点集合。
+     *
+     * @param menu 菜单节点。
+     * @return 菜单子节点集合。
+     */
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> childList(Map<String, Object> menu) {
+        // 从菜单节点中读取 children 字段并转换为列表。
+        return (List<Map<String, Object>>) menu.get("children");
+    }
+
+    /**
+     * 递归排序菜单树。
+     *
+     * @param menus 菜单节点列表。
+     */
+    private void sortTree(List<Map<String, Object>> menus) {
+        // 按排序号升序排序当前层级节点。
+        menus.sort(Comparator.comparingInt(item -> intValue(item.get("sortNo"))));
+        // 遍历当前层级节点。
+        for (Map<String, Object> menu : menus) {
+            // 递归排序子节点。
+            sortTree(childList(menu));
+        }
+    }
+
+    /**
+     * 将菜单树转换为选择器树。
+     *
+     * @param tree 菜单树。
+     * @return 选择器树。
+     */
+    private List<Map<String, Object>> toTreeSelect(List<Map<String, Object>> tree) {
+        // 创建选择器节点结果列表。
+        List<Map<String, Object>> result = new ArrayList<>();
+        // 遍历菜单树节点。
+        for (Map<String, Object> item : tree) {
+            // 创建选择器节点。
+            Map<String, Object> node = new LinkedHashMap<>();
+            // 写入节点标识。
+            node.put("id", item.get("id"));
+            // 写入节点展示名称。
+            node.put("label", item.get("name"));
+            // 写入节点类型。
+            node.put("type", item.get("type"));
+            // 递归写入子节点。
+            node.put("children", toTreeSelect(childList(item)));
+            // 加入选择器节点结果列表。
+            result.add(node);
+        }
+        // 返回选择器树。
+        return result;
+    }
+
+    /**
+     * 校验原始密码是否匹配密码摘要。
+     *
+     * @param rawPassword 原始密码。
+     * @param passwordHash 密码摘要。
+     * @return 是否匹配。
+     */
+    private boolean matches(String rawPassword, String passwordHash) {
+        // BCrypt 摘要交给 Spring PasswordEncoder 校验。
+        if (passwordHash.startsWith("$2")) {
+            // 返回 BCrypt 密码校验结果。
+            return passwordEncoder.matches(rawPassword, passwordHash);
+        }
+        // 兼容历史明文密码数据。
+        return rawPassword.equals(passwordHash);
+    }
+
+    /**
+     * 过滤用户敏感字段。
+     *
+     * @param user 用户字段集合。
+     * @return 不包含敏感字段的用户字段集合。
+     */
+    private Map<String, Object> publicUser(Map<String, Object> user) {
+        // 复制用户字段集合。
+        Map<String, Object> result = new LinkedHashMap<>(user);
+        // 移除密码摘要字段。
+        result.remove("passwordHash");
+        // 返回安全用户字段集合。
+        return result;
+    }
+
+    /**
+     * 转换旧版外观主题偏好。
+     *
+     * @param preference 旧版外观主题偏好。
+     * @return 新版外观偏好。
+     */
+    private Map<String, Object> legacyAppearanceResult(Map<String, Object> preference) {
+        // 读取旧版主题值。
+        String legacyTheme = stringValue(preference.get("preferenceValue"));
+        // 将旧版主题映射为新版外观偏好结构。
+        return appearanceResult(
+                DEFAULT_COLOR_MODE.getCode(),
+                !LEGACY_PROFESSIONAL_THEME.equals(legacyTheme),
+                DEFAULT_ACCENT_COLOR,
+                LEGACY_PROFESSIONAL_THEME.equals(legacyTheme)
+                        ? AppearanceVisualStyle.FLAT.getCode()
+                        : DEFAULT_VISUAL_STYLE.getCode()
+                );
+    }
+
+    /**
+     * 构建外观偏好返回结构。
+     *
+     * @param colorMode 颜色模式。
+     * @param fluidEnabled 是否启用流体布局。
+     * @param accentColor 强调色。
+     * @param visualStyle 视觉风格。
+     * @return 外观偏好返回结构。
+     */
+    private Map<String, Object> appearanceResult(
+            String colorMode,
+            boolean fluidEnabled,
+            String accentColor,
+            String visualStyle
+    ) {
+        // 创建外观偏好返回结构。
+        Map<String, Object> result = new LinkedHashMap<>();
+        // 写入颜色模式。
+        result.put("colorMode", colorMode);
+        // 写入流体布局开关。
+        result.put("fluidEnabled", fluidEnabled);
+        // 写入规范化后的强调色。
+        result.put("accentColor", normalizeAccentColor(accentColor));
+        // 写入规范化后的视觉风格。
+        result.put("visualStyle", normalizeVisualStyle(visualStyle));
+        // 返回外观偏好结构。
+        return result;
+    }
+
+    /**
+     * 规范化视觉风格。
+     *
+     * @param visualStyle 视觉风格。
+     * @return 规范化后的视觉风格。
+     */
+    private String normalizeVisualStyle(String visualStyle) {
+        // 使用视觉风格枚举校验并规范化视觉风格编码。
+        return AppearanceVisualStyle.fromCode(visualStyle)
+                .orElse(DEFAULT_VISUAL_STYLE)
+                .getCode();
+    }
+
+    /**
+     * 规范化强调色。
+     *
+     * @param accentColor 强调色。
+     * @return 规范化后的强调色。
+     */
+    private String normalizeAccentColor(String accentColor) {
+        // 强调色存在时进行格式校验。
+        if (accentColor != null) {
+            // 去除强调色两侧空白。
+            String trimmed = accentColor.trim();
+            // 强调色符合十六进制色值格式时返回小写形式。
+            if (ACCENT_COLOR_PATTERN.matcher(trimmed).matches()) {
+                // 返回小写强调色。
+                return trimmed.toLowerCase();
+            }
+        }
+        // 强调色无效时返回默认强调色。
+        return DEFAULT_ACCENT_COLOR;
+    }
+
+    /**
+     * 构建默认管理员兜底用户。
+     *
+     * @return 默认管理员兜底用户。
+     */
+    private Map<String, Object> fallbackUser() {
+        // 创建默认管理员字段集合。
+        Map<String, Object> user = new HashMap<>();
+        // 写入默认管理员标识。
+        user.put("id", DEFAULT_ADMIN_USER_ID);
+        // 写入默认管理员用户名。
+        user.put("username", "admin");
+        // 写入默认管理员昵称。
+        user.put("nickname", "超级管理员");
+        // 写入默认租户标识。
+        user.put("tenantId", "1");
+        // 写入默认部门标识。
+        user.put("deptId", "1");
+        // 写入默认用户状态。
+        user.put("status", UserStatus.ACTIVE.name());
+        // 写入兜底记录创建时间。
+        user.put("createTime", Instant.now().toString());
+        // 返回默认管理员字段集合。
+        return user;
+    }
+
+    /**
+     * 解析用户标识。
+     *
+     * @param userId 用户标识。
+     * @return 解析后的用户标识。
+     */
+    private String resolvedUserId(String userId) {
+        // 将用户标识转换为去空白字符串。
+        String resolved = stringValue(userId);
+        // 用户标识为空时使用默认管理员标识。
+        return StringUtils.isEmpty(resolved) ? DEFAULT_ADMIN_USER_ID : resolved;
+    }
+
+    /**
+     * 按当前用户数据权限过滤用户列表。
+     *
+     * @param users 用户列表。
+     * @param currentUserId 当前用户标识。
+     * @return 数据权限过滤后的用户列表。
+     */
+    private List<Map<String, Object>> filterUsersByDataScope(
+            List<Map<String, Object>> users,
+            String currentUserId
+    ) {
+        // 解析当前用户标识。
+        String userId = resolvedUserId(currentUserId);
+        // 查询当前用户数据权限范围。
+        String scope = resolveDataScope(userId);
+        // 全部数据权限直接返回用户列表。
+        if (DataScope.ALL.matches(scope)) {
+            // 返回未过滤的用户列表。
+            return users;
+        }
+        // 本人数据权限仅保留当前用户。
+        if (DataScope.SELF.matches(scope)) {
+            // 过滤出当前用户记录。
+            return users.stream()
+                    .filter(user -> userId.equals(stringValue(user.get("id"))))
+                    .collect(java.util.stream.Collectors.toList());
+        }
+
+        // 查询当前用户资料。
+        Map<String, Object> currentUser = platformAdminRepository.findUserById(userId)
+                .map(DomainRecord::toMap)
+                .orElse(Collections.emptyMap());
+        // 读取当前用户部门标识。
+        String currentDeptId = stringValue(currentUser.get("deptId"));
+        // 创建允许访问的部门标识集合。
+        Set<String> allowedDeptIds = new HashSet<>();
+        // 自定义数据权限读取角色绑定部门。
+        if (DataScope.CUSTOM.matches(scope)) {
+            // 加入自定义授权部门标识。
+            allowedDeptIds.addAll(platformAdminRepository.listCustomDeptIdsByUserId(userId));
+        } else if (DataScope.DEPT.matches(scope) || DataScope.DEPT_AND_CHILD.matches(scope)) {
+            // 部门数据权限先加入当前部门。
+            if (StringUtils.isNotEmpty(currentDeptId)) {
+                // 加入当前部门标识。
+                allowedDeptIds.add(currentDeptId);
+            }
+            // 部门及以下数据权限继续收集子部门。
+            if (DataScope.DEPT_AND_CHILD.matches(scope)) {
+                // 递归收集子部门标识。
+                collectChildDeptIds(currentDeptId, allowedDeptIds);
+            }
+        }
+        // 按允许部门集合过滤用户列表。
+        return users.stream()
+                .filter(user -> allowedDeptIds.contains(stringValue(user.get("deptId"))))
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * 收集指定部门下的所有子部门标识。
+     *
+     * @param rootDeptId 根部门标识。
+     * @param deptIds 部门标识集合。
+     */
+    private void collectChildDeptIds(String rootDeptId, Set<String> deptIds) {
+        // 根部门为空时无需继续收集。
+        if (StringUtils.isEmpty(rootDeptId)) {
+            // 直接结束子部门收集。
+            return;
+        }
+        // 查询全部部门记录。
+        List<Map<String, Object>> departments = maps(platformAdminRepository.listDepartments());
+        // 声明本轮是否有新增部门。
+        boolean changed;
+        // 循环扩展部门集合直到不再新增。
+        do {
+            // 默认本轮没有新增部门。
+            changed = false;
+            // 遍历全部部门记录。
+            for (Map<String, Object> department : departments) {
+                // 读取部门标识。
+                String id = stringValue(department.get("id"));
+                // 读取父部门标识。
+                String parentId = stringValue(department.get("parentId"));
+                // 父部门已允许且当前部门首次加入时标记发生变化。
+                if (deptIds.contains(parentId) && deptIds.add(id)) {
+                    // 标记本轮新增了部门。
+                    changed = true;
+                }
+            }
+            // 存在新增部门时继续下一轮扩展。
+        } while (changed);
+    }
+
+    /**
+     * 解析用户数据权限范围。
+     *
+     * @param userId 用户标识。
+     * @return 数据权限范围编码。
+     */
+    private String resolveDataScope(String userId) {
+        // 默认管理员拥有全部数据权限。
+        if (DEFAULT_ADMIN_USER_ID.equals(userId)) {
+            // 返回全部数据权限编码。
+            return DataScope.ALL.getCode();
+        }
+        // 查询用户关联角色的数据权限编码列表。
+        List<String> scopes = platformAdminRepository.listDataScopesByUserId(userId);
+        // 使用数据权限枚举解析最高权限范围。
+        return DataScope.resolve(scopes).getCode();
+    }
+
+    /**
+     * 将对象转换为去空白字符串。
+     *
+     * @param value 原始值。
+     * @return 去空白字符串。
+     */
+    private String stringValue(Object value) {
+        // 空值转换为空字符串，非空值转换为字符串并去除两侧空白。
+        return value == null ? "" : String.valueOf(value).trim();
+    }
+
+    /**
+     * 将对象转换为整数。
+     *
+     * @param value 原始值。
+     * @return 整数值。
+     */
+    private int intValue(Object value) {
+        // 数字类型直接读取整数值。
+        if (value instanceof Number) {
+            // 返回数字对象的整数值。
+            return ((Number) value).intValue();
+        }
+        // 尝试按字符串解析整数。
+        try {
+            // 返回字符串解析后的整数。
+            return Integer.parseInt(stringValue(value));
+        } catch (NumberFormatException ignored) {
+            // 解析失败时返回默认排序值。
+            return 0;
+        }
+    }
+
+    /**
+     * 将对象转换为布尔值。
+     *
+     * @param value 原始值。
+     * @param fieldName 字段名。
+     * @return 布尔值。
+     */
+    private boolean booleanValue(Object value, String fieldName) {
+        // 布尔类型直接返回。
+        if (value instanceof Boolean) {
+            // 返回原始布尔值。
+            return (Boolean) value;
+        }
+        // 将原始值转换为字符串。
+        String text = stringValue(value);
+        // true 或 false 字符串按忽略大小写方式解析。
+        if ("true".equalsIgnoreCase(text) || "false".equalsIgnoreCase(text)) {
+            // 返回字符串解析后的布尔值。
+            return Boolean.parseBoolean(text);
+        }
+        // 无法解析为布尔值时抛出参数异常。
+        throw new IllegalArgumentException(fieldName + " 必须是布尔值");
+    }
+
+    /**
+     * 将领域记录列表转换为字段 Map 列表。
+     *
+     * @param records 领域记录列表。
+     * @return 字段 Map 列表。
+     */
+    private List<Map<String, Object>> maps(List<DomainRecord> records) {
+        // 逐条导出领域记录的字段副本。
+        return records.stream().map(DomainRecord::toMap).collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * 将领域记录 Optional 转换为字段 Map Optional。
+     *
+     * @param record 领域记录 Optional。
+     * @return 字段 Map Optional。
+     */
+    private Optional<Map<String, Object>> optionalMap(Optional<DomainRecord> record) {
+        // 在记录存在时导出字段副本。
+        return record.map(DomainRecord::toMap);
+    }
+
+    /**
+     * 外观颜色模式枚举。
+     */
+    private enum AppearanceColorMode {
+
+        /**
+         * 浅色模式。
+         */
+        LIGHT("light"),
+
+        /**
+         * 深色模式。
+         */
+        DARK("dark"),
+
+        /**
+         * 跟随系统模式。
+         */
+        SYSTEM("system");
+
+        /**
+         * 颜色模式编码。
+         */
+        private final String code;
+
+        /**
+         * 绑定颜色模式编码。
+         *
+         * @param code 颜色模式编码。
+         */
+        AppearanceColorMode(String code) {
+            // 保存颜色模式编码。
+            this.code = code;
+        }
+
+        /**
+         * 根据编码解析颜色模式。
+         *
+         * @param code 颜色模式编码。
+         * @return 颜色模式枚举。
+         */
+        private static Optional<AppearanceColorMode> fromCode(String code) {
+            // 遍历全部颜色模式枚举。
+            for (AppearanceColorMode colorMode : values()) {
+                // 命中颜色模式编码时返回枚举值。
+                if (colorMode.code.equals(code)) {
+                    // 返回匹配到的颜色模式枚举。
+                    return Optional.of(colorMode);
+                }
+            }
+            // 未命中颜色模式编码时返回空值。
+            return Optional.empty();
+        }
+
+        /**
+         * 获取颜色模式编码。
+         *
+         * @return 颜色模式编码。
+         */
+        private String getCode() {
+            // 返回当前颜色模式编码。
+            return code;
+        }
+    }
+
+    /**
+     * 外观视觉风格枚举。
+     */
+    private enum AppearanceVisualStyle {
+
+        /**
+         * 扁平风格。
+         */
+        FLAT("flat"),
+
+        /**
+         * 玻璃风格。
+         */
+        GLASS("glass");
+
+        /**
+         * 视觉风格编码。
+         */
+        private final String code;
+
+        /**
+         * 绑定视觉风格编码。
+         *
+         * @param code 视觉风格编码。
+         */
+        AppearanceVisualStyle(String code) {
+            // 保存视觉风格编码。
+            this.code = code;
+        }
+
+        /**
+         * 根据编码解析视觉风格。
+         *
+         * @param code 视觉风格编码。
+         * @return 视觉风格枚举。
+         */
+        private static Optional<AppearanceVisualStyle> fromCode(String code) {
+            // 遍历全部视觉风格枚举。
+            for (AppearanceVisualStyle visualStyle : values()) {
+                // 命中视觉风格编码时返回枚举值。
+                if (visualStyle.code.equals(code)) {
+                    // 返回匹配到的视觉风格枚举。
+                    return Optional.of(visualStyle);
+                }
+            }
+            // 未命中视觉风格编码时返回空值。
+            return Optional.empty();
+        }
+
+        /**
+         * 获取视觉风格编码。
+         *
+         * @return 视觉风格编码。
+         */
+        private String getCode() {
+            // 返回当前视觉风格编码。
+            return code;
+        }
+    }
+}

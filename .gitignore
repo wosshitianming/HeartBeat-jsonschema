@@ -1,0 +1,35 @@
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+*.releaseBackup
+pom.xml.tag
+pom.xml.next
+release.properties
+
+# Node / frontend
+node_modules/
+dist/
+coverage/
+.npm-cache/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+
+# Logs & runtime
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local upload metadata
+.upload-git/
+.superpowers/

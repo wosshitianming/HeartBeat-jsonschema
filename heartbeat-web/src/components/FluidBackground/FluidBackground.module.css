@@ -1,0 +1,107 @@
+.backgroundContainer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: #101116;
+  pointer-events: none;
+}
+
+.webglMode {
+  background: transparent;
+}
+
+.webglLayer {
+  position: absolute;
+  inset: 0;
+}
+
+.webglLayer :global(.glass-fluid-canvas) {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.92;
+  transform: translateZ(0);
+  will-change: transform, border-radius;
+}
+
+.blobPrimary {
+  top: -18vw;
+  left: -12vw;
+  width: clamp(420px, 50vw, 920px);
+  height: clamp(420px, 50vw, 920px);
+  background:
+    radial-gradient(circle at 44% 42%, rgba(40, 178, 255, 0.2), rgba(43, 97, 210, 0.11) 38%, transparent 70%);
+  animation: liquidMorph 22s ease-in-out infinite alternate;
+}
+
+.blobSecondary {
+  right: -12vw;
+  bottom: -18vw;
+  width: clamp(360px, 42vw, 760px);
+  height: clamp(360px, 42vw, 760px);
+  background:
+    radial-gradient(circle at 46% 48%, rgba(132, 66, 245, 0.16), rgba(58, 123, 213, 0.08) 42%, transparent 72%);
+  animation: liquidMorph 28s ease-in-out infinite alternate-reverse;
+}
+
+:global(:root[data-color-scheme="light"]) .backgroundContainer {
+  background: #eef2f7;
+}
+
+:global(:root[data-color-scheme="light"]) .blobPrimary {
+  opacity: 0.72;
+  background:
+    radial-gradient(circle at 44% 42%, rgba(55, 167, 255, 0.2), rgba(105, 163, 255, 0.1) 40%, transparent 70%);
+}
+
+:global(:root[data-color-scheme="light"]) .blobSecondary {
+  opacity: 0.62;
+  background:
+    radial-gradient(circle at 46% 48%, rgba(156, 110, 255, 0.16), rgba(102, 157, 255, 0.08) 42%, transparent 72%);
+}
+
+@keyframes liquidMorph {
+  0% {
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+  }
+
+  100% {
+    border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+    transform: translate3d(3vw, 2vh, 0) rotate(82deg) scale(1.08);
+  }
+}
+
+@media (max-width: 720px) {
+  .blob {
+    filter: blur(48px);
+  }
+
+  .blobPrimary {
+    top: -20vh;
+    left: -45vw;
+    width: 100vw;
+    height: 100vw;
+  }
+
+  .blobSecondary {
+    right: -48vw;
+    bottom: -16vh;
+    width: 94vw;
+    height: 94vw;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blobPrimary,
+  .blobSecondary {
+    animation: none;
+  }
+}

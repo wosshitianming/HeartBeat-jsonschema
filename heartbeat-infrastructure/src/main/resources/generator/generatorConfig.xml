@@ -1,0 +1,407 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE generatorConfiguration PUBLIC "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN"
+        "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
+
+<!--
+  MyBatis Generator 配置文件（互联网大厂风格）
+
+  使用方式：
+  1. 修改 jdbc.url / jdbc.username / jdbc.password 指向目标数据库
+  2. 修改 tableName / domainObjectName 指向需要生成的表
+  3. 运行：mvn mybatis-generator:generate
+       或 mvn -pl heartbeat-infrastructure mybatis-generator:generate
+
+  生成产物：
+  - DO：           top.kx.heartbeat.infrastructure.persistence.entity.gen.*DO
+  - Example：      同上包下 *Example（Criteria 内嵌）
+  - Mapper 接口：  top.kx.heartbeat.infrastructure.persistence.mapper.gen.*DOMapper
+  - XML：          heartbeat-infrastructure/src/main/resources/mapper-xml/gen/*Mapper.xml
+
+  生成物走 .gen 子包，与手写代码物理隔离，避免相互覆盖。
+
+  注意事项：
+  - 在 navicat/mysql 命令行确认库 heartbeat 已存在且包含相应表
+  - generatorConfig.xml 默认 UTF-8，中文注释无乱码
+  - 重新生成前先清空 mapper-xml/gen/ 与 entity/gen、mapper/gen/ 目录（谨慎）
+-->
+<generatorConfiguration>
+
+    <context id="Mysql" targetRuntime="MyBatis3" defaultModelType="flat">
+
+        <!-- 全表 Example/Criteria 启用（plugin 必须在 commentGenerator 之前） -->
+        <plugin type="org.mybatis.generator.plugins.SerializablePlugin"/>
+        <plugin type="org.mybatis.generator.plugins.ToStringPlugin"/>
+        <plugin type="org.mybatis.generator.plugins.EqualsHashCodePlugin"/>
+        <plugin type="org.mybatis.generator.plugins.CaseInsensitiveLikePlugin"/>
+        <plugin type="org.mybatis.generator.plugins.RowBoundsPlugin"/>
+
+        <!-- 注释生成策略：保留 Javadoc 注释，便于阅读 -->
+        <commentGenerator>
+            <property name="suppressAllComments" value="false"/>
+            <property name="suppressDate" value="true"/>
+            <property name="addRemarkComments" value="true"/>
+        </commentGenerator>
+
+        <!-- 数据库连接（dev profile：192.168.204.12:31103 / test_v1） -->
+        <jdbcConnection
+                driverClass="com.mysql.cj.jdbc.Driver"
+                connectionURL="jdbc:mysql://192.168.204.12:31103/test_v1?useUnicode=true&amp;characterEncoding=UTF-8&amp;serverTimezone=Asia/Shanghai&amp;useSSL=false&amp;allowPublicKeyRetrieval=true"
+                userId="root"
+                password="Ds2Uj4g5hiU6nd0">
+            <!-- MySQL 8.x 需要加此属性 -->
+            <property name="nullCatalogMeansCurrent" value="true"/>
+        </jdbcConnection>
+
+        <!-- 非渐增模式（推荐使用 UUID 或数据库自增） -->
+        <javaTypeResolver>
+            <property name="forceBigDecimals" value="false"/>
+            <property name="useJSR310Types" value="true"/>
+        </javaTypeResolver>
+
+        <!-- DO 实体类生成策略：.gen 子包隔离（cwd = heartbeat-infrastructure） -->
+        <javaModelGenerator targetPackage="top.kx.heartbeat.infrastructure.persistence.entity.gen"
+                           targetProject="src/main/java">
+            <property name="useActualParamNames" value="true"/>
+            <property name="constructorBased" value="false"/>
+            <property name="enableSubPackages" value="false"/>
+            <property name="trimStrings" value="true"/>
+        </javaModelGenerator>
+
+        <!-- Mapper XML 生成策略 -->
+        <sqlMapGenerator targetPackage="mapper-xml/gen"
+                         targetProject="src/main/resources">
+            <property name="enableSubPackages" value="false"/>
+        </sqlMapGenerator>
+
+        <!-- Mapper 接口生成策略：.gen 子包，避免覆盖自写自定义 BaseMapper；XMLMAPPER 才会生成 xml -->
+        <javaClientGenerator type="XMLMAPPER"
+                             targetPackage="top.kx.heartbeat.infrastructure.persistence.mapper.gen"
+                             targetProject="src/main/java">
+            <property name="enableSubPackages" value="false"/>
+            <property name="exampleMethodVisibility" value="public"/>
+            <property name="methodNameCalculator" value="default"/>
+        </javaClientGenerator>
+
+        <!-- ======================= 表配置区（按需添加） ======================= -->
+        <!-- ======================= 平台 / IAM / 审计 / 调度 / 可靠事件表 ======================= -->
+        <table tableName="sys_tenant_plan" domainObjectName="SysTenantPlanDO"
+               mapperName="SysTenantPlanDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+        </table>
+
+        <table tableName="sys_tenant" domainObjectName="SysTenantDO"
+               mapperName="SysTenantDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+        </table>
+
+        <table tableName="sys_dept" domainObjectName="SysDeptDO"
+               mapperName="SysDeptDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+        </table>
+
+        <table tableName="sys_user" domainObjectName="SysUserDO"
+               mapperName="SysUserDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+        </table>
+
+        <table tableName="sys_role" domainObjectName="SysRoleDO"
+               mapperName="SysRoleDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+        </table>
+
+        <table tableName="sys_permission" domainObjectName="SysPermissionDO"
+               mapperName="SysPermissionDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+        </table>
+
+        <table tableName="sys_menu" domainObjectName="SysMenuDO"
+               mapperName="SysMenuDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+        </table>
+
+        <table tableName="sys_user_role" domainObjectName="SysUserRoleDO"
+               mapperName="SysUserRoleDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+        </table>
+
+        <table tableName="sys_role_permission" domainObjectName="SysRolePermissionDO"
+               mapperName="SysRolePermissionDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+        </table>
+
+        <table tableName="sys_menu_permission" domainObjectName="SysMenuPermissionDO"
+               mapperName="SysMenuPermissionDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+        </table>
+
+        <table tableName="sys_config" domainObjectName="SysConfigDO"
+               mapperName="SysConfigDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+        </table>
+
+        <table tableName="sys_oper_log" domainObjectName="SysOperLogDO"
+               mapperName="SysOperLogDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+        </table>
+
+        <table tableName="auth_social_provider" domainObjectName="AuthSocialProviderDO"
+               mapperName="AuthSocialProviderDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+        </table>
+
+        <table tableName="sys_job" domainObjectName="SysJobDO"
+               mapperName="SysJobDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+        </table>
+
+        <table tableName="flow_wait_state" domainObjectName="FlowWaitStateDO"
+               mapperName="FlowWaitStateDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+        </table>
+
+        <table tableName="sys_outbox_event" domainObjectName="SysOutboxEventDO"
+               mapperName="SysOutboxEventDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+        </table>
+
+        <table tableName="sys_inbox_event" domainObjectName="SysInboxEventDO"
+               mapperName="SysInboxEventDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+        </table>
+
+        <!-- 演示：先跑一张表 hb_flow_definition -->
+        <table tableName="hb_flow_definition"
+               domainObjectName="HbFlowDefinitionDO"
+               mapperName="HbFlowDefinitionDOMapper"
+               enableCountByExample="true"
+               enableUpdateByExample="true"
+               enableDeleteByExample="true"
+               enableSelectByExample="true"
+               selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+            <columnOverride column="dsl_json" property="dslJson"/>
+        </table>
+
+        <!-- 全量 hb_ 前缀表（按 dev/test_v1 实际查到的 6 张全打开） -->
+        <table tableName="hb_flow_version" domainObjectName="HbFlowVersionDO"
+               mapperName="HbFlowVersionDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+            <columnOverride column="dsl_json" property="dslJson"/>
+        </table>
+
+        <table tableName="hb_flow_run" domainObjectName="HbFlowRunDO"
+               mapperName="HbFlowRunDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+        </table>
+
+        <table tableName="hb_flow_run_event" domainObjectName="HbFlowRunEventDO"
+               mapperName="HbFlowRunEventDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+        </table>
+
+        <table tableName="hb_node_component" domainObjectName="HbNodeComponentDO"
+               mapperName="HbNodeComponentDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+        </table>
+
+        <table tableName="hb_connection_credential" domainObjectName="HbConnectionCredentialDO"
+               mapperName="HbConnectionCredentialDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+            <columnOverride column="config_json" property="configJson"/>
+            <columnOverride column="secret_json" property="secretJson"/>
+        </table>
+
+        <!-- ======================= 工作流表 ======================= -->
+        <table tableName="wf_process_definition" domainObjectName="WfProcessDefinitionDO"
+               mapperName="WfProcessDefinitionDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+            <columnOverride column="form_schema" property="formSchema"/>
+        </table>
+
+        <table tableName="wf_process_instance" domainObjectName="WfProcessInstanceDO"
+               mapperName="WfProcessInstanceDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+            <columnOverride column="payload" property="payload"/>
+        </table>
+
+        <table tableName="wf_task" domainObjectName="WfTaskDO"
+               mapperName="WfTaskDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+        </table>
+
+        <table tableName="wf_task_action" domainObjectName="WfTaskActionDO"
+               mapperName="WfTaskActionDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+        </table>
+
+        <!-- ======================= 结构化定义表 ======================= -->
+        <table tableName="structure_definition" domainObjectName="StructureDefinitionDO"
+               mapperName="StructureDefinitionDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+        </table>
+
+        <table tableName="structure_version" domainObjectName="StructureVersionDO"
+               mapperName="StructureVersionDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+            <columnOverride column="structure_model" property="structureModel"/>
+            <columnOverride column="generation_config" property="generationConfig"/>
+            <columnOverride column="field_overrides" property="fieldOverrides"/>
+            <columnOverride column="artifacts" property="artifacts"/>
+            <columnOverride column="warnings" property="warnings"/>
+            <columnOverride column="sample_digest" property="sampleDigest"/>
+        </table>
+
+        <table tableName="structure_draft" domainObjectName="StructureDraftDO"
+               mapperName="StructureDraftDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+            <columnOverride column="structure_model" property="structureModel"/>
+            <columnOverride column="generation_config" property="generationConfig"/>
+            <columnOverride column="field_overrides" property="fieldOverrides"/>
+            <columnOverride column="artifacts" property="artifacts"/>
+            <columnOverride column="warnings" property="warnings"/>
+            <columnOverride column="sample_digest" property="sampleDigest"/>
+        </table>
+
+        <table tableName="structure_artifact" domainObjectName="StructureArtifactDO"
+               mapperName="StructureArtifactDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+            <columnOverride column="artifact_json" property="artifactJson"/>
+        </table>
+
+        <table tableName="structure_publish_audit" domainObjectName="StructurePublishAuditDO"
+               mapperName="StructurePublishAuditDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+        </table>
+
+        <!-- ======================= 报表表 ======================= -->
+        <table tableName="report_dataset" domainObjectName="ReportDatasetDO"
+               mapperName="ReportDatasetDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+            <columnOverride column="query_sql" property="querySql" javaType="java.lang.String" jdbcType="VARCHAR"/>
+            <columnOverride column="params_json" property="paramsJson" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        </table>
+
+        <table tableName="report_template" domainObjectName="ReportTemplateDO"
+               mapperName="ReportTemplateDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+            <columnOverride column="template_key" property="templateKey"/>
+            <columnOverride column="template_json" property="templateJson"/>
+        </table>
+
+        <table tableName="report_query_log" domainObjectName="ReportQueryLogDO"
+               mapperName="ReportQueryLogDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+            <columnOverride column="params_json" property="paramsJson"/>
+        </table>
+
+        <!-- ======================= 移动端表 ======================= -->
+        <table tableName="mobile_app" domainObjectName="MobileAppDO"
+               mapperName="MobileAppDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+            <columnOverride column="app_key" property="appKey"/>
+            <columnOverride column="entry_url" property="entryUrl"/>
+            <columnOverride column="config_json" property="configJson"/>
+        </table>
+
+        <table tableName="mobile_page" domainObjectName="MobilePageDO"
+               mapperName="MobilePageDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+            <columnOverride column="page_key" property="pageKey"/>
+            <columnOverride column="route_path" property="routePath"/>
+            <columnOverride column="schema_json" property="schemaJson"/>
+            <columnOverride column="sort_no" property="sortNo"/>
+        </table>
+
+        <table tableName="mobile_api_route" domainObjectName="MobileApiRouteDO"
+               mapperName="MobileApiRouteDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+            <columnOverride column="route_key" property="routeKey"/>
+            <columnOverride column="target_url" property="targetUrl"/>
+            <columnOverride column="sort_no" property="sortNo"/>
+        </table>
+
+        <table tableName="mobile_app_version" domainObjectName="MobileAppVersionDO"
+               mapperName="MobileAppVersionDOMapper"
+               enableCountByExample="true" enableUpdateByExample="true"
+               enableDeleteByExample="true" enableSelectByExample="true" selectByExampleQueryId="true">
+            <generatedKey column="id" sqlStatement="JDBC"/>
+            <columnOverride column="schema_json" property="schemaJson"/>
+            <columnOverride column="published_at" property="publishedAt"/>
+        </table>
+
+    </context>
+</generatorConfiguration>

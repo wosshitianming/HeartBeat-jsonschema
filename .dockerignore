@@ -1,0 +1,23 @@
+# Build outputs
+target/
+**/target/
+
+# Frontend
+heartbeat-web/node_modules/
+heartbeat-web/dist/
+
+# IDE & VCS
+.git/
+.gitignore
+.idea/
+.vscode/
+*.iml
+
+# Docs & local tooling
+docs/
+.superpowers/
+*.md
+!README.md
+
+# Tests & scripts (not needed in image)
+**/src/test/

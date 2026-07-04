@@ -1,0 +1,2 @@
+org.springframework.boot.autoconfigure.AutoConfigurationImportFilter=\
+top.kx.heartbeat.infrastructure.config.MiddlewareAutoConfigurationImportFilter

@@ -1,0 +1,77 @@
+genXml: D:\Desktop\自定义文件夹\HeartBeat-jsonschema\heartbeat-infrastructure\src\main\resources\mapper-xml\gen
+  subdirs created
+  collected 69 xml files
+  AuthClientGrantDOMapper.xml -> auth/
+  AuthClientRedirectUriDOMapper.xml -> auth/
+  AuthOauthClientDOMapper.xml -> auth/
+  AuthSessionDOMapper.xml -> auth/
+  AuthSocialBindingDOMapper.xml -> auth/
+  AuthSocialProviderDOMapper.xml -> auth/
+  FlowWaitStateDOMapper.xml -> event/
+  HbConnectionCredentialDOMapper.xml -> flow/
+  HbFlowDefinitionDOMapper.xml -> flow/
+  HbFlowRunDOMapper.xml -> flow/
+  HbFlowRunEventDOMapper.xml -> flow/
+  HbFlowVersionDOMapper.xml -> flow/
+  HbNodeComponentDOMapper.xml -> flow/
+  MobileApiRouteDOMapper.xml -> mobile/
+  MobileAppDOMapper.xml -> mobile/
+  MobileAppVersionDOMapper.xml -> mobile/
+  MobilePageDOMapper.xml -> mobile/
+  MpAccountDOMapper.xml -> mp/
+  MpAutoReplyDOMapper.xml -> mp/
+  MpMaterialDOMapper.xml -> mp/
+  MpMenuDOMapper.xml -> mp/
+  MpSyncLogDOMapper.xml -> mp/
+  PayChannelDOMapper.xml -> pay/
+  PayNotifyLogDOMapper.xml -> pay/
+  PayOrderDOMapper.xml -> pay/
+  PayRefundDOMapper.xml -> pay/
+  PayTransactionDOMapper.xml -> pay/
+  ReportDatasetDOMapper.xml -> report/
+  ReportDatasourceDOMapper.xml -> report/
+  ReportExportTaskDOMapper.xml -> report/
+  ReportQueryLogDOMapper.xml -> report/
+  ReportTemplateDOMapper.xml -> report/
+  StructureArtifactDOMapper.xml -> structure/
+  StructureDefinitionDOMapper.xml -> structure/
+  StructureDraftDOMapper.xml -> structure/
+  StructurePublishAuditDOMapper.xml -> structure/
+  StructureVersionDOMapper.xml -> structure/
+  SysConfigDOMapper.xml -> sys/
+  SysDeptDOMapper.xml -> sys/
+  SysDictItemDOMapper.xml -> sys/
+  SysDictTypeDOMapper.xml -> sys/
+  SysGenColumnDOMapper.xml -> sys/
+  SysGenTableDOMapper.xml -> sys/
+  SysInboxEventDOMapper.xml -> event/
+  SysJobDOMapper.xml -> sys/
+  SysJobLogDOMapper.xml -> sys/
+  SysLoginLogDOMapper.xml -> sys/
+  SysMenuDOMapper.xml -> sys/
+  SysMenuPermissionDOMapper.xml -> sys/
+  SysNoticeDOMapper.xml -> sys/
+  SysOperLogDOMapper.xml -> sys/
+  SysOutboxEventDOMapper.xml -> event/
+  SysPermissionDOMapper.xml -> sys/
+  SysPlanFeatureDOMapper.xml -> sys/
+  SysPostDOMapper.xml -> sys/
+  SysRoleDeptDOMapper.xml -> sys/
+  SysRoleDOMapper.xml -> sys/
+  SysRolePermissionDOMapper.xml -> sys/
+  SysTenantDOMapper.xml -> sys/
+  SysTenantFeatureDOMapper.xml -> sys/
+  SysTenantPlanDOMapper.xml -> sys/
+  SysUserDOMapper.xml -> sys/
+  SysUserPostDOMapper.xml -> sys/
+  SysUserPreferenceDOMapper.xml -> sys/
+  SysUserRoleDOMapper.xml -> sys/
+  WfProcessDefinitionDOMapper.xml -> workflow/
+  WfProcessInstanceDOMapper.xml -> workflow/
+  WfTaskActionDOMapper.xml -> workflow/
+  WfTaskDOMapper.xml -> workflow/
+
+=== Delete gen dir ===
+  done
+
+=== DONE ===

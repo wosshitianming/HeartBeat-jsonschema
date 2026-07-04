@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: heartbeat-web
+  namespace: heartbeat
+  labels:
+    app: heartbeat
+    component: web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: heartbeat
+      component: web
+  template:
+    metadata:
+      labels:
+        app: heartbeat
+        component: web
+    spec:
+      containers:
+        - name: heartbeat-web
+          image: heartbeat-web:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: heartbeat-web
+  namespace: heartbeat
+  labels:
+    app: heartbeat
+    component: web
+spec:
+  type: ClusterIP
+  selector:
+    app: heartbeat
+    component: web
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

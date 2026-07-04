@@ -1,0 +1,49 @@
+.panel {
+  display: grid;
+  gap: 8px;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.22));
+  border-radius: 10px;
+  background: var(--surface-muted, rgba(255, 255, 255, 0.04));
+  color: var(--text, #e8eaed);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.toggle:hover {
+  border-color: color-mix(in srgb, var(--accent, #1677ff) 35%, transparent);
+}
+
+.toggleLabel {
+  text-align: left;
+}
+
+.chevron {
+  font-size: 11px;
+  color: var(--sidebar-muted, var(--text-soft, #9aa0a6));
+}
+
+.body {
+  display: grid;
+  gap: 10px;
+  padding: 2px 2px 4px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field small {
+  font-size: 10px;
+  color: var(--sidebar-muted, var(--text-soft, #9aa0a6));
+}

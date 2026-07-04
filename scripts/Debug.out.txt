@@ -1,0 +1,7 @@
+Project root: D:\Desktop\自定义文件夹\HeartBeat-jsonschema
+genE: D:\Desktop\自定义文件夹\HeartBeat-jsonschema\heartbeat-infrastructure\src\main\java\top\kx\heartbeat\infrastructure\persistence\entity\gen
+FolderExists: True
+  AuthClientRedirectUriDOExample.java (Path=D:\Desktop\自定义文件夹\HeartBeat-jsonschema\heartbeat-infrastructure\src\main\java\top\kx\heartbeat\infrastructure\persistence\entity\gen\AuthClientRedirectUriDOExample.java)
+  AuthOauthClientDO.java (Path=D:\Desktop\自定义文件夹\HeartBeat-jsonschema\heartbeat-infrastructure\src\main\java\top\kx\heartbeat\infrastructure\persistence\entity\gen\AuthOauthClientDO.java)
+  AuthOauthClientDOExample.java (Path=D:\Desktop\自定义文件夹\HeartBeat-jsonschema\heartbeat-infrastructure\src\main\java\top\kx\heartbeat\infrastructure\persistence\entity\gen\AuthOauthClientDOExample.java)
+Total: 144 files

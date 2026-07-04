@@ -1,0 +1,16 @@
+param([string]$Path)
+
+# Recursively strip BOM from .java files in given path
+$files = Get-ChildItem -Path $Path -Recurse -Filter "*.java" -File -ErrorAction SilentlyContinue
+$count = 0
+foreach ($f in $files) {
+    $bytes = [System.IO.File]::ReadAllBytes($f.FullName)
+    if ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) {
+        $newBytes = $bytes[3..($bytes.Length - 1)]
+        [System.IO.File]::WriteAllBytes($f.FullName, $newBytes)
+        $count++
+        Write-Host "  Strip BOM: $($f.FullName)"
+    }
+}
+Write-Host ""
+Write-Host "Total: $count files stripped"

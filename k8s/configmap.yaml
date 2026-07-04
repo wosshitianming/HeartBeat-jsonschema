@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: heartbeat-config
+  namespace: heartbeat
+data:
+  SERVER_PORT: "7001"
+  SPRING_PROFILES_ACTIVE: "prod"
+
+  MYSQL_HOST: "mysql"
+  MYSQL_PORT: "3306"
+  MYSQL_DB: "heartbeat"
+
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  REDIS_DATABASE: "0"
+
+  REDIS_ENABLED: "false"
+  ROCKETMQ_ENABLED: "false"
+  KAFKA_ENABLED: "false"
+  MQTT_ENABLED: "false"
+  QUARTZ_ENABLED: "false"
+
+  ROCKETMQ_NAME_SERVER: "rocketmq-namesrv:9876"
+  ROCKETMQ_PRODUCER_GROUP: "heartbeat-prod"
+  ROCKETMQ_CONSUMER_GROUP: "heartbeat-prod"
+
+  MQTT_HOST: "mqtt"
+  MQTT_PORT: "1883"
+
+  KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+
+  JAVA_OPTS: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom"

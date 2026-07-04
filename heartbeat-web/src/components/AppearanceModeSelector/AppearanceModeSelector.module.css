@@ -1,0 +1,78 @@
+.selector {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3px;
+  width: 100%;
+  padding: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.option {
+  position: relative;
+  min-width: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.option span {
+  display: grid;
+  place-items: center;
+  min-height: 30px;
+  border-radius: 8px;
+  color: rgba(235, 235, 245, 0.52);
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+  transition:
+    color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.option:active span {
+  transform: scale(0.96);
+}
+
+.active span {
+  color: #f5f5f7;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+.option input:focus-visible + span {
+  outline: 2px solid #5ac8fa;
+  outline-offset: 2px;
+}
+
+:global(:root[data-color-scheme="light"]) .selector {
+  border-color: rgba(31, 49, 76, 0.1);
+  background: rgba(31, 49, 76, 0.055);
+}
+
+:global(:root[data-color-scheme="light"]) .option span {
+  color: #667085;
+}
+
+:global(:root[data-color-scheme="light"]) .active span {
+  color: #182230;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(31, 49, 76, 0.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .option span {
+    transition: none;
+  }
+}

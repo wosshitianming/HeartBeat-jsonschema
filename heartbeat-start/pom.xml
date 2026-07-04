@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>top.kx</groupId>
+        <artifactId>heartbeat</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>heartbeat-start</artifactId>
+    <name>heartbeat-start</name>
+    <description>启动模块：聚合各层、装配 Spring 容器、提供主类与配置文件，是唯一可执行的应用入口。</description>
+
+    <dependencies>
+        <!-- 启动模块在装配期聚合 interfaces 与 infrastructure，完成依赖倒置的运行时绑定 -->
+        <dependency>
+            <groupId>top.kx</groupId>
+            <artifactId>heartbeat-interfaces</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>top.kx</groupId>
+            <artifactId>heartbeat-infrastructure</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>druid-spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-collections4</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mysql</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>heartbeat</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>top.kx.heartbeat.HeartBeatApplication</mainClass>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <!-- 生产/镜像构建：mvn package -Pprotected，产出 heartbeat-encrypted.jar -->
+        <profile>
+            <id>protected</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>net.roseboy</groupId>
+                        <artifactId>classfinal-maven-plugin</artifactId>
+                        <version>${classfinal.version}</version>
+                        <configuration>
+                            <password>${classfinal.password}</password>
+                            <packages>top.kx.heartbeat</packages>
+                            <cfgfiles>application.properties,application-dev.properties,application-test.properties,application-pre.properties,application-gray.properties,application-prod.properties,application-local.properties</cfgfiles>
+                            <excludes>org.springframework</excludes>
+                            <libjars>heartbeat-domain-${revision}.jar,heartbeat-application-${revision}.jar,heartbeat-infrastructure-${revision}.jar,heartbeat-interfaces-${revision}.jar</libjars>
+                            <debug>false</debug>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>classFinal</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>

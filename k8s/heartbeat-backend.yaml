@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: heartbeat
+  namespace: heartbeat
+  labels:
+    app: heartbeat
+    component: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: heartbeat
+      component: backend
+  template:
+    metadata:
+      labels:
+        app: heartbeat
+        component: backend
+    spec:
+      containers:
+        - name: heartbeat
+          image: heartbeat:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 7001
+          envFrom:
+            - configMapRef:
+                name: heartbeat-config
+            - secretRef:
+                name: heartbeat-secret
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 90
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: heartbeat
+  namespace: heartbeat
+  labels:
+    app: heartbeat
+    component: backend
+spec:
+  type: ClusterIP
+  selector:
+    app: heartbeat
+    component: backend
+  ports:
+    - name: http
+      port: 7001
+      targetPort: http
