@@ -47,8 +47,6 @@ public class FlowExecutor {
     private FlowDslValidator validator;
 
     /**
-     * 初始化内置节点执行器索引。
-     *
      * 调试执行流程定义。
      *
      * @param flow 流程定义
