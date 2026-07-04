@@ -6,11 +6,9 @@ import org.springframework.stereotype.Repository;
 import top.kx.heartbeat.domain.flow.model.FlowRun;
 import top.kx.heartbeat.domain.flow.model.FlowRunEvent;
 import top.kx.heartbeat.domain.flow.repository.FlowRunRepository;
-import top.kx.heartbeat.infrastructure.flow.FlowRunStructMapper;
-import top.kx.heartbeat.infrastructure.persistence.entity.flow.HbFlowRunDO;
+import top.kx.heartbeat.infrastructure.flow.convert.FlowRunConvert;
 import top.kx.heartbeat.infrastructure.persistence.entity.flow.HbFlowRunDOExample;
 import top.kx.heartbeat.infrastructure.persistence.entity.flow.HbFlowRunDOWithBLOBs;
-import top.kx.heartbeat.infrastructure.persistence.entity.flow.HbFlowRunEventDO;
 import top.kx.heartbeat.infrastructure.persistence.entity.flow.HbFlowRunEventDOExample;
 import top.kx.heartbeat.infrastructure.persistence.entity.flow.HbFlowRunEventDOWithBLOBs;
 import top.kx.heartbeat.infrastructure.persistence.mapper.flow.HbFlowRunDOMapper;
@@ -31,14 +29,14 @@ public class FlowRunRepositoryImpl implements FlowRunRepository {
     private HbFlowRunEventDOMapper eventDOMapper;
 
     @Autowired
-    private FlowRunStructMapper structMapper;
+    private FlowRunConvert convert;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @Override
     public FlowRun saveRun(FlowRun run) {
-        HbFlowRunDOWithBLOBs record = structMapper.toGenDO(run);
+        HbFlowRunDOWithBLOBs record = convert.toGenDO(run);
         runDOMapper.insertSelective(record);
         updateRuntimeFields(run);
         return findRun(run.getId()).orElse(run);
@@ -46,7 +44,7 @@ public class FlowRunRepositoryImpl implements FlowRunRepository {
 
     @Override
     public FlowRunEvent saveEvent(FlowRunEvent event) {
-        HbFlowRunEventDOWithBLOBs record = structMapper.toGenEventDO(event);
+        HbFlowRunEventDOWithBLOBs record = convert.toGenEventDO(event);
         eventDOMapper.insertSelective(record);
         return event;
     }
@@ -54,7 +52,7 @@ public class FlowRunRepositoryImpl implements FlowRunRepository {
     @Override
     public Optional<FlowRun> findRun(String runId) {
         HbFlowRunDOWithBLOBs record = runDOMapper.selectByPrimaryKey(parseLong(runId));
-        return Optional.ofNullable(record).map(structMapper::toDomain).map(this::enrichRuntimeFields);
+        return Optional.ofNullable(record).map(convert::toDomain).map(this::enrichRuntimeFields);
     }
 
     @Override
@@ -64,7 +62,7 @@ public class FlowRunRepositoryImpl implements FlowRunRepository {
         example.setOrderByClause("started_at DESC");
         return runDOMapper.selectByExampleWithBLOBs(example)
                 .stream()
-                .map(structMapper::toDomain)
+                .map(convert::toDomain)
                 .map(this::enrichRuntimeFields)
                 .collect(Collectors.toList());
     }
@@ -77,7 +75,7 @@ public class FlowRunRepositoryImpl implements FlowRunRepository {
         example.setOrderByClause("created_at ASC");
         return eventDOMapper.selectByExampleWithBLOBs(example)
                 .stream()
-                .map(structMapper::toDomain)
+                .map(convert::toDomain)
                 .collect(Collectors.toList());
     }
 

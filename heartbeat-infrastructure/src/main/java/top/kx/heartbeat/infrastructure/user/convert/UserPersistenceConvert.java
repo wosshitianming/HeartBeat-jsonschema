@@ -1,4 +1,4 @@
-package top.kx.heartbeat.infrastructure.user.converter;
+package top.kx.heartbeat.infrastructure.user.convert;
 
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
@@ -11,7 +11,7 @@ import top.kx.heartbeat.domain.user.model.valueobject.UserStatus;
 import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysUserDO;
 
 @Mapper(componentModel = "spring")
-public abstract class UserPersistenceStructMapper {
+public abstract class UserPersistenceConvert {
 
     @BeanMapping(ignoreByDefault = true)
     public abstract User toDomain(SysUserDO entity);

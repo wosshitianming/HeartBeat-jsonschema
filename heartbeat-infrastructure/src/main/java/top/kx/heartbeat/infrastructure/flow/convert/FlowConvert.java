@@ -1,4 +1,4 @@
-package top.kx.heartbeat.infrastructure.flow;
+package top.kx.heartbeat.infrastructure.flow.convert;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,7 +26,7 @@ import java.util.Date;
  * @author heartbeat-team
  */
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
-public abstract class FlowStructMapper {
+public abstract class FlowConvert {
 
     @Resource
     private ObjectMapper objectMapper;

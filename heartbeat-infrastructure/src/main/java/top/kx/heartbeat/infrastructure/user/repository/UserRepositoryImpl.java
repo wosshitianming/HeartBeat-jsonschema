@@ -13,7 +13,7 @@ import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysUserDO;
 import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysUserDOExample;
 import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysUserDOMapper;
 import top.kx.heartbeat.infrastructure.tenant.TenantContext;
-import top.kx.heartbeat.infrastructure.user.converter.UserPersistenceStructMapper;
+import top.kx.heartbeat.infrastructure.user.convert.UserPersistenceConvert;
 
 import javax.annotation.Resource;
 import java.util.Date;
@@ -30,7 +30,7 @@ public class UserRepositoryImpl implements UserRepository {
     @Resource
     private SysUserDOMapper userMapper;
     @Resource
-    private UserPersistenceStructMapper structMapper;
+    private UserPersistenceConvert convert;
     @Resource
     private PasswordEncoder passwordEncoder;
 
@@ -60,7 +60,7 @@ public class UserRepositoryImpl implements UserRepository {
             } else {
                 userMapper.updateByPrimaryKeySelective(entity);
             }
-            return structMapper.toDomain(entity);
+            return convert.toDomain(entity);
         });
     }
 
@@ -68,14 +68,14 @@ public class UserRepositoryImpl implements UserRepository {
     public Optional<User> findById(UserId id) {
         Long tenantId = tenantId();
         SysUserDO entity = TenantContext.runAsPlatform(() -> selectById(tenantId, id.value()));
-        return Optional.ofNullable(entity).map(structMapper::toDomain);
+        return Optional.ofNullable(entity).map(convert::toDomain);
     }
 
     @Override
     public Optional<User> findByEmail(Email email) {
         Long tenantId = tenantId();
         SysUserDO entity = TenantContext.runAsPlatform(() -> selectByEmail(tenantId, email.value()));
-        return Optional.ofNullable(entity).map(structMapper::toDomain);
+        return Optional.ofNullable(entity).map(convert::toDomain);
     }
 
     @Override

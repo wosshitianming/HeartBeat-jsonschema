@@ -4,7 +4,7 @@ import org.springframework.stereotype.Repository;
 import top.kx.heartbeat.domain.flow.model.NodeComponentManifest;
 import top.kx.heartbeat.domain.flow.model.NodeComponentStatus;
 import top.kx.heartbeat.domain.flow.repository.NodeComponentRepository;
-import top.kx.heartbeat.infrastructure.flow.NodeComponentStructMapper;
+import top.kx.heartbeat.infrastructure.flow.convert.NodeComponentConvert;
 import top.kx.heartbeat.infrastructure.persistence.entity.flow.HbNodeComponentDO;
 import top.kx.heartbeat.infrastructure.persistence.entity.flow.HbNodeComponentDOExample;
 import top.kx.heartbeat.infrastructure.persistence.mapper.flow.HbNodeComponentDOMapper;
@@ -43,7 +43,7 @@ public class NodeComponentRepositoryImpl implements NodeComponentRepository {
      * 节点组件结构转换器。
      */
     @Resource
-    private NodeComponentStructMapper structMapper;
+    private NodeComponentConvert convert;
 
     /**
      * 查询所有启用的节点组件。
@@ -59,7 +59,7 @@ public class NodeComponentRepositoryImpl implements NodeComponentRepository {
         // 设置排序规则。
         example.setOrderByClause("sort_no ASC, id ASC");
         // 查询并转换为领域模型。
-        return mapper.selectByExampleWithBLOBs(example).stream().map(structMapper::toDomain).collect(Collectors.toList());
+        return mapper.selectByExampleWithBLOBs(example).stream().map(convert::toDomain).collect(Collectors.toList());
     }
 
     /**
@@ -78,7 +78,7 @@ public class NodeComponentRepositoryImpl implements NodeComponentRepository {
         // 查询节点组件。
         List<HbNodeComponentDO> rows = mapper.selectByExampleWithBLOBs(example);
         // 返回查询结果。
-        return rows.isEmpty() ? Optional.empty() : Optional.of(structMapper.toDomain(rows.get(0)));
+        return rows.isEmpty() ? Optional.empty() : Optional.of(convert.toDomain(rows.get(0)));
     }
 
     /**
@@ -90,7 +90,7 @@ public class NodeComponentRepositoryImpl implements NodeComponentRepository {
     @Override
     public NodeComponentManifest save(NodeComponentManifest manifest) {
         // 转换为持久化对象。
-        HbNodeComponentDO row = structMapper.toEntity(manifest);
+        HbNodeComponentDO row = convert.toEntity(manifest);
         // 补齐租户和审计字段。
         fillAudit(row);
         // 查询同类型同版本组件。

@@ -1,4 +1,4 @@
-package top.kx.heartbeat.infrastructure.flow;
+package top.kx.heartbeat.infrastructure.flow.convert;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -8,7 +8,6 @@ import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 import org.mapstruct.ReportingPolicy;
 import top.kx.heartbeat.domain.flow.model.ConnectionCredential;
-import top.kx.heartbeat.infrastructure.persistence.entity.flow.HbConnectionCredentialDO;
 import top.kx.heartbeat.infrastructure.persistence.entity.flow.HbConnectionCredentialDOWithBLOBs;
 import top.kx.heartbeat.infrastructure.security.SecretCryptoService;
 
@@ -20,7 +19,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
-public abstract class ConnectionCredentialStructMapper {
+public abstract class ConnectionCredentialConvert {
 
     @Resource
     private ObjectMapper objectMapper;

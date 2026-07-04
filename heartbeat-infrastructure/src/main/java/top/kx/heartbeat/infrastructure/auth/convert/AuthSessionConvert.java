@@ -1,4 +1,4 @@
-package top.kx.heartbeat.infrastructure.auth.mapper;
+package top.kx.heartbeat.infrastructure.auth.convert;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;
@@ -9,7 +9,7 @@ import top.kx.heartbeat.infrastructure.persistence.entity.platform.AuthSessionEn
         componentModel = "spring",
         unmappedTargetPolicy = ReportingPolicy.IGNORE
 )
-public interface AuthSessionStructMapper {
+public interface AuthSessionConvert {
 
     AuthSession toDomain(AuthSessionEntity entity);
 

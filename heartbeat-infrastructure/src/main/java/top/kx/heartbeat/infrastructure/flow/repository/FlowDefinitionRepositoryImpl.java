@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository;
 import top.kx.heartbeat.domain.flow.model.FlowDefinition;
 import top.kx.heartbeat.domain.flow.model.FlowVersion;
 import top.kx.heartbeat.domain.flow.repository.FlowRepository;
-import top.kx.heartbeat.infrastructure.flow.FlowStructMapper;
+import top.kx.heartbeat.infrastructure.flow.convert.FlowConvert;
 import top.kx.heartbeat.infrastructure.persistence.entity.flow.HbFlowDefinitionDO;
 import top.kx.heartbeat.infrastructure.persistence.entity.flow.HbFlowDefinitionDOExample;
 import top.kx.heartbeat.infrastructure.persistence.entity.flow.HbFlowVersionDOExample;
@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
  *     <li>写：直接 {@code mapper.insert/update/delete}，由 SQL Provider 生成 SQL</li>
  *     <li>分页：使用 PageHelper 拦截 MBG mapper 的 selectByExample，自动出 count</li>
  * </ul>
- * DO ↔ Domain 转换由 {@link FlowStructMapper} 完成。
+ * DO ↔ Domain 转换由 {@link FlowConvert} 完成。
  * </p>
  *
  * @author heartbeat-team
@@ -45,7 +45,7 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
     private HbFlowVersionDOMapper versionDOMapper;
 
     @Autowired
-    private FlowStructMapper structMapper;
+    private FlowConvert convert;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -59,7 +59,7 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
         example.setOrderByClause("update_time DESC");
         return definitionDOMapper.selectByExample(example)
                 .stream()
-                .map(structMapper::toDomain)
+                .map(convert::toDomain)
                 .collect(Collectors.toList());
     }
 
@@ -69,7 +69,7 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
     @Override
     public Optional<FlowDefinition> findById(String id) {
         HbFlowDefinitionDO row = definitionDOMapper.selectByPrimaryKey(parseLong(id));
-        return Optional.ofNullable(row).map(structMapper::toDomain);
+        return Optional.ofNullable(row).map(convert::toDomain);
     }
 
     /**
@@ -77,7 +77,7 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
      */
     @Override
     public FlowDefinition saveDraft(FlowDefinition definition) {
-        HbFlowDefinitionDO row = structMapper.toGenDO(definition);
+        HbFlowDefinitionDO row = convert.toGenDO(definition);
         HbFlowDefinitionDO exist = row.getId() == null ? null
                 : definitionDOMapper.selectByPrimaryKey(row.getId());
         if (exist == null) {
@@ -90,7 +90,7 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
             definitionDOMapper.updateByPrimaryKeySelective(row);
         }
         HbFlowDefinitionDO refreshed = definitionDOMapper.selectByPrimaryKey(row.getId());
-        return structMapper.toDomain(refreshed);
+        return convert.toDomain(refreshed);
     }
 
     /**
@@ -103,7 +103,7 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
         example.setOrderByClause("version_no DESC");
         return versionDOMapper.selectByExampleWithBLOBs(example)
                 .stream()
-                .map(structMapper::toDomain)
+                .map(convert::toDomain)
                 .collect(Collectors.toList());
     }
 
@@ -115,7 +115,7 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
         HbFlowVersionDOExample example = new HbFlowVersionDOExample();
         example.createCriteria().andFlowIdEqualTo(parseLong(flowId)).andVersionNoEqualTo(versionNo);
         List<HbFlowVersionDOWithBLOBs> list = versionDOMapper.selectByExampleWithBLOBs(example);
-        return list.isEmpty() ? Optional.empty() : Optional.of(structMapper.toDomain(list.get(0)));
+        return list.isEmpty() ? Optional.empty() : Optional.of(convert.toDomain(list.get(0)));
     }
 
     /**
@@ -123,7 +123,7 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
      */
     @Override
     public FlowVersion saveVersion(FlowVersion version) {
-        HbFlowVersionDOWithBLOBs row = structMapper.toGenVersionDO(version);
+        HbFlowVersionDOWithBLOBs row = convert.toGenVersionDO(version);
         versionDOMapper.insertSelective(row);
         return findVersion(version.getFlowId(), version.getVersionNo()).orElse(version);
     }
@@ -207,7 +207,7 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
         List<HbFlowDefinitionDO> rows = definitionDOMapper.selectByExample(example);
         long total = rows.isEmpty() ? 0L : ((com.github.pagehelper.Page<?>) rows).getTotal();
         List<FlowDefinition> records = rows.stream()
-                .map(structMapper::toDomain)
+                .map(convert::toDomain)
                 .collect(Collectors.toList());
         return new Page<>(records, total, pageNum, pageSize);
     }
@@ -220,7 +220,7 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
         HbFlowDefinitionDOExample example = new HbFlowDefinitionDOExample();
         example.createCriteria().andCodeEqualTo(code);
         List<HbFlowDefinitionDO> list = definitionDOMapper.selectByExample(example);
-        return list.isEmpty() ? Optional.empty() : Optional.of(structMapper.toDomain(list.get(0)));
+        return list.isEmpty() ? Optional.empty() : Optional.of(convert.toDomain(list.get(0)));
     }
 
     /**

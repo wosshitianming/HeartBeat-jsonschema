@@ -1,4 +1,4 @@
-package top.kx.heartbeat.infrastructure.tool;
+package top.kx.heartbeat.infrastructure.tool.convert;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;
@@ -8,7 +8,7 @@ import top.kx.heartbeat.infrastructure.persistence.entity.tool.SysGenTableEntity
 import top.kx.heartbeat.infrastructure.persistence.entity.tool.SysJobEntity;
 
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
-public interface ToolStructMapper {
+public interface ToolConvert {
 
     GeneratedTable toDomain(SysGenTableEntity entity);
 

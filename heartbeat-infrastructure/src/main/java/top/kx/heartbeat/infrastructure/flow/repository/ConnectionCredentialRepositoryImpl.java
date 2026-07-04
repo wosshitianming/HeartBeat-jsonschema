@@ -3,7 +3,7 @@ package top.kx.heartbeat.infrastructure.flow.repository;
 import org.springframework.stereotype.Repository;
 import top.kx.heartbeat.domain.flow.model.ConnectionCredential;
 import top.kx.heartbeat.domain.flow.repository.ConnectionCredentialRepository;
-import top.kx.heartbeat.infrastructure.flow.ConnectionCredentialStructMapper;
+import top.kx.heartbeat.infrastructure.flow.convert.ConnectionCredentialConvert;
 import top.kx.heartbeat.infrastructure.persistence.entity.flow.HbConnectionCredentialDOExample;
 import top.kx.heartbeat.infrastructure.persistence.entity.flow.HbConnectionCredentialDOWithBLOBs;
 import top.kx.heartbeat.infrastructure.persistence.mapper.flow.HbConnectionCredentialDOMapper;
@@ -42,7 +42,7 @@ public class ConnectionCredentialRepositoryImpl implements ConnectionCredentialR
      * 连接凭据结构转换器。
      */
     @Resource
-    private ConnectionCredentialStructMapper structMapper;
+    private ConnectionCredentialConvert convert;
 
     /**
      * 查询全部连接凭据。
@@ -58,7 +58,7 @@ public class ConnectionCredentialRepositoryImpl implements ConnectionCredentialR
         // 设置排序规则。
         example.setOrderByClause("update_time DESC, id DESC");
         // 查询并转换为脱敏领域对象。
-        return mapper.selectByExampleWithBLOBs(example).stream().map(structMapper::toMaskedDomain).collect(Collectors.toList());
+        return mapper.selectByExampleWithBLOBs(example).stream().map(convert::toMaskedDomain).collect(Collectors.toList());
     }
 
     /**
@@ -72,7 +72,7 @@ public class ConnectionCredentialRepositoryImpl implements ConnectionCredentialR
         // 查询持久化对象。
         HbConnectionCredentialDOWithBLOBs row = mapper.selectByPrimaryKey(parseLong(id));
         // 返回脱敏领域对象。
-        return Optional.ofNullable(row).map(structMapper::toMaskedDomain);
+        return Optional.ofNullable(row).map(convert::toMaskedDomain);
     }
 
     /**
@@ -84,7 +84,7 @@ public class ConnectionCredentialRepositoryImpl implements ConnectionCredentialR
     @Override
     public ConnectionCredential save(ConnectionCredential credential) {
         // 转换为持久化对象。
-        HbConnectionCredentialDOWithBLOBs row = structMapper.toEntity(credential);
+        HbConnectionCredentialDOWithBLOBs row = convert.toEntity(credential);
         // 补齐租户和审计字段。
         fillAudit(row);
         // 判断主键是否存在。
