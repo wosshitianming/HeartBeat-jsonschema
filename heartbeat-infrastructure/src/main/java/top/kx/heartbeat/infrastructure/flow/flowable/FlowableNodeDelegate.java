@@ -1,17 +1,15 @@
 package top.kx.heartbeat.infrastructure.flow.flowable;
 
+import org.flowable.common.engine.api.delegate.Expression;
 import org.flowable.engine.delegate.DelegateExecution;
-import org.flowable.engine.delegate.Expression;
 import org.flowable.engine.delegate.JavaDelegate;
 import org.springframework.stereotype.Service;
-import top.kx.heartbeat.application.flow.runtime.NodeExecutionContext;
-import top.kx.heartbeat.application.flow.runtime.NodeExecutionOutcome;
-import top.kx.heartbeat.application.flow.runtime.NodeExecutionResult;
-import top.kx.heartbeat.application.flow.runtime.NodeExecutor;
-import top.kx.heartbeat.application.flow.runtime.NodeExecutorRegistry;
+import top.kx.heartbeat.application.flow.runtime.*;
 import top.kx.heartbeat.domain.flow.model.FlowNode;
 
 import javax.annotation.Resource;
+
+//import org.flowable.engine.delegate.Expression;
 
 /**
  * Flowable 服务任务节点委托。
