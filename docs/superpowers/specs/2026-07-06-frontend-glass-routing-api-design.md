@@ -31,6 +31,7 @@ The UI should feel:
 Implement a frontend optimization pass that covers:
 
 - Desktop and mobile admin shell navigation.
+- Multi-tab/tag state preservation for routine admin page switching.
 - Frosted glass surface treatment and appearance controls.
 - URL-driven routing for backend menu routes.
 - Backend API integration consistency for dynamic modules and menu settings.
@@ -79,8 +80,22 @@ Route synchronization rules:
 
 - Clicking a sidebar/top/tag item navigates to the module URL and opens the matching tag.
 - Loading a direct URL selects the matching module, top module, side menu, and tag.
+- Switching among open tags should not discard routine in-page state such as table pagination, selected rows, filters, and unsaved form input where the current component model can reasonably preserve it.
 - Unknown module URLs show a clear empty/error state inside the admin shell.
 - Login/social auth redirects continue to land in the admin shell.
+
+### Tab State Preservation
+
+The open tags pattern should behave like mainstream admin multi-tab shells, where switching tabs does not casually destroy work in progress.
+
+State preservation rules:
+
+- Persist the open tag list and active tag in session storage so a reload can restore the user's workspace.
+- Preserve lightweight per-module view state for generic resource pages, including selected row, table pagination, filters, and dialog draft values.
+- Keep specialized pages responsible for their own state unless routing integration forces a shared shell concern.
+- Prefer React Context plus local reducers for shell state because the codebase does not currently use a third-party state manager.
+- Consider a lightweight state manager or route/component cache only if Context creates excessive prop threading or cannot preserve required state cleanly.
+- Avoid mounting every visited page indefinitely by default. If CSS `display: none` or keep-alive caching is used, cap or prune cached views to avoid memory growth.
 
 ### Menu Data
 
@@ -121,11 +136,14 @@ Resource loading rules:
 
 ### UI Composition
 
-Keep the existing component boundaries, but reduce `App.jsx` routing responsibility by extracting helpers where useful:
+Keep the existing component boundaries, but reduce `App.jsx` responsibility enough that it can act as the route/layout coordinator rather than a catch-all application object.
 
 - Route matching and URL generation helpers in `adminModuleService.js` or a small routing helper.
 - Menu visibility/status normalization in the admin module service.
-- Optional small shell-level state helpers if `App.jsx` becomes too tangled.
+- An auth/session provider or hook for current user, auth check, login/logout, and social binding state.
+- An appearance provider or hook wrapping the existing appearance preference API and local cache.
+- A navigation/tags provider or hook for route tree, active module, top module, open tags, and tag persistence.
+- A resource module hook for generic resource loading, mutation, refresh, selected rows, and per-module view state.
 
 Avoid a broad rewrite. The implementation should improve the current shell in place.
 
@@ -144,6 +162,9 @@ Use restrained glass for shell surfaces:
 Glass tuning:
 
 - Use blur/saturate with opaque fallback for unsupported browsers.
+- Add GPU-composition hints such as `transform: translateZ(0)` to major frosted shell containers where it improves scroll smoothness.
+- Use `will-change` sparingly and only on elements that animate or repeatedly change; do not blanket-apply it to tables, panels, or every glass surface.
+- Prefer more opaque or restrained surfaces on DOM-heavy table pages to reduce backdrop-filter repaint cost.
 - Keep border radius at 8px or less for admin cards/panels unless existing component style requires otherwise.
 - Avoid giant decorative hero sections, marketing cards, and one-note color palettes.
 - Keep table cells, labels, buttons, and sidebar items readable over fluid backgrounds.
@@ -186,6 +207,8 @@ Frontend tests should cover:
 - `status=DISABLED` menu is absent and direct URL shows unavailable state.
 - Menu click updates browser location and active module.
 - Direct URL selects active module/top/sidebar/tag.
+- Open tags and active tag restore from session storage.
+- Switching tabs preserves generic resource view state such as selected rows, pagination/filter state, and in-progress dialog input where implemented.
 - Menu CRUD refreshes both menu table data and route navigation.
 - Appearance settings still persist through local cache and remote preference API.
 
@@ -195,11 +218,14 @@ Manual verification should include:
 - `npm.cmd run build`
 - Desktop viewport navigation, table, dialog, and appearance settings checks.
 - Mobile shell navigation and detail workflow checks.
+- Scroll performance smoke check on a DOM-heavy table page with glass enabled and restrained/flat fallbacks.
 
 ## Risks
 
 - `App.jsx` is large, so routing changes must be incremental and well-tested.
 - Backend route paths may not always map cleanly to current frontend module keys. The route helper must support both backend `path` and fallback module URLs.
+- Keeping too many tab views mounted can increase memory use. The implementation should preserve important shell state without unbounded keep-alive caching.
+- `backdrop-filter` can cause dropped frames on table-heavy screens. Glass performance hints and restrained/flat fallbacks are part of the implementation, not optional polish.
 - Current source text includes encoding artifacts in some labels. This design does not require copy cleanup, but implementation should avoid making encoding churn worse.
 - Glass effects can reduce readability if opacity is too low. Balanced/restrained defaults should keep admin workflows legible.
 
@@ -207,10 +233,12 @@ Manual verification should include:
 
 - The admin shell uses real browser URLs for module navigation.
 - Backend authorized routes drive top/side navigation.
+- Open tags persist across reloads, and normal tab switching preserves routine generic module view state.
 - Hidden menus are removed from navigation while remaining directly accessible if authorized.
 - Disabled menus are removed from navigation and show unavailable state on direct access.
 - Generic admin modules load their backend resources reliably.
 - Menu settings changes are reflected after save without a full page reload.
+- Major glass containers include performance-conscious CSS, and dense pages remain readable and smooth enough under balanced/restrained modes.
 - Frosted glass styling is polished, readable, and aligned with mainstream admin product conventions.
 - Existing appearance preference behavior continues to work.
 - Focused frontend tests pass.
