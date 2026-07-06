@@ -36,7 +36,7 @@ public class SysUserDOExample {
      * @mbg.generated
      */
     public SysUserDOExample() {
-        oredCriteria = new ArrayList<>();
+        oredCriteria = new ArrayList<Criteria>();
     }
 
     /**
@@ -159,7 +159,7 @@ public class SysUserDOExample {
 
         protected GeneratedCriteria() {
             super();
-            criteria = new ArrayList<>();
+            criteria = new ArrayList<Criterion>();
         }
 
         public boolean isValid() {
@@ -1703,6 +1703,7 @@ public class SysUserDOExample {
      * @mbg.generated do_not_delete_during_merge
      */
     public static class Criteria extends GeneratedCriteria {
+
         protected Criteria() {
             super();
         }

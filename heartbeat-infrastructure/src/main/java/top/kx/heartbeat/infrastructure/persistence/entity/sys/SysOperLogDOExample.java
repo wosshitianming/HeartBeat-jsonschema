@@ -36,7 +36,7 @@ public class SysOperLogDOExample {
      * @mbg.generated
      */
     public SysOperLogDOExample() {
-        oredCriteria = new ArrayList<>();
+        oredCriteria = new ArrayList<Criteria>();
     }
 
     /**
@@ -159,7 +159,7 @@ public class SysOperLogDOExample {
 
         protected GeneratedCriteria() {
             super();
-            criteria = new ArrayList<>();
+            criteria = new ArrayList<Criterion>();
         }
 
         public boolean isValid() {
@@ -1583,6 +1583,7 @@ public class SysOperLogDOExample {
      * @mbg.generated do_not_delete_during_merge
      */
     public static class Criteria extends GeneratedCriteria {
+
         protected Criteria() {
             super();
         }
