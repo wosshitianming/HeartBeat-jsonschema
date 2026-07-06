@@ -4,6 +4,7 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import top.kx.heartbeat.application.common.response.RecordResponse;
 import top.kx.heartbeat.domain.flow.model.ConnectionCredential;
 import top.kx.heartbeat.domain.flow.model.ConnectionCredentialStatus;
 import top.kx.heartbeat.domain.flow.repository.ConnectionCredentialRepository;
@@ -91,7 +92,7 @@ public class ConnectionCredentialService {
      * @param id 连接凭证标识
      * @return 连接凭证测试结果
      */
-    public Map<String, Object> test(String id) {
+    public RecordResponse test(String id) {
         // 查询连接凭证。
         ConnectionCredential credential = repository.findById(id)
                 // 连接凭证不存在时抛出业务异常。
@@ -107,6 +108,6 @@ public class ConnectionCredentialService {
         // 写入当前 MVP 阶段提示消息。
         result.put("message", "MVP 已完成凭据配置校验，真实连接探测将在执行器阶段接入");
         // 返回连接测试结果。
-        return result;
+        return RecordResponse.from(result);
     }
 }

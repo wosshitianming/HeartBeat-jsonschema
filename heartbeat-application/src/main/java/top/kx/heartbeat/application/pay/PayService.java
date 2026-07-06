@@ -5,10 +5,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.kx.heartbeat.application.common.model.DomainRecord;
+import top.kx.heartbeat.application.common.response.RecordResponse;
+import top.kx.heartbeat.application.pay.port.PayRepository;
 import top.kx.heartbeat.domain.pay.PayNotifyResult;
 import top.kx.heartbeat.domain.pay.PayNotifyStatus;
 import top.kx.heartbeat.domain.pay.PayOrderStatus;
-import top.kx.heartbeat.application.pay.port.PayRepository;
 
 import javax.annotation.Resource;
 import javax.crypto.Mac;
@@ -42,9 +43,9 @@ public class PayService {
      *
      * @return 支付渠道列表。
      */
-    public List<Map<String, Object>> listChannels() {
+    public List<RecordResponse> listChannels() {
         // 查询支付渠道领域记录并转换为字段 Map 列表。
-        return maps(payRepository.listChannels());
+        return RecordResponse.fromMaps(maps(payRepository.listChannels()));
     }
 
     /**
@@ -53,13 +54,13 @@ public class PayService {
      * @param id 支付渠道标识。
      * @return 支付渠道详情。
      */
-    public Map<String, Object> getChannel(String id) {
+    public RecordResponse getChannel(String id) {
         // 复制支付渠道字段，避免直接修改领域记录副本之外的数据。
         Map<String, Object> channel = new LinkedHashMap<>(payRepository.getChannel(id).toMap());
         // 脱敏支付渠道密钥。
         channel.put("appSecret", mask(stringValue(channel.get("appSecret"))));
         // 返回脱敏后的支付渠道详情。
-        return channel;
+        return RecordResponse.from(channel);
     }
 
     /**
@@ -69,9 +70,9 @@ public class PayService {
      * @return 新建支付渠道。
      */
     @Transactional
-    public Map<String, Object> createChannel(Map<String, Object> command) {
+    public RecordResponse createChannel(Map<String, Object> command) {
         // 委托仓储创建支付渠道并返回字段 Map。
-        return payRepository.createChannel(command).toMap();
+        return RecordResponse.from(payRepository.createChannel(command));
     }
 
     /**
@@ -82,9 +83,9 @@ public class PayService {
      * @return 更新后的支付渠道。
      */
     @Transactional
-    public Map<String, Object> updateChannel(String id, Map<String, Object> command) {
+    public RecordResponse updateChannel(String id, Map<String, Object> command) {
         // 委托仓储更新支付渠道并返回字段 Map。
-        return payRepository.updateChannel(id, command).toMap();
+        return RecordResponse.from(payRepository.updateChannel(id, command));
     }
 
     /**
@@ -94,9 +95,9 @@ public class PayService {
      * @return 新建支付订单。
      */
     @Transactional
-    public Map<String, Object> createOrder(Map<String, Object> command) {
+    public RecordResponse createOrder(Map<String, Object> command) {
         // 委托仓储创建支付订单并返回字段 Map。
-        return payRepository.createOrder(command).toMap();
+        return RecordResponse.from(payRepository.createOrder(command));
     }
 
     /**
@@ -105,9 +106,9 @@ public class PayService {
      * @param id 支付订单标识。
      * @return 支付订单详情。
      */
-    public Map<String, Object> getOrder(String id) {
+    public RecordResponse getOrder(String id) {
         // 委托仓储查询支付订单并返回字段 Map。
-        return payRepository.getOrder(id).toMap();
+        return RecordResponse.from(payRepository.getOrder(id));
     }
 
     /**
@@ -115,9 +116,9 @@ public class PayService {
      *
      * @return 支付订单列表。
      */
-    public List<Map<String, Object>> listOrders() {
+    public List<RecordResponse> listOrders() {
         // 查询支付订单领域记录并转换为字段 Map 列表。
-        return maps(payRepository.listOrders());
+        return RecordResponse.fromMaps(maps(payRepository.listOrders()));
     }
 
     /**
@@ -126,9 +127,9 @@ public class PayService {
      * @param orderNo 支付订单号。
      * @return 支付通知日志列表。
      */
-    public List<Map<String, Object>> listNotifyLogs(String orderNo) {
+    public List<RecordResponse> listNotifyLogs(String orderNo) {
         // 查询支付通知日志领域记录并转换为字段 Map 列表。
-        return maps(payRepository.listNotifyLogs(orderNo));
+        return RecordResponse.fromMaps(maps(payRepository.listNotifyLogs(orderNo)));
     }
 
     /**
@@ -139,7 +140,7 @@ public class PayService {
      * @return 支付通知处理结果。
      */
     @Transactional
-    public Map<String, Object> handleNotify(String orderNo, Map<String, Object> command) {
+    public RecordResponse handleNotify(String orderNo, Map<String, Object> command) {
         // 查询支付订单上下文。
         Map<String, Object> order = payRepository.getOrder(orderNo).toMap();
         // 查询支付渠道上下文。
@@ -159,7 +160,7 @@ public class PayService {
         // 验签失败只记录通知失败状态，不推动订单状态流转。
         String notifyStatus = notifyResult == PayNotifyResult.SUCCESS ? successStatus : PayNotifyStatus.SIGN_FAIL.getCode();
         // 统一交给仓储处理通知幂等和订单状态机。
-        return payRepository.applyNotify(orderNo, notifyStatus, payload, notifyResult.getCode()).toMap();
+        return RecordResponse.from(payRepository.applyNotify(orderNo, notifyStatus, payload, notifyResult.getCode()));
     }
 
     /**

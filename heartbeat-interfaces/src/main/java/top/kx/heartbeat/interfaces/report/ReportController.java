@@ -1,10 +1,12 @@
 package top.kx.heartbeat.interfaces.report;
 
+
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import top.kx.heartbeat.application.common.response.RecordResponse;
 import top.kx.heartbeat.application.report.ReportService;
 import top.kx.heartbeat.domain.common.audit.OperLog;
 import top.kx.heartbeat.interfaces.common.Result;
@@ -40,9 +42,9 @@ public class ReportController {
     @PreAuthorize("@permissionGuard.has('biz:report:list')")
     public Result<List<DynamicRecordResponse>> datasets() {
         // 查询报表数据集动态记录列表。
-        List<Map<String, Object>> datasets = reportService.listDatasets();
+        List<RecordResponse> datasets = reportService.listDatasets();
         // 将动态记录列表转换为统一响应对象列表。
-        List<DynamicRecordResponse> response = DynamicRecordResponse.fromList(datasets);
+        List<DynamicRecordResponse> response = DynamicRecordResponse.fromRecordList(datasets);
         // 返回报表数据集列表。
         return Result.success(response);
     }
@@ -60,7 +62,7 @@ public class ReportController {
         // 转换动态请求对象为业务字段映射。
         Map<String, Object> payload = request.toMap();
         // 保存报表数据集动态记录。
-        Map<String, Object> dataset = reportService.saveDataset(payload);
+        RecordResponse dataset = reportService.saveDataset(payload);
         // 将动态记录转换为统一响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(dataset);
         // 返回报表数据集保存结果。
@@ -76,9 +78,9 @@ public class ReportController {
     @PreAuthorize("@permissionGuard.has('biz:report:list')")
     public Result<List<DynamicRecordResponse>> templates() {
         // 查询报表模板动态记录列表。
-        List<Map<String, Object>> templates = reportService.listTemplates();
+        List<RecordResponse> templates = reportService.listTemplates();
         // 将动态记录列表转换为统一响应对象列表。
-        List<DynamicRecordResponse> response = DynamicRecordResponse.fromList(templates);
+        List<DynamicRecordResponse> response = DynamicRecordResponse.fromRecordList(templates);
         // 返回报表模板列表。
         return Result.success(response);
     }
@@ -96,7 +98,7 @@ public class ReportController {
         // 转换动态请求对象为业务字段映射。
         Map<String, Object> payload = request.toMap();
         // 保存报表模板动态记录。
-        Map<String, Object> template = reportService.saveTemplate(payload);
+        RecordResponse template = reportService.saveTemplate(payload);
         // 将动态记录转换为统一响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(template);
         // 返回报表模板保存结果。
@@ -119,9 +121,9 @@ public class ReportController {
         // 兜底空查询参数。
         Map<String, Object> safeParams = params == null ? Collections.emptyMap() : params.toMap();
         // 查询报表数据集结果动态记录列表。
-        List<Map<String, Object>> rows = reportService.query(id, safeParams, limit);
+        List<RecordResponse> rows = reportService.query(id, safeParams, limit);
         // 将动态记录列表转换为统一响应对象列表。
-        List<DynamicRecordResponse> response = DynamicRecordResponse.fromList(rows);
+        List<DynamicRecordResponse> response = DynamicRecordResponse.fromRecordList(rows);
         // 返回报表查询结果。
         return Result.success(response);
     }

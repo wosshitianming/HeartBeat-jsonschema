@@ -4,10 +4,11 @@ package top.kx.heartbeat.application.workflow;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.kx.heartbeat.application.workflow.pipeline.WorkflowDefinitionCommandPipeline;
-import top.kx.heartbeat.domain.auth.CurrentUserProvider;
 import top.kx.heartbeat.application.common.model.DomainRecord;
+import top.kx.heartbeat.application.common.response.RecordResponse;
+import top.kx.heartbeat.application.workflow.pipeline.WorkflowDefinitionCommandPipeline;
 import top.kx.heartbeat.application.workflow.port.WorkflowRepository;
+import top.kx.heartbeat.domain.auth.CurrentUserProvider;
 import top.kx.heartbeat.domain.workflow.WorkflowTaskAction;
 
 import javax.annotation.Resource;
@@ -25,59 +26,59 @@ public class WorkflowService {
     private WorkflowDefinitionCommandPipeline definitionCommandPipeline;
 
     @Transactional
-    public Map<String, Object> createDefinition(Map<String, Object> command) {
+    public RecordResponse createDefinition(Map<String, Object> command) {
         definitionCommandPipeline.handle(command);
-        return workflowRepository.createDefinition(command).toMap();
+        return RecordResponse.from(workflowRepository.createDefinition(command));
     }
 
-    public List<Map<String, Object>> listDefinitions() {
-        return maps(workflowRepository.listDefinitions());
+    public List<RecordResponse> listDefinitions() {
+        return RecordResponse.fromMaps(maps(workflowRepository.listDefinitions()));
     }
 
-    public Map<String, Object> getDefinition(String id) {
-        return workflowRepository.getDefinition(id).toMap();
+    public RecordResponse getDefinition(String id) {
+        return RecordResponse.from(workflowRepository.getDefinition(id));
     }
 
     @Transactional
-    public Map<String, Object> deployDefinition(String id) {
+    public RecordResponse deployDefinition(String id) {
         Map<String, Object> definition = workflowRepository.getDefinition(id).toMap();
         if (StringUtils.isEmpty(stringValue(definition.get("definitionKey")))) {
             throw new IllegalArgumentException("流程定义 key 不能为空");
         }
-        return workflowRepository.deployDefinition(id).toMap();
+        return RecordResponse.from(workflowRepository.deployDefinition(id));
     }
 
     @Transactional
-    public Map<String, Object> startInstance(String definitionId, Map<String, Object> command) {
-        return workflowRepository.startInstance(definitionId, command).toMap();
+    public RecordResponse startInstance(String definitionId, Map<String, Object> command) {
+        return RecordResponse.from(workflowRepository.startInstance(definitionId, command));
     }
 
-    public List<Map<String, Object>> listTodoTasks() {
-        return maps(workflowRepository.listTodoTasks(currentUserProvider.currentUserId()));
+    public List<RecordResponse> listTodoTasks() {
+        return RecordResponse.fromMaps(maps(workflowRepository.listTodoTasks(currentUserProvider.currentUserId())));
     }
 
-    public List<Map<String, Object>> listInstances() {
-        return maps(workflowRepository.listInstances());
+    public List<RecordResponse> listInstances() {
+        return RecordResponse.fromMaps(maps(workflowRepository.listInstances()));
     }
 
     @Transactional
-    public Map<String, Object> approve(String taskId, Map<String, Object> command) {
-        return workflowRepository.completeTask(
+    public RecordResponse approve(String taskId, Map<String, Object> command) {
+        return RecordResponse.from(workflowRepository.completeTask(
                 taskId,
                 WorkflowTaskAction.APPROVE.getCode(),
                 currentUserProvider.currentUserId(),
                 stringValue(command.get("comment"))
-        ).toMap();
+        ));
     }
 
     @Transactional
-    public Map<String, Object> reject(String taskId, Map<String, Object> command) {
-        return workflowRepository.completeTask(
+    public RecordResponse reject(String taskId, Map<String, Object> command) {
+        return RecordResponse.from(workflowRepository.completeTask(
                 taskId,
                 WorkflowTaskAction.REJECT.getCode(),
                 currentUserProvider.currentUserId(),
                 stringValue(command.get("comment"))
-        ).toMap();
+        ));
     }
 
     private String stringValue(Object value) {

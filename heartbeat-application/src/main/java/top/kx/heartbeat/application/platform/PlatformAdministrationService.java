@@ -6,10 +6,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.kx.heartbeat.application.auth.AuthenticationSessionService;
+import top.kx.heartbeat.application.auth.response.AuthTokenResponse;
+import top.kx.heartbeat.application.common.model.DomainRecord;
+import top.kx.heartbeat.application.common.response.RecordResponse;
+import top.kx.heartbeat.application.platform.port.*;
+import top.kx.heartbeat.application.platform.response.LoginResponse;
 import top.kx.heartbeat.domain.auth.CurrentUserProvider;
 import top.kx.heartbeat.domain.auth.LoginResultStatus;
-import top.kx.heartbeat.application.common.model.DomainRecord;
-import top.kx.heartbeat.application.platform.port.PlatformAdminRepository;
 import top.kx.heartbeat.domain.platform.PlatformMenuType;
 import top.kx.heartbeat.domain.security.DataScope;
 import top.kx.heartbeat.domain.user.model.valueobject.UserStatus;
@@ -88,11 +91,30 @@ public class PlatformAdministrationService {
     private static final Pattern ACCENT_COLOR_PATTERN =
             Pattern.compile("^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$");
 
+    @Resource
+    private PlatformUserRepository platformUserRepository;
+    @Resource
+    private PlatformPermissionRepository platformPermissionRepository;
+    @Resource
+    private PlatformMenuRepository platformMenuRepository;
+    @Resource
+    private PlatformOrganizationRepository platformOrganizationRepository;
+    @Resource
+    private PlatformRoleRepository platformRoleRepository;
+    @Resource
+    private PlatformConfigRepository platformConfigRepository;
+    @Resource
+    private PlatformSocialRepository platformSocialRepository;
+    @Resource
+    private PlatformAuditQueryRepository platformAuditQueryRepository;
+    @Resource
+    private PlatformNoticeRepository platformNoticeRepository;
+
     /**
-     * 平台后台管理仓储。
+     * 平台登录日志仓储。
      */
     @Resource
-    private PlatformAdminRepository platformAdminRepository;
+    private PlatformLoginLogRepository platformLoginLogRepository;
 
     /**
      * 认证会话应用服务。
@@ -117,7 +139,7 @@ public class PlatformAdministrationService {
      *
      * @return 当前登录用户资料。
      */
-    public Map<String, Object> currentUser() {
+    public RecordResponse currentUser() {
         // 使用当前登录用户标识查询用户资料。
         return currentUser(currentUserProvider.currentUserId());
     }
@@ -128,23 +150,23 @@ public class PlatformAdministrationService {
      * @param userId 用户标识。
      * @return 指定用户资料。
      */
-    public Map<String, Object> currentUser(String userId) {
+    public RecordResponse currentUser(String userId) {
         // 解析用户标识，空值时回落到默认管理员。
         String resolvedUserId = resolvedUserId(userId);
         // 查询用户行数据，未查到时使用内置管理员兜底。
-        Map<String, Object> user = platformAdminRepository.findUserById(resolvedUserId)
+        Map<String, Object> user = platformUserRepository.findUserById(resolvedUserId)
                 .map(DomainRecord::toMap)
                 .orElseGet(this::fallbackUser);
         // 移除敏感字段后构建接口返回结构。
         Map<String, Object> result = publicUser(user);
         // 附加当前用户角色编码列表。
-        result.put("roles", platformAdminRepository.listRoleCodesByUserId(resolvedUserId));
+        result.put("roles", platformPermissionRepository.listRoleCodesByUserId(resolvedUserId));
         // 附加当前用户权限编码列表。
-        result.put("permissions", platformAdminRepository.listPermissionsByUserId(String.valueOf(user.get("id"))));
+        result.put("permissions", platformPermissionRepository.listPermissionsByUserId(String.valueOf(user.get("id"))));
         // 附加当前用户数据权限范围。
         result.put("dataScope", resolveDataScope(resolvedUserId));
         // 返回当前用户资料。
-        return result;
+        return RecordResponse.from(result);
     }
 
     /**
@@ -152,7 +174,7 @@ public class PlatformAdministrationService {
      *
      * @return 当前登录用户外观偏好。
      */
-    public Map<String, Object> appearancePreference() {
+    public RecordResponse appearancePreference() {
         // 使用当前登录用户标识查询外观偏好。
         return appearancePreference(currentUserProvider.currentUserId());
     }
@@ -163,21 +185,21 @@ public class PlatformAdministrationService {
      * @param userId 用户标识。
      * @return 指定用户外观偏好。
      */
-    public Map<String, Object> appearancePreference(String userId) {
+    public RecordResponse appearancePreference(String userId) {
         // 解析用户标识，空值时回落到默认管理员。
         String resolvedUserId = resolvedUserId(userId);
         // 查询颜色模式偏好。
         Optional<Map<String, Object>> colorPreference =
-                optionalMap(platformAdminRepository.findUserPreference(resolvedUserId, APPEARANCE_COLOR_MODE_KEY));
+                optionalMap(platformUserRepository.findUserPreference(resolvedUserId, APPEARANCE_COLOR_MODE_KEY));
         // 查询流体布局偏好。
         Optional<Map<String, Object>> fluidPreference =
-                optionalMap(platformAdminRepository.findUserPreference(resolvedUserId, APPEARANCE_FLUID_ENABLED_KEY));
+                optionalMap(platformUserRepository.findUserPreference(resolvedUserId, APPEARANCE_FLUID_ENABLED_KEY));
         // 查询强调色偏好。
         Optional<Map<String, Object>> accentPreference =
-                optionalMap(platformAdminRepository.findUserPreference(resolvedUserId, APPEARANCE_ACCENT_COLOR_KEY));
+                optionalMap(platformUserRepository.findUserPreference(resolvedUserId, APPEARANCE_ACCENT_COLOR_KEY));
         // 查询视觉风格偏好。
         Optional<Map<String, Object>> visualPreference =
-                optionalMap(platformAdminRepository.findUserPreference(resolvedUserId, APPEARANCE_VISUAL_STYLE_KEY));
+                optionalMap(platformUserRepository.findUserPreference(resolvedUserId, APPEARANCE_VISUAL_STYLE_KEY));
 
         // 新版偏好任意一项存在时按新版结构返回。
         if (colorPreference.isPresent() || fluidPreference.isPresent() || accentPreference.isPresent()
@@ -199,19 +221,20 @@ public class PlatformAdministrationService {
                     .map(preference -> normalizeVisualStyle(stringValue(preference.get("preferenceValue"))))
                     .orElse(DEFAULT_VISUAL_STYLE.getCode());
             // 返回新版外观偏好结构。
-            return appearanceResult(colorMode, fluidEnabled, accentColor, visualStyle);
+            return RecordResponse.from(appearanceResult(colorMode, fluidEnabled, accentColor, visualStyle));
         }
 
         // 新版偏好不存在时兼容读取旧版主题偏好。
-        return platformAdminRepository.findUserPreference(resolvedUserId, LEGACY_APPEARANCE_THEME_KEY)
+        return platformUserRepository.findUserPreference(resolvedUserId, LEGACY_APPEARANCE_THEME_KEY)
                 .map(DomainRecord::toMap)
                 .map(this::legacyAppearanceResult)
-                .orElseGet(() -> appearanceResult(
+                .map(RecordResponse::from)
+                .orElseGet(() -> RecordResponse.from(appearanceResult(
                         DEFAULT_COLOR_MODE.getCode(),
                         DEFAULT_FLUID_ENABLED,
                         DEFAULT_ACCENT_COLOR,
                         DEFAULT_VISUAL_STYLE.getCode()
-                ));
+                )));
     }
 
     /**
@@ -221,7 +244,7 @@ public class PlatformAdministrationService {
      * @return 更新后的外观偏好。
      */
     @Transactional
-    public Map<String, Object> updateAppearancePreference(Map<String, Object> command) {
+    public RecordResponse updateAppearancePreference(Map<String, Object> command) {
         // 使用当前登录用户标识更新外观偏好。
         return updateAppearancePreference(currentUserProvider.currentUserId(), command);
     }
@@ -234,9 +257,9 @@ public class PlatformAdministrationService {
      * @return 更新后的外观偏好。
      */
     @Transactional
-    public Map<String, Object> updateAppearancePreference(String userId, Map<String, Object> command) {
+    public RecordResponse updateAppearancePreference(String userId, Map<String, Object> command) {
         // 查询当前外观偏好作为局部更新的默认值来源。
-        Map<String, Object> current = appearancePreference(userId);
+        Map<String, Object> current = appearancePreference(userId).toMap();
         // 解析颜色模式入参，未传时沿用当前值。
         String colorMode = command.containsKey("colorMode")
                 ? stringValue(command.get("colorMode"))
@@ -264,19 +287,19 @@ public class PlatformAdministrationService {
         // 解析用户标识，空值时回落到默认管理员。
         String resolvedUserId = resolvedUserId(userId);
         // 保存颜色模式偏好。
-        platformAdminRepository.saveUserPreference(resolvedUserId, APPEARANCE_COLOR_MODE_KEY, colorMode);
+        platformUserRepository.saveUserPreference(resolvedUserId, APPEARANCE_COLOR_MODE_KEY, colorMode);
         // 保存流体布局偏好。
-        platformAdminRepository.saveUserPreference(
+        platformUserRepository.saveUserPreference(
                 resolvedUserId,
                 APPEARANCE_FLUID_ENABLED_KEY,
                 String.valueOf(fluidEnabled)
         );
         // 保存强调色偏好。
-        platformAdminRepository.saveUserPreference(resolvedUserId, APPEARANCE_ACCENT_COLOR_KEY, accentColor);
+        platformUserRepository.saveUserPreference(resolvedUserId, APPEARANCE_ACCENT_COLOR_KEY, accentColor);
         // 保存视觉风格偏好。
-        platformAdminRepository.saveUserPreference(resolvedUserId, APPEARANCE_VISUAL_STYLE_KEY, visualStyle);
+        platformUserRepository.saveUserPreference(resolvedUserId, APPEARANCE_VISUAL_STYLE_KEY, visualStyle);
         // 返回更新后的外观偏好。
-        return appearanceResult(colorMode, fluidEnabled, accentColor, visualStyle);
+        return RecordResponse.from(appearanceResult(colorMode, fluidEnabled, accentColor, visualStyle));
     }
 
     /**
@@ -286,36 +309,36 @@ public class PlatformAdministrationService {
      * @return 登录结果。
      */
     @Transactional
-    public Map<String, Object> login(Map<String, Object> command) {
+    public LoginResponse login(Map<String, Object> command) {
         // 读取登录用户名。
         String username = stringValue(command.get("username"));
         // 读取登录密码。
         String password = stringValue(command.get("password"));
         // 按用户名查询用户记录。
-        Optional<Map<String, Object>> userOptional = optionalMap(platformAdminRepository.findUserByUsername(username));
+        Optional<Map<String, Object>> userOptional = optionalMap(platformUserRepository.findUserByUsername(username));
         // 用户不存在或密码不匹配时记录失败日志并中断登录。
         if (!userOptional.isPresent() || !matches(password, stringValue(userOptional.get().get("passwordHash")))) {
             // 写入失败登录日志。
-            platformAdminRepository.recordLogin(username, LoginResultStatus.FAIL.getCode(), "用户名或密码错误");
+            platformLoginLogRepository.recordLogin(username, LoginResultStatus.FAIL.getCode(), "用户名或密码错误");
             // 抛出用户名或密码错误异常。
             throw new IllegalArgumentException("用户名或密码错误");
         }
 
         // 写入成功登录日志。
-        platformAdminRepository.recordLogin(username, LoginResultStatus.SUCCESS.getCode(), "账号密码登录成功");
+        platformLoginLogRepository.recordLogin(username, LoginResultStatus.SUCCESS.getCode(), "账号密码登录成功");
         // 过滤用户敏感字段。
         Map<String, Object> user = publicUser(userOptional.get());
         // 创建认证会话并复制为可扩展返回结构。
-        Map<String, Object> result = new LinkedHashMap<>(authenticationSessionService.createSession(
+        AuthTokenResponse tokens = authenticationSessionService.createSession(
                 String.valueOf(user.get("id")),
                 String.valueOf(user.get("username")),
-                String.valueOf(user.get("tenantId"))));
-        // 附加当前登录用户资料。
-        result.put("user", user);
-        // 附加当前登录用户权限编码列表。
-        result.put("permissions", platformAdminRepository.listPermissionsByUserId(String.valueOf(user.get("id"))));
+                String.valueOf(user.get("tenantId")));
         // 返回登录结果。
-        return result;
+        return LoginResponse.of(
+                tokens,
+                RecordResponse.from(user),
+                platformPermissionRepository.listPermissionsByUserId(String.valueOf(user.get("id")))
+        );
     }
 
     /**
@@ -323,9 +346,9 @@ public class PlatformAdministrationService {
      *
      * @return 完整菜单树。
      */
-    public List<Map<String, Object>> listMenus() {
+    public List<RecordResponse> listMenus() {
         // 查询菜单记录并构建包含按钮节点的树结构。
-        return buildTree(maps(platformAdminRepository.listMenus()), true);
+        return RecordResponse.fromMaps(buildTree(maps(platformMenuRepository.listMenus()), true));
     }
 
     /**
@@ -333,7 +356,7 @@ public class PlatformAdministrationService {
      *
      * @return 当前登录用户路由树。
      */
-    public List<Map<String, Object>> routes() {
+    public List<RecordResponse> routes() {
         // 使用当前登录用户标识查询路由树。
         return routes(currentUserProvider.currentUserId());
     }
@@ -344,9 +367,9 @@ public class PlatformAdministrationService {
      * @param userId 用户标识。
      * @return 指定用户路由树。
      */
-    public List<Map<String, Object>> routes(String userId) {
+    public List<RecordResponse> routes(String userId) {
         // 查询授权菜单记录并构建不包含按钮节点的路由树。
-        return buildTree(maps(platformAdminRepository.listAuthorizedMenus(resolvedUserId(userId))), false);
+        return RecordResponse.fromMaps(buildTree(maps(platformMenuRepository.listAuthorizedMenus(resolvedUserId(userId))), false));
     }
 
     /**
@@ -354,11 +377,11 @@ public class PlatformAdministrationService {
      *
      * @return 菜单树选择器数据。
      */
-    public List<Map<String, Object>> menuTreeSelect() {
+    public List<RecordResponse> menuTreeSelect() {
         // 构建完整菜单树。
-        List<Map<String, Object>> tree = buildTree(maps(platformAdminRepository.listMenus()), true);
+        List<Map<String, Object>> tree = buildTree(maps(platformMenuRepository.listMenus()), true);
         // 将菜单树转换为选择器节点结构。
-        return toTreeSelect(tree);
+        return RecordResponse.fromMaps(toTreeSelect(tree));
     }
 
     /**
@@ -368,9 +391,9 @@ public class PlatformAdministrationService {
      * @return 新建菜单记录。
      */
     @Transactional
-    public Map<String, Object> createMenu(Map<String, Object> command) {
+    public RecordResponse createMenu(Map<String, Object> command) {
         // 委托仓储创建菜单并返回字段 Map。
-        return platformAdminRepository.createMenu(command).toMap();
+        return RecordResponse.from(platformMenuRepository.createMenu(command));
     }
 
     /**
@@ -381,9 +404,9 @@ public class PlatformAdministrationService {
      * @return 更新后的菜单记录。
      */
     @Transactional
-    public Map<String, Object> updateMenu(String id, Map<String, Object> command) {
+    public RecordResponse updateMenu(String id, Map<String, Object> command) {
         // 委托仓储更新菜单并返回字段 Map。
-        return platformAdminRepository.updateMenu(id, command).toMap();
+        return RecordResponse.from(platformMenuRepository.updateMenu(id, command));
     }
 
     /**
@@ -394,7 +417,7 @@ public class PlatformAdministrationService {
     @Transactional
     public void deleteMenu(String id) {
         // 委托仓储删除菜单。
-        platformAdminRepository.deleteMenu(id);
+        platformMenuRepository.deleteMenu(id);
     }
 
     /**
@@ -403,9 +426,9 @@ public class PlatformAdministrationService {
      * @param roleId 角色标识。
      * @return 角色菜单授权详情。
      */
-    public Map<String, Object> roleMenuDetail(String roleId) {
+    public RecordResponse roleMenuDetail(String roleId) {
         // 角色不存在时抛出业务参数异常。
-        if (!platformAdminRepository.roleExists(roleId)) {
+        if (!platformPermissionRepository.roleExists(roleId)) {
             // 抛出角色不存在异常。
             throw new IllegalArgumentException("角色不存在: " + roleId);
         }
@@ -414,11 +437,11 @@ public class PlatformAdministrationService {
         // 写入角色标识。
         result.put("roleId", roleId);
         // 写入角色已授权菜单标识列表。
-        result.put("menuIds", platformAdminRepository.listRoleMenuIds(roleId));
+        result.put("menuIds", platformPermissionRepository.listRoleMenuIds(roleId));
         // 写入菜单树选择器数据。
         result.put("menuTree", menuTreeSelect());
         // 返回角色菜单授权详情。
-        return result;
+        return RecordResponse.from(result);
     }
 
     /**
@@ -430,7 +453,7 @@ public class PlatformAdministrationService {
     @Transactional
     public void assignRoleMenus(String roleId, List<String> menuIds) {
         // 角色不存在时抛出业务参数异常。
-        if (!platformAdminRepository.roleExists(roleId)) {
+        if (!platformPermissionRepository.roleExists(roleId)) {
             // 抛出角色不存在异常。
             throw new IllegalArgumentException("角色不存在: " + roleId);
         }
@@ -440,7 +463,7 @@ public class PlatformAdministrationService {
                 : menuIds.stream().map(this::stringValue).filter(id -> StringUtils.isNotEmpty(id)).distinct()
                 .collect(java.util.stream.Collectors.toList());
         // 保存角色与菜单的授权关系。
-        platformAdminRepository.saveRoleMenus(roleId, normalized);
+        platformPermissionRepository.saveRoleMenus(roleId, normalized);
     }
 
     /**
@@ -448,11 +471,11 @@ public class PlatformAdministrationService {
      *
      * @return 用户资源列表。
      */
-    public List<Map<String, Object>> listUsers() {
+    public List<RecordResponse> listUsers() {
         // 查询用户列表后按当前用户数据权限过滤并移除敏感字段。
-        return filterUsersByDataScope(maps(platformAdminRepository.listUsers()), currentUserProvider.currentUserId()).stream()
+        return RecordResponse.fromMaps(filterUsersByDataScope(maps(platformUserRepository.listUsers()), currentUserProvider.currentUserId()).stream()
                 .map(this::publicUser)
-                .collect(java.util.stream.Collectors.toList());
+                .collect(java.util.stream.Collectors.toList()));
     }
 
     /**
@@ -462,9 +485,9 @@ public class PlatformAdministrationService {
      * @return 新建用户资源。
      */
     @Transactional
-    public Map<String, Object> createUser(Map<String, Object> command) {
+    public RecordResponse createUser(Map<String, Object> command) {
         // 通过平台管理仓储创建用户记录。
-        return platformAdminRepository.createUser(command).toMap();
+        return RecordResponse.from(platformUserRepository.createUser(command));
     }
 
     /**
@@ -475,9 +498,9 @@ public class PlatformAdministrationService {
      * @return 更新后的用户资源。
      */
     @Transactional
-    public Map<String, Object> updateUser(String id, Map<String, Object> command) {
+    public RecordResponse updateUser(String id, Map<String, Object> command) {
         // 通过平台管理仓储更新用户记录。
-        return platformAdminRepository.updateUser(id, command).toMap();
+        return RecordResponse.from(platformUserRepository.updateUser(id, command));
     }
 
     /**
@@ -488,7 +511,7 @@ public class PlatformAdministrationService {
     @Transactional
     public void deleteUser(String id) {
         // 通过平台管理仓储删除用户记录。
-        platformAdminRepository.deleteUser(id);
+        platformUserRepository.deleteUser(id);
     }
 
     /**
@@ -496,9 +519,9 @@ public class PlatformAdministrationService {
      *
      * @return 部门资源列表。
      */
-    public List<Map<String, Object>> listDepartments() {
+    public List<RecordResponse> listDepartments() {
         // 通过平台管理仓储查询部门列表。
-        return maps(platformAdminRepository.listDepartments());
+        return RecordResponse.fromMaps(maps(platformOrganizationRepository.listDepartments()));
     }
 
     /**
@@ -508,9 +531,9 @@ public class PlatformAdministrationService {
      * @return 新建部门资源。
      */
     @Transactional
-    public Map<String, Object> createDepartment(Map<String, Object> command) {
+    public RecordResponse createDepartment(Map<String, Object> command) {
         // 通过平台管理仓储创建部门记录。
-        return platformAdminRepository.createDepartment(command).toMap();
+        return RecordResponse.from(platformOrganizationRepository.createDepartment(command));
     }
 
     /**
@@ -521,9 +544,9 @@ public class PlatformAdministrationService {
      * @return 更新后的部门资源。
      */
     @Transactional
-    public Map<String, Object> updateDepartment(String id, Map<String, Object> command) {
+    public RecordResponse updateDepartment(String id, Map<String, Object> command) {
         // 通过平台管理仓储更新部门记录。
-        return platformAdminRepository.updateDepartment(id, command).toMap();
+        return RecordResponse.from(platformOrganizationRepository.updateDepartment(id, command));
     }
 
     /**
@@ -534,7 +557,7 @@ public class PlatformAdministrationService {
     @Transactional
     public void deleteDepartment(String id) {
         // 通过平台管理仓储删除部门记录。
-        platformAdminRepository.deleteDepartment(id);
+        platformOrganizationRepository.deleteDepartment(id);
     }
 
     /**
@@ -542,9 +565,9 @@ public class PlatformAdministrationService {
      *
      * @return 角色资源列表。
      */
-    public List<Map<String, Object>> listRoles() {
+    public List<RecordResponse> listRoles() {
         // 通过平台管理仓储查询角色列表。
-        return maps(platformAdminRepository.listRoles());
+        return RecordResponse.fromMaps(maps(platformRoleRepository.listRoles()));
     }
 
     /**
@@ -554,9 +577,9 @@ public class PlatformAdministrationService {
      * @return 新建角色资源。
      */
     @Transactional
-    public Map<String, Object> createRole(Map<String, Object> command) {
+    public RecordResponse createRole(Map<String, Object> command) {
         // 通过平台管理仓储创建角色记录。
-        return platformAdminRepository.createRole(command).toMap();
+        return RecordResponse.from(platformRoleRepository.createRole(command));
     }
 
     /**
@@ -567,9 +590,9 @@ public class PlatformAdministrationService {
      * @return 更新后的角色资源。
      */
     @Transactional
-    public Map<String, Object> updateRole(String id, Map<String, Object> command) {
+    public RecordResponse updateRole(String id, Map<String, Object> command) {
         // 通过平台管理仓储更新角色记录。
-        return platformAdminRepository.updateRole(id, command).toMap();
+        return RecordResponse.from(platformRoleRepository.updateRole(id, command));
     }
 
     /**
@@ -580,7 +603,7 @@ public class PlatformAdministrationService {
     @Transactional
     public void deleteRole(String id) {
         // 通过平台管理仓储删除角色记录。
-        platformAdminRepository.deleteRole(id);
+        platformRoleRepository.deleteRole(id);
     }
 
     /**
@@ -588,9 +611,9 @@ public class PlatformAdministrationService {
      *
      * @return 参数配置资源列表。
      */
-    public List<Map<String, Object>> listConfigurations() {
+    public List<RecordResponse> listConfigurations() {
         // 通过平台管理仓储查询参数配置列表。
-        return maps(platformAdminRepository.listConfigurations());
+        return RecordResponse.fromMaps(maps(platformConfigRepository.listConfigurations()));
     }
 
     /**
@@ -600,9 +623,9 @@ public class PlatformAdministrationService {
      * @return 新建参数配置资源。
      */
     @Transactional
-    public Map<String, Object> createConfiguration(Map<String, Object> command) {
+    public RecordResponse createConfiguration(Map<String, Object> command) {
         // 通过平台管理仓储创建参数配置记录。
-        return platformAdminRepository.createConfiguration(command).toMap();
+        return RecordResponse.from(platformConfigRepository.createConfiguration(command));
     }
 
     /**
@@ -613,9 +636,9 @@ public class PlatformAdministrationService {
      * @return 更新后的参数配置资源。
      */
     @Transactional
-    public Map<String, Object> updateConfiguration(String id, Map<String, Object> command) {
+    public RecordResponse updateConfiguration(String id, Map<String, Object> command) {
         // 通过平台管理仓储更新参数配置记录。
-        return platformAdminRepository.updateConfiguration(id, command).toMap();
+        return RecordResponse.from(platformConfigRepository.updateConfiguration(id, command));
     }
 
     /**
@@ -626,7 +649,7 @@ public class PlatformAdministrationService {
     @Transactional
     public void deleteConfiguration(String id) {
         // 通过平台管理仓储删除参数配置记录。
-        platformAdminRepository.deleteConfiguration(id);
+        platformConfigRepository.deleteConfiguration(id);
     }
 
     /**
@@ -634,9 +657,9 @@ public class PlatformAdministrationService {
      *
      * @return 社交登录渠道资源列表。
      */
-    public List<Map<String, Object>> listSocialProviders() {
+    public List<RecordResponse> listSocialProviders() {
         // 通过平台管理仓储查询社交登录渠道列表。
-        return maps(platformAdminRepository.listSocialProviders());
+        return RecordResponse.fromMaps(maps(platformSocialRepository.listSocialProviders()));
     }
 
     /**
@@ -646,9 +669,9 @@ public class PlatformAdministrationService {
      * @return 新建社交登录渠道资源。
      */
     @Transactional
-    public Map<String, Object> createSocialProvider(Map<String, Object> command) {
+    public RecordResponse createSocialProvider(Map<String, Object> command) {
         // 通过平台管理仓储创建社交登录渠道记录。
-        return platformAdminRepository.createSocialProvider(command).toMap();
+        return RecordResponse.from(platformSocialRepository.createSocialProvider(command));
     }
 
     /**
@@ -659,9 +682,9 @@ public class PlatformAdministrationService {
      * @return 更新后的社交登录渠道资源。
      */
     @Transactional
-    public Map<String, Object> updateSocialProvider(String id, Map<String, Object> command) {
+    public RecordResponse updateSocialProvider(String id, Map<String, Object> command) {
         // 通过平台管理仓储更新社交登录渠道记录。
-        return platformAdminRepository.updateSocialProvider(id, command).toMap();
+        return RecordResponse.from(platformSocialRepository.updateSocialProvider(id, command));
     }
 
     /**
@@ -672,7 +695,7 @@ public class PlatformAdministrationService {
     @Transactional
     public void deleteSocialProvider(String id) {
         // 通过平台管理仓储删除社交登录渠道记录。
-        platformAdminRepository.deleteSocialProvider(id);
+        platformSocialRepository.deleteSocialProvider(id);
     }
 
     /**
@@ -680,9 +703,9 @@ public class PlatformAdministrationService {
      *
      * @return 登录日志资源列表。
      */
-    public List<Map<String, Object>> listLoginLogs() {
+    public List<RecordResponse> listLoginLogs() {
         // 通过平台管理仓储查询登录日志列表。
-        return maps(platformAdminRepository.listLoginLogs());
+        return RecordResponse.fromMaps(maps(platformAuditQueryRepository.listLoginLogs()));
     }
 
     /**
@@ -690,9 +713,9 @@ public class PlatformAdministrationService {
      *
      * @return 租户资源列表。
      */
-    public List<Map<String, Object>> listTenants() {
+    public List<RecordResponse> listTenants() {
         // 通过平台管理仓储查询租户列表。
-        return maps(platformAdminRepository.listTenants());
+        return RecordResponse.fromMaps(maps(platformOrganizationRepository.listTenants()));
     }
 
     /**
@@ -700,9 +723,9 @@ public class PlatformAdministrationService {
      *
      * @return 岗位资源列表。
      */
-    public List<Map<String, Object>> listPosts() {
+    public List<RecordResponse> listPosts() {
         // 通过平台管理仓储查询岗位列表。
-        return maps(platformAdminRepository.listPosts());
+        return RecordResponse.fromMaps(maps(platformOrganizationRepository.listPosts()));
     }
 
     /**
@@ -710,9 +733,9 @@ public class PlatformAdministrationService {
      *
      * @return 字典类型资源列表。
      */
-    public List<Map<String, Object>> listDictTypes() {
+    public List<RecordResponse> listDictTypes() {
         // 通过平台管理仓储查询字典类型列表。
-        return maps(platformAdminRepository.listDictTypes());
+        return RecordResponse.fromMaps(maps(platformConfigRepository.listDictTypes()));
     }
 
     /**
@@ -720,9 +743,9 @@ public class PlatformAdministrationService {
      *
      * @return 字典数据资源列表。
      */
-    public List<Map<String, Object>> listDictData() {
+    public List<RecordResponse> listDictData() {
         // 通过平台管理仓储查询字典数据列表。
-        return maps(platformAdminRepository.listDictData());
+        return RecordResponse.fromMaps(maps(platformConfigRepository.listDictData()));
     }
 
     /**
@@ -730,9 +753,9 @@ public class PlatformAdministrationService {
      *
      * @return 通知公告资源列表。
      */
-    public List<Map<String, Object>> listNotices() {
+    public List<RecordResponse> listNotices() {
         // 通过平台管理仓储查询通知公告列表。
-        return maps(platformAdminRepository.listNotices());
+        return RecordResponse.fromMaps(maps(platformNoticeRepository.listNotices()));
     }
 
     /**
@@ -740,9 +763,9 @@ public class PlatformAdministrationService {
      *
      * @return 操作日志资源列表。
      */
-    public List<Map<String, Object>> listOperationLogs() {
+    public List<RecordResponse> listOperationLogs() {
         // 通过平台管理仓储查询操作日志列表。
-        return maps(platformAdminRepository.listOperationLogs());
+        return RecordResponse.fromMaps(maps(platformAuditQueryRepository.listOperationLogs()));
     }
 
     /**
@@ -750,9 +773,9 @@ public class PlatformAdministrationService {
      *
      * @return 在线会话资源列表。
      */
-    public List<Map<String, Object>> listOnlineSessions() {
+    public List<RecordResponse> listOnlineSessions() {
         // 通过平台管理仓储查询在线会话列表。
-        return maps(platformAdminRepository.listOnlineSessions());
+        return RecordResponse.fromMaps(maps(platformAuditQueryRepository.listOnlineSessions()));
     }
 
     /**
@@ -760,9 +783,9 @@ public class PlatformAdministrationService {
      *
      * @return OAuth 客户端资源列表。
      */
-    public List<Map<String, Object>> listOauthClients() {
+    public List<RecordResponse> listOauthClients() {
         // 通过平台管理仓储查询 OAuth 客户端列表。
-        return maps(platformAdminRepository.listOauthClients());
+        return RecordResponse.fromMaps(maps(platformAuditQueryRepository.listOauthClients()));
     }
 
     /**
@@ -1051,7 +1074,7 @@ public class PlatformAdministrationService {
         }
 
         // 查询当前用户资料。
-        Map<String, Object> currentUser = platformAdminRepository.findUserById(userId)
+        Map<String, Object> currentUser = platformUserRepository.findUserById(userId)
                 .map(DomainRecord::toMap)
                 .orElse(Collections.emptyMap());
         // 读取当前用户部门标识。
@@ -1061,7 +1084,7 @@ public class PlatformAdministrationService {
         // 自定义数据权限读取角色绑定部门。
         if (DataScope.CUSTOM.matches(scope)) {
             // 加入自定义授权部门标识。
-            allowedDeptIds.addAll(platformAdminRepository.listCustomDeptIdsByUserId(userId));
+            allowedDeptIds.addAll(platformPermissionRepository.listCustomDeptIdsByUserId(userId));
         } else if (DataScope.DEPT.matches(scope) || DataScope.DEPT_AND_CHILD.matches(scope)) {
             // 部门数据权限先加入当前部门。
             if (StringUtils.isNotEmpty(currentDeptId)) {
@@ -1093,7 +1116,7 @@ public class PlatformAdministrationService {
             return;
         }
         // 查询全部部门记录。
-        List<Map<String, Object>> departments = maps(platformAdminRepository.listDepartments());
+        List<Map<String, Object>> departments = maps(platformOrganizationRepository.listDepartments());
         // 声明本轮是否有新增部门。
         boolean changed;
         // 循环扩展部门集合直到不再新增。
@@ -1129,7 +1152,7 @@ public class PlatformAdministrationService {
             return DataScope.ALL.getCode();
         }
         // 查询用户关联角色的数据权限编码列表。
-        List<String> scopes = platformAdminRepository.listDataScopesByUserId(userId);
+        List<String> scopes = platformPermissionRepository.listDataScopesByUserId(userId);
         // 使用数据权限枚举解析最高权限范围。
         return DataScope.resolve(scopes).getCode();
     }

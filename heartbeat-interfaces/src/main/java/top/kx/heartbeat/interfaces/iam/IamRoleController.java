@@ -1,14 +1,15 @@
 package top.kx.heartbeat.interfaces.iam;
 
+
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import top.kx.heartbeat.application.common.response.RecordResponse;
 import top.kx.heartbeat.application.platform.PlatformAdministrationService;
 import top.kx.heartbeat.interfaces.common.Result;
 import top.kx.heartbeat.interfaces.common.response.DynamicRecordResponse;
 import top.kx.heartbeat.interfaces.iam.request.AssignRoleMenusRequest;
 
 import javax.annotation.Resource;
-import java.util.Map;
 
 /**
  * 身份权限角色接口控制器。
@@ -35,7 +36,7 @@ public class IamRoleController {
     @PreAuthorize("@permissionGuard.has('system:role:list')")
     public Result<DynamicRecordResponse> roleMenus(@PathVariable("id") String roleId) {
         // 查询角色菜单动态详情。
-        Map<String, Object> detail = adminPlatformService.roleMenuDetail(roleId);
+        RecordResponse detail = adminPlatformService.roleMenuDetail(roleId);
         // 将动态详情转换为统一响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(detail);
         // 返回角色菜单详情。

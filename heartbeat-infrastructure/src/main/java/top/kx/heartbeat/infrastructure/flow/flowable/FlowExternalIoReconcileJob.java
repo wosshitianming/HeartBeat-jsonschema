@@ -1,6 +1,7 @@
 package top.kx.heartbeat.infrastructure.flow.flowable;
 
 import org.springframework.stereotype.Component;
+import top.kx.heartbeat.application.common.response.RecordResponse;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -19,7 +20,7 @@ public class FlowExternalIoReconcileJob {
      *
      * @return 对账扫描摘要
      */
-    public Map<String, Object> reconcileOnce() {
+    public RecordResponse reconcileOnce() {
         // 创建对账摘要。
         Map<String, Object> summary = new LinkedHashMap<>();
         // 写入执行时间。
@@ -29,6 +30,6 @@ public class FlowExternalIoReconcileJob {
         // 写入说明。
         summary.put("message", "外部 I/O 对账端口已就绪，命令表落库后接入扫描逻辑");
         // 返回对账摘要。
-        return summary;
+        return RecordResponse.from(summary);
     }
 }

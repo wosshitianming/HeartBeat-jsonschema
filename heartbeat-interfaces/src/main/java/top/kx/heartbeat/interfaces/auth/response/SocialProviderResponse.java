@@ -3,6 +3,7 @@ package top.kx.heartbeat.interfaces.auth.response;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import top.kx.heartbeat.application.common.response.RecordResponse;
 
 import java.util.Collections;
 import java.util.List;
@@ -53,6 +54,10 @@ public class SocialProviderResponse {
         return new SocialProviderResponse(provider, name, icon);
     }
 
+    public static SocialProviderResponse from(RecordResponse record) {
+        return record == null ? from(Collections.emptyMap()) : from(record.toMap());
+    }
+
     /**
      * 将动态渠道记录列表转换为响应对象列表。
      *
@@ -63,6 +68,11 @@ public class SocialProviderResponse {
         // 兜底空渠道记录列表。
         List<Map<String, Object>> safeRecords = records == null ? Collections.emptyList() : records;
         // 逐条转换为第三方登录渠道响应对象。
+        return safeRecords.stream().map(SocialProviderResponse::from).collect(Collectors.toList());
+    }
+
+    public static List<SocialProviderResponse> fromRecordList(List<RecordResponse> records) {
+        List<RecordResponse> safeRecords = records == null ? Collections.emptyList() : records;
         return safeRecords.stream().map(SocialProviderResponse::from).collect(Collectors.toList());
     }
 

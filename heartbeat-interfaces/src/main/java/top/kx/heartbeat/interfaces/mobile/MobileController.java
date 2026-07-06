@@ -1,7 +1,9 @@
 package top.kx.heartbeat.interfaces.mobile;
 
+
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import top.kx.heartbeat.application.common.response.RecordResponse;
 import top.kx.heartbeat.application.mobile.MobileService;
 import top.kx.heartbeat.domain.common.audit.OperLog;
 import top.kx.heartbeat.interfaces.common.Result;
@@ -36,9 +38,9 @@ public class MobileController {
     @PreAuthorize("@permissionGuard.has('biz:mobile:list')")
     public Result<List<DynamicRecordResponse>> apps() {
         // 查询移动应用动态记录列表。
-        List<Map<String, Object>> apps = mobileService.listApps();
+        List<RecordResponse> apps = mobileService.listApps();
         // 将动态记录列表转换为统一响应对象列表。
-        List<DynamicRecordResponse> response = DynamicRecordResponse.fromList(apps);
+        List<DynamicRecordResponse> response = DynamicRecordResponse.fromRecordList(apps);
         // 返回移动应用列表。
         return Result.success(response);
     }
@@ -56,7 +58,7 @@ public class MobileController {
         // 转换动态请求对象为业务字段映射。
         Map<String, Object> payload = request.toMap();
         // 保存移动应用动态记录。
-        Map<String, Object> app = mobileService.saveApp(payload);
+        RecordResponse app = mobileService.saveApp(payload);
         // 将动态记录转换为统一响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(app);
         // 返回移动应用保存结果。
@@ -73,9 +75,9 @@ public class MobileController {
     @PreAuthorize("@permissionGuard.has('biz:mobile:list')")
     public Result<List<DynamicRecordResponse>> pages(@PathVariable String appId) {
         // 查询指定应用下的页面动态记录列表。
-        List<Map<String, Object>> pages = mobileService.listPages(appId);
+        List<RecordResponse> pages = mobileService.listPages(appId);
         // 将动态记录列表转换为统一响应对象列表。
-        List<DynamicRecordResponse> response = DynamicRecordResponse.fromList(pages);
+        List<DynamicRecordResponse> response = DynamicRecordResponse.fromRecordList(pages);
         // 返回移动页面列表。
         return Result.success(response);
     }
@@ -93,7 +95,7 @@ public class MobileController {
         // 转换动态请求对象为业务字段映射。
         Map<String, Object> payload = request.toMap();
         // 保存移动页面动态记录。
-        Map<String, Object> page = mobileService.savePage(payload);
+        RecordResponse page = mobileService.savePage(payload);
         // 将动态记录转换为统一响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(page);
         // 返回移动页面保存结果。
@@ -110,9 +112,9 @@ public class MobileController {
     @PreAuthorize("@permissionGuard.has('biz:mobile:list')")
     public Result<List<DynamicRecordResponse>> apiRoutes(@PathVariable String appId) {
         // 查询指定应用下的 API 路由动态记录列表。
-        List<Map<String, Object>> routes = mobileService.listApiRoutes(appId);
+        List<RecordResponse> routes = mobileService.listApiRoutes(appId);
         // 将动态记录列表转换为统一响应对象列表。
-        List<DynamicRecordResponse> response = DynamicRecordResponse.fromList(routes);
+        List<DynamicRecordResponse> response = DynamicRecordResponse.fromRecordList(routes);
         // 返回 API 路由列表。
         return Result.success(response);
     }
@@ -130,7 +132,7 @@ public class MobileController {
         // 转换动态请求对象为业务字段映射。
         Map<String, Object> payload = request.toMap();
         // 保存移动 API 路由动态记录。
-        Map<String, Object> route = mobileService.saveApiRoute(payload);
+        RecordResponse route = mobileService.saveApiRoute(payload);
         // 将动态记录转换为统一响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(route);
         // 返回移动 API 路由保存结果。

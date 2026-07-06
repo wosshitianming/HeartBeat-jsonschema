@@ -1,7 +1,9 @@
 package top.kx.heartbeat.interfaces.iam;
 
+
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import top.kx.heartbeat.application.common.response.RecordResponse;
 import top.kx.heartbeat.application.platform.PlatformAdministrationService;
 import top.kx.heartbeat.interfaces.common.Result;
 import top.kx.heartbeat.interfaces.common.request.DynamicRecordRequest;
@@ -35,9 +37,9 @@ public class IamMenuController {
     @PreAuthorize("@permissionGuard.has('system:menu:list')")
     public Result<List<DynamicRecordResponse>> menus() {
         // 查询后台菜单动态记录列表。
-        List<Map<String, Object>> menus = adminPlatformService.listMenus();
+        List<RecordResponse> menus = adminPlatformService.listMenus();
         // 将动态记录列表转换为统一响应对象列表。
-        List<DynamicRecordResponse> response = DynamicRecordResponse.fromList(menus);
+        List<DynamicRecordResponse> response = DynamicRecordResponse.fromRecordList(menus);
         // 返回后台菜单列表。
         return Result.success(response);
     }
@@ -52,9 +54,9 @@ public class IamMenuController {
     public Result<List<DynamicRecordResponse>> menuTree(
             @RequestHeader(value = "X-User-Id", required = false) String userId) {
         // 查询当前用户可访问路由动态记录列表。
-        List<Map<String, Object>> routes = adminPlatformService.routes();
+        List<RecordResponse> routes = adminPlatformService.routes();
         // 将动态记录列表转换为统一响应对象列表。
-        List<DynamicRecordResponse> response = DynamicRecordResponse.fromList(routes);
+        List<DynamicRecordResponse> response = DynamicRecordResponse.fromRecordList(routes);
         // 返回当前用户菜单树。
         return Result.success(response);
     }
@@ -69,9 +71,9 @@ public class IamMenuController {
     public Result<List<DynamicRecordResponse>> routes(
             @RequestHeader(value = "X-User-Id", required = false) String userId) {
         // 查询当前用户可访问路由动态记录列表。
-        List<Map<String, Object>> routes = adminPlatformService.routes();
+        List<RecordResponse> routes = adminPlatformService.routes();
         // 将动态记录列表转换为统一响应对象列表。
-        List<DynamicRecordResponse> response = DynamicRecordResponse.fromList(routes);
+        List<DynamicRecordResponse> response = DynamicRecordResponse.fromRecordList(routes);
         // 返回当前用户前端路由。
         return Result.success(response);
     }
@@ -85,9 +87,9 @@ public class IamMenuController {
     @PreAuthorize("@permissionGuard.has('system:menu:list')")
     public Result<List<DynamicRecordResponse>> treeSelect() {
         // 查询菜单树选择器动态记录列表。
-        List<Map<String, Object>> tree = adminPlatformService.menuTreeSelect();
+        List<RecordResponse> tree = adminPlatformService.menuTreeSelect();
         // 将动态记录列表转换为统一响应对象列表。
-        List<DynamicRecordResponse> response = DynamicRecordResponse.fromList(tree);
+        List<DynamicRecordResponse> response = DynamicRecordResponse.fromRecordList(tree);
         // 返回菜单树选择器数据。
         return Result.success(response);
     }
@@ -104,7 +106,7 @@ public class IamMenuController {
         // 转换动态请求对象为业务字段映射。
         Map<String, Object> payload = request.toMap();
         // 创建后台菜单动态记录。
-        Map<String, Object> menu = adminPlatformService.createMenu(payload);
+        RecordResponse menu = adminPlatformService.createMenu(payload);
         // 将动态记录转换为统一响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(menu);
         // 返回后台菜单新增结果。
@@ -125,7 +127,7 @@ public class IamMenuController {
         // 转换动态请求对象为业务字段映射。
         Map<String, Object> payload = request.toMap();
         // 修改后台菜单动态记录。
-        Map<String, Object> menu = adminPlatformService.updateMenu(id, payload);
+        RecordResponse menu = adminPlatformService.updateMenu(id, payload);
         // 将动态记录转换为统一响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(menu);
         // 返回后台菜单修改结果。

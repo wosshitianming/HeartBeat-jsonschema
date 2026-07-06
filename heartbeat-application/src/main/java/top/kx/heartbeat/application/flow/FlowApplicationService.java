@@ -3,12 +3,8 @@ package top.kx.heartbeat.application.flow;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.kx.heartbeat.application.flow.runtime.FlowBpmnCompileResult;
-import top.kx.heartbeat.application.flow.runtime.FlowBpmnCompiler;
-import top.kx.heartbeat.application.flow.runtime.FlowDebugResult;
-import top.kx.heartbeat.application.flow.runtime.FlowExecutor;
-import top.kx.heartbeat.application.flow.runtime.FlowRuntimeFacade;
-import top.kx.heartbeat.application.flow.runtime.FlowStartCommand;
+import top.kx.heartbeat.application.common.response.RecordResponse;
+import top.kx.heartbeat.application.flow.runtime.*;
 import top.kx.heartbeat.domain.flow.model.*;
 import top.kx.heartbeat.domain.flow.repository.FlowRepository;
 import top.kx.heartbeat.domain.flow.repository.FlowRunRepository;
@@ -132,7 +128,7 @@ public class FlowApplicationService {
      * @param flow 流程定义草稿
      * @return 流程编译报告
      */
-    public Map<String, Object> compile(FlowDefinition flow) {
+    public RecordResponse compile(FlowDefinition flow) {
         // 查询全部启用节点组件。
         List<NodeComponentManifest> manifests = componentRepository.findAllActive();
         // 编译流程定义。
@@ -156,7 +152,7 @@ public class FlowApplicationService {
         // 写入连线数量。
         report.put("edgeCount", safeFlow.getEdges() == null ? 0 : safeFlow.getEdges().size());
         // 返回流程编译报告。
-        return report;
+        return RecordResponse.from(report);
     }
 
     /**

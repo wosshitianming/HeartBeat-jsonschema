@@ -8,6 +8,7 @@ import io.jsonwebtoken.security.Keys;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import top.kx.heartbeat.domain.auth.AuthTokenClaims;
+import top.kx.heartbeat.domain.auth.AuthTokenPayload;
 import top.kx.heartbeat.domain.auth.TokenIssuer;
 
 import javax.annotation.Resource;
@@ -36,12 +37,12 @@ public class JwtTokenService implements TokenIssuer {
     private JwtProperties properties;
 
     @Override
-    public Map<String, Object> issueTokens(String userId, String username) {
+    public AuthTokenPayload issueTokens(String userId, String username) {
         return issueTokens(userId, username, "1", UUID.randomUUID().toString());
     }
 
     @Override
-    public Map<String, Object> issueTokens(String userId, String username, String tenantId, String sessionId) {
+    public AuthTokenPayload issueTokens(String userId, String username, String tenantId, String sessionId) {
         String resolvedTenantId = hasText(tenantId) ? tenantId : "1";
         String resolvedSessionId = hasText(sessionId) ? sessionId : UUID.randomUUID().toString();
         String accessToken = buildToken(
@@ -61,18 +62,18 @@ public class JwtTokenService implements TokenIssuer {
                 properties.getRefreshTokenDays() * 86_400_000L
         );
 
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("accessToken", accessToken);
-        result.put("refreshToken", refreshToken);
-        result.put("tokenType", "Bearer");
-        result.put("expiresIn", properties.getAccessTokenMinutes() * 60);
-        result.put("tenantId", resolvedTenantId);
-        result.put("sessionId", resolvedSessionId);
-        return result;
+        return AuthTokenPayload.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .tokenType("Bearer")
+                .expiresIn(properties.getAccessTokenMinutes() * 60L)
+                .tenantId(resolvedTenantId)
+                .sessionId(resolvedSessionId)
+                .build();
     }
 
     @Override
-    public Map<String, Object> refreshTokens(String refreshToken) {
+    public AuthTokenPayload refreshTokens(String refreshToken) {
         Claims claims = parseClaims(refreshToken);
         if (!TYPE_REFRESH.equals(claims.get(CLAIM_TOKEN_TYPE))) {
             throw new IllegalArgumentException("Invalid refresh token");

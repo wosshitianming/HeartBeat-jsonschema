@@ -2,6 +2,7 @@ package top.kx.heartbeat.infrastructure.codegen;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
+import top.kx.heartbeat.application.common.response.RecordResponse;
 import top.kx.heartbeat.application.tool.port.MybatisGeneratorPreviewer;
 
 import javax.annotation.Resource;
@@ -29,7 +30,7 @@ public class MybatisGeneratorPreviewEngine implements MybatisGeneratorPreviewer 
     private DataSource dataSource;
 
     @Override
-    public List<Map<String, Object>> listDatabaseTables() {
+    public List<RecordResponse> listDatabaseTables() {
         List<Map<String, Object>> tables = new ArrayList<>();
         try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData metaData = connection.getMetaData();
@@ -50,11 +51,11 @@ public class MybatisGeneratorPreviewEngine implements MybatisGeneratorPreviewer 
             throw new IllegalStateException("读取数据库表失败", ex);
         }
         tables.sort((left, right) -> String.valueOf(left.get("tableName")).compareTo(String.valueOf(right.get("tableName"))));
-        return tables;
+        return RecordResponse.fromMaps(tables);
     }
 
     @Override
-    public List<Map<String, Object>> listTableColumns(String tableName) {
+    public List<RecordResponse> listTableColumns(String tableName) {
         List<Map<String, Object>> columns = new ArrayList<>();
         try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData metaData = connection.getMetaData();
@@ -72,7 +73,7 @@ public class MybatisGeneratorPreviewEngine implements MybatisGeneratorPreviewer 
         } catch (Exception ex) {
             throw new IllegalStateException("读取表字段失败: " + tableName, ex);
         }
-        return columns;
+        return RecordResponse.fromMaps(columns);
     }
 
     @Override

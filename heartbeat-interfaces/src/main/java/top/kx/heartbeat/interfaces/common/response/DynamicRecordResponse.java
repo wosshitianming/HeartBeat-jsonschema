@@ -3,6 +3,7 @@ package top.kx.heartbeat.interfaces.common.response;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import top.kx.heartbeat.application.common.response.RecordResponse;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -41,6 +42,16 @@ public class DynamicRecordResponse {
     }
 
     /**
+     * 将应用层通用记录响应转换为接口响应对象。
+     *
+     * @param record 应用层通用记录响应
+     * @return 统一动态记录响应
+     */
+    public static DynamicRecordResponse from(RecordResponse record) {
+        return record == null ? from(Collections.emptyMap()) : from(record.toMap());
+    }
+
+    /**
      * 将动态记录列表转换为响应对象列表。
      *
      * @param records 动态记录列表
@@ -50,6 +61,17 @@ public class DynamicRecordResponse {
         // 保护空列表，避免流式转换出现空指针。
         List<Map<String, Object>> safeRecords = records == null ? Collections.emptyList() : records;
         // 逐条转换为响应对象。
+        return safeRecords.stream().map(DynamicRecordResponse::from).collect(Collectors.toList());
+    }
+
+    /**
+     * 将应用层通用记录响应列表转换为接口响应列表。
+     *
+     * @param records 应用层通用记录响应列表
+     * @return 统一动态记录响应列表
+     */
+    public static List<DynamicRecordResponse> fromRecordList(List<RecordResponse> records) {
+        List<RecordResponse> safeRecords = records == null ? Collections.emptyList() : records;
         return safeRecords.stream().map(DynamicRecordResponse::from).collect(Collectors.toList());
     }
 }

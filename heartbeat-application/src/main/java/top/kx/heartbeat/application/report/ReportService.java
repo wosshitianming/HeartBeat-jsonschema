@@ -5,6 +5,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.kx.heartbeat.application.common.model.DomainRecord;
+import top.kx.heartbeat.application.common.response.RecordResponse;
 import top.kx.heartbeat.application.report.port.ReportRepository;
 
 import javax.annotation.Resource;
@@ -48,9 +49,9 @@ public class ReportService {
      *
      * @return 报表数据集列表。
      */
-    public List<Map<String, Object>> listDatasets() {
+    public List<RecordResponse> listDatasets() {
         // 查询报表数据集领域记录并转换为字段 Map 列表。
-        return maps(reportRepository.listDatasets());
+        return RecordResponse.fromMaps(maps(reportRepository.listDatasets()));
     }
 
     /**
@@ -60,11 +61,11 @@ public class ReportService {
      * @return 保存后的报表数据集。
      */
     @Transactional
-    public Map<String, Object> saveDataset(Map<String, Object> command) {
+    public RecordResponse saveDataset(Map<String, Object> command) {
         // 校验数据集 SQL 只能是只读查询。
         assertReadonlySql(stringValue(command.get("querySql")));
         // 委托仓储保存报表数据集并返回字段 Map。
-        return reportRepository.saveDataset(command).toMap();
+        return RecordResponse.from(reportRepository.saveDataset(command));
     }
 
     /**
@@ -72,9 +73,9 @@ public class ReportService {
      *
      * @return 报表模板列表。
      */
-    public List<Map<String, Object>> listTemplates() {
+    public List<RecordResponse> listTemplates() {
         // 查询报表模板领域记录并转换为字段 Map 列表。
-        return maps(reportRepository.listTemplates());
+        return RecordResponse.fromMaps(maps(reportRepository.listTemplates()));
     }
 
     /**
@@ -84,9 +85,9 @@ public class ReportService {
      * @return 保存后的报表模板。
      */
     @Transactional
-    public Map<String, Object> saveTemplate(Map<String, Object> command) {
+    public RecordResponse saveTemplate(Map<String, Object> command) {
         // 委托仓储保存报表模板并返回字段 Map。
-        return reportRepository.saveTemplate(command).toMap();
+        return RecordResponse.from(reportRepository.saveTemplate(command));
     }
 
     /**
@@ -97,9 +98,9 @@ public class ReportService {
      * @param limit 查询行数上限。
      * @return 报表数据行。
      */
-    public List<Map<String, Object>> query(String datasetId, Map<String, Object> params, Integer limit) {
+    public List<RecordResponse> query(String datasetId, Map<String, Object> params, Integer limit) {
         // 复用内部查询方法执行数据集查询。
-        return queryRows(datasetId, params, limit);
+        return RecordResponse.fromMaps(queryRows(datasetId, params, limit));
     }
 
     /**

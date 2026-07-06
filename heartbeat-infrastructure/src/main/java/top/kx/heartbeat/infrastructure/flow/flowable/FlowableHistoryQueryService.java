@@ -3,6 +3,7 @@ package top.kx.heartbeat.infrastructure.flow.flowable;
 import org.flowable.engine.HistoryService;
 import org.flowable.engine.history.HistoricProcessInstance;
 import org.springframework.stereotype.Service;
+import top.kx.heartbeat.application.common.response.RecordResponse;
 
 import javax.annotation.Resource;
 import java.util.LinkedHashMap;
@@ -28,7 +29,7 @@ public class FlowableHistoryQueryService {
      * @param processInstanceId 流程实例标识
      * @return 历史流程实例摘要
      */
-    public Map<String, Object> findProcessSummary(String processInstanceId) {
+    public RecordResponse findProcessSummary(String processInstanceId) {
         // 查询历史流程实例。
         HistoricProcessInstance instance = historyService.createHistoricProcessInstanceQuery()
                 .processInstanceId(processInstanceId)
@@ -38,7 +39,7 @@ public class FlowableHistoryQueryService {
         // 判断历史实例是否存在。
         if (instance == null) {
             // 返回空摘要。
-            return summary;
+            return RecordResponse.from(summary);
         }
         // 写入流程实例标识。
         summary.put("processInstanceId", instance.getId());
@@ -53,6 +54,6 @@ public class FlowableHistoryQueryService {
         // 写入删除原因。
         summary.put("deleteReason", instance.getDeleteReason());
         // 返回历史摘要。
-        return summary;
+        return RecordResponse.from(summary);
     }
 }

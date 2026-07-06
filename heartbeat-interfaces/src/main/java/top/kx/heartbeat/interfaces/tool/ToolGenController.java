@@ -1,10 +1,12 @@
 package top.kx.heartbeat.interfaces.tool;
 
+
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import top.kx.heartbeat.application.common.response.RecordResponse;
 import top.kx.heartbeat.application.tool.CodegenService;
 import top.kx.heartbeat.interfaces.common.Result;
 import top.kx.heartbeat.interfaces.common.response.DynamicRecordResponse;
@@ -38,9 +40,9 @@ public class ToolGenController {
     @PreAuthorize("@permissionGuard.has('tool:gen:list')")
     public Result<List<DynamicRecordResponse>> listDatabaseTables() {
         // 查询数据库表元数据动态记录列表。
-        List<Map<String, Object>> tables = codegenService.listDatabaseTables();
+        List<RecordResponse> tables = codegenService.listDatabaseTables();
         // 将动态记录列表转换为统一响应对象列表。
-        List<DynamicRecordResponse> response = DynamicRecordResponse.fromList(tables);
+        List<DynamicRecordResponse> response = DynamicRecordResponse.fromRecordList(tables);
         // 返回数据库表列表。
         return Result.success(response);
     }
@@ -54,9 +56,9 @@ public class ToolGenController {
     @PreAuthorize("@permissionGuard.has('tool:gen:list')")
     public Result<List<DynamicRecordResponse>> listImportedTables() {
         // 查询已导入表配置动态记录列表。
-        List<Map<String, Object>> tables = codegenService.listImportedTables();
+        List<RecordResponse> tables = codegenService.listImportedTables();
         // 将动态记录列表转换为统一响应对象列表。
-        List<DynamicRecordResponse> response = DynamicRecordResponse.fromList(tables);
+        List<DynamicRecordResponse> response = DynamicRecordResponse.fromRecordList(tables);
         // 返回已导入生成配置列表。
         return Result.success(response);
     }
@@ -71,7 +73,7 @@ public class ToolGenController {
     @PreAuthorize("@permissionGuard.has('tool:gen:import')")
     public Result<DynamicRecordResponse> importTable(@RequestParam String tableName) {
         // 导入表结构动态记录。
-        Map<String, Object> imported = codegenService.importTable(tableName);
+        RecordResponse imported = codegenService.importTable(tableName);
         // 将动态记录转换为统一响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(imported);
         // 返回表结构导入结果。

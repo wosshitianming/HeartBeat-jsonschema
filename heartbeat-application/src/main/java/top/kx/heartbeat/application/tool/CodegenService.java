@@ -6,9 +6,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import top.kx.heartbeat.application.common.response.RecordResponse;
 import top.kx.heartbeat.application.platform.PlatformAdministrationService;
-import top.kx.heartbeat.domain.tool.CodegenMetadataRepository;
 import top.kx.heartbeat.application.tool.port.MybatisGeneratorPreviewer;
+import top.kx.heartbeat.domain.tool.CodegenMetadataRepository;
 import top.kx.heartbeat.domain.tool.model.GeneratedColumn;
 import top.kx.heartbeat.domain.tool.model.GeneratedTable;
 
@@ -30,21 +31,21 @@ public class CodegenService {
     @Resource
     private ObjectMapper objectMapper;
 
-    public List<Map<String, Object>> listDatabaseTables() {
+    public List<RecordResponse> listDatabaseTables() {
         return mybatisGeneratorPreviewer.listDatabaseTables();
     }
 
-    public List<Map<String, Object>> listImportedTables() {
+    public List<RecordResponse> listImportedTables() {
         List<Map<String, Object>> rows = new ArrayList<>();
         for (GeneratedTable table : codegenMetadataRepository.findAllTables()) {
             rows.add(toMap(table));
         }
-        return rows;
+        return RecordResponse.fromMaps(rows);
     }
 
     @Transactional
-    public Map<String, Object> importTable(String tableName) {
-        List<Map<String, Object>> columns = mybatisGeneratorPreviewer.listTableColumns(tableName);
+    public RecordResponse importTable(String tableName) {
+        List<RecordResponse> columns = mybatisGeneratorPreviewer.listTableColumns(tableName);
         Map<String, Object> options = buildOptions(tableName);
         GeneratedTable table = codegenMetadataRepository.saveTable(GeneratedTable.builder()
                 .tableName(tableName)
@@ -59,7 +60,8 @@ public class CodegenService {
 
         List<GeneratedColumn> generatedColumns = new ArrayList<>();
         int sortNo = 0;
-        for (Map<String, Object> column : columns) {
+        for (RecordResponse columnRecord : columns) {
+            Map<String, Object> column = columnRecord.toMap();
             String columnName = String.valueOf(column.get("columnName"));
             String dataType = String.valueOf(column.get("columnType"));
             generatedColumns.add(GeneratedColumn.builder()
@@ -78,7 +80,7 @@ public class CodegenService {
         }
         codegenMetadataRepository.replaceColumns(table.getId(), generatedColumns);
         syncMenu(options);
-        return toMap(table);
+        return RecordResponse.from(toMap(table));
     }
 
     public Map<String, String> preview(String tableId) {
@@ -92,10 +94,11 @@ public class CodegenService {
     }
 
     private Map<String, Object> findImportedTableRequired(String tableId) {
-        Optional<Map<String, Object>> tableOptional = listImportedTables().stream()
+        Optional<RecordResponse> tableOptional = listImportedTables().stream()
                 .filter(item -> tableId.equals(String.valueOf(item.get("id"))))
                 .findFirst();
-        return tableOptional.orElseThrow(() -> new IllegalArgumentException("生成配置不存在: " + tableId));
+        return tableOptional.map(RecordResponse::toMap)
+                .orElseThrow(() -> new IllegalArgumentException("生成配置不存在: " + tableId));
     }
 
     private Map<String, Object> buildOptions(String tableName) {
@@ -122,7 +125,7 @@ public class CodegenService {
         menu.put("permission", permissionPrefix + ":list");
         menu.put("icon", "code");
         menu.put("sortNo", 90);
-        Map<String, Object> createdMenu = adminPlatformService.createMenu(menu);
+        RecordResponse createdMenu = adminPlatformService.createMenu(menu);
         String menuId = String.valueOf(createdMenu.get("id"));
         syncButton(menuId, className + "新增", permissionPrefix + ":add", 1);
         syncButton(menuId, className + "修改", permissionPrefix + ":edit", 2);

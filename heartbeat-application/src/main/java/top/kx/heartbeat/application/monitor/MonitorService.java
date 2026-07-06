@@ -3,6 +3,7 @@ package top.kx.heartbeat.application.monitor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
+import top.kx.heartbeat.application.common.response.RecordResponse;
 
 import javax.annotation.Resource;
 import javax.sql.DataSource;
@@ -25,7 +26,7 @@ public class MonitorService {
     @Resource
     private ObjectProvider<DataSource> dataSourceProvider;
 
-    public Map<String, Object> serverInfo() {
+    public RecordResponse serverInfo() {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("timestamp", Instant.now().toString());
         result.put("cpu", cpuInfo());
@@ -33,10 +34,10 @@ public class MonitorService {
         result.put("jvm", jvmInfo());
         result.put("disk", diskInfo());
         result.put("runtime", runtimeInfo());
-        return result;
+        return RecordResponse.from(result);
     }
 
-    public Map<String, Object> cacheInfo() {
+    public RecordResponse cacheInfo() {
         CacheManager cacheManager = cacheManagerProvider.getIfAvailable();
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("enabled", cacheManager != null);
@@ -56,16 +57,16 @@ public class MonitorService {
             }
         }
         result.put("caches", caches);
-        return result;
+        return RecordResponse.from(result);
     }
 
-    public Map<String, Object> dataSourceInfo() {
+    public RecordResponse dataSourceInfo() {
         DataSource dataSource = dataSourceProvider.getIfAvailable();
         Map<String, Object> result = new LinkedHashMap<>();
         if (dataSource == null) {
             result.put("implementation", "NONE");
             result.put("enabled", false);
-            return result;
+            return RecordResponse.from(result);
         }
         result.put("enabled", true);
         result.put("implementation", dataSource.getClass().getName());
@@ -78,7 +79,7 @@ public class MonitorService {
             putMetric(result, "totalConnections", poolBean, "getTotalConnections");
             putMetric(result, "threadsAwaitingConnection", poolBean, "getThreadsAwaitingConnection");
         }
-        return result;
+        return RecordResponse.from(result);
     }
 
     private Map<String, Object> cpuInfo() {

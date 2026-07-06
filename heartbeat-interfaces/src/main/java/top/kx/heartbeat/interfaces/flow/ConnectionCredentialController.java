@@ -1,7 +1,9 @@
 package top.kx.heartbeat.interfaces.flow;
 
+
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import top.kx.heartbeat.application.common.response.RecordResponse;
 import top.kx.heartbeat.application.flow.ConnectionCredentialService;
 import top.kx.heartbeat.domain.flow.model.ConnectionCredential;
 import top.kx.heartbeat.interfaces.common.Result;
@@ -9,7 +11,6 @@ import top.kx.heartbeat.interfaces.common.response.DynamicRecordResponse;
 
 import javax.annotation.Resource;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 流程连接凭证接口控制器。
@@ -84,7 +85,7 @@ public class ConnectionCredentialController {
     @PreAuthorize("@permissionGuard.has('flow:definition:edit')")
     public Result<DynamicRecordResponse> test(@PathVariable String id) {
         // 测试连接凭证并返回动态测试结果。
-        Map<String, Object> tested = credentialService.test(id);
+        RecordResponse tested = credentialService.test(id);
         // 将动态测试结果转换为统一响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(tested);
         // 返回连接凭证测试结果。

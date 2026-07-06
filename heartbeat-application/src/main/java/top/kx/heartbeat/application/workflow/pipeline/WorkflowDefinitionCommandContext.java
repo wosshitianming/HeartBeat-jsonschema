@@ -24,13 +24,18 @@ public class WorkflowDefinitionCommandContext {
         this.command = command;
     }
 
-    /**
-     * 获取工作流定义命令参数。
-     *
-     * @return 工作流定义命令参数
-     */
-    public Map<String, Object> getCommand() {
-        // 返回工作流定义命令参数。
-        return command;
+    public String stringValue(String key) {
+        Object value = command.get(key);
+        return value == null ? "" : String.valueOf(value).trim();
+    }
+
+    public void put(String key, Object value) {
+        command.put(key, value);
+    }
+
+    public void putIfBlank(String key, String value) {
+        if ((stringValue(key).isEmpty()) && value != null && !value.trim().isEmpty()) {
+            command.put(key, value.trim());
+        }
     }
 }

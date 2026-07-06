@@ -5,8 +5,8 @@ import org.flowable.bpmn.model.BpmnModel;
 import org.flowable.bpmn.model.FieldExtension;
 import org.flowable.bpmn.model.FlowElement;
 import org.flowable.bpmn.model.ServiceTask;
-import org.flowable.engine.delegate.DelegateExecution;
 import org.flowable.engine.RepositoryService;
+import org.flowable.engine.delegate.DelegateExecution;
 import org.springframework.stereotype.Component;
 import top.kx.heartbeat.application.flow.runtime.FlowResumeCommand;
 import top.kx.heartbeat.application.flow.runtime.FlowStartCommand;
@@ -69,7 +69,7 @@ public class FlowableVariableCodec {
      * @param command 流程启动命令
      * @return Flowable 启动变量
      */
-    public Map<String, Object> toStartVariables(FlowStartCommand command) {
+    Map<String, Object> toStartVariables(FlowStartCommand command) {
         // 创建变量映射。
         Map<String, Object> variables = new LinkedHashMap<>();
         // 写入流程定义标识。
@@ -98,7 +98,7 @@ public class FlowableVariableCodec {
      * @param command 流程恢复命令
      * @return Flowable 恢复变量
      */
-    public Map<String, Object> toResumeVariables(FlowResumeCommand command) {
+    Map<String, Object> toResumeVariables(FlowResumeCommand command) {
         // 创建变量映射。
         Map<String, Object> variables = new LinkedHashMap<>();
         // 写入租户标识。
@@ -122,7 +122,7 @@ public class FlowableVariableCodec {
      * @return payload 数据
      */
     @SuppressWarnings("unchecked")
-    public Map<String, Object> readPayload(DelegateExecution execution) {
+    Map<String, Object> readPayload(DelegateExecution execution) {
         // 读取 payload 变量。
         Object payload = execution.getVariable(PAYLOAD);
         // 判断 payload 是否为 Map。
@@ -140,7 +140,7 @@ public class FlowableVariableCodec {
      * @param execution Flowable 执行上下文
      * @return 流程变量
      */
-    public Map<String, Object> readVariables(DelegateExecution execution) {
+    Map<String, Object> readVariables(DelegateExecution execution) {
         // 创建变量映射。
         Map<String, Object> variables = new LinkedHashMap<>();
         // 遍历 Flowable 变量名。

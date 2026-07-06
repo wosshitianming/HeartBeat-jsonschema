@@ -1,7 +1,9 @@
 package top.kx.heartbeat.interfaces.flow;
 
+
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import top.kx.heartbeat.application.common.response.RecordResponse;
 import top.kx.heartbeat.application.flow.FlowApplicationService;
 import top.kx.heartbeat.application.flow.runtime.FlowDebugResult;
 import top.kx.heartbeat.domain.flow.model.FlowDefinition;
@@ -108,7 +110,7 @@ public class FlowController {
         // 使用路径标识覆盖请求体标识。
         flow.setId(id);
         // 编译流程定义并返回动态编译结果。
-        Map<String, Object> compiled = flowApplicationService.compile(flow);
+        RecordResponse compiled = flowApplicationService.compile(flow);
         // 将动态编译结果转换为统一响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(compiled);
         // 返回流程编译结果。

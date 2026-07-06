@@ -1,7 +1,9 @@
 package top.kx.heartbeat.interfaces.mp;
 
+
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import top.kx.heartbeat.application.common.response.RecordResponse;
 import top.kx.heartbeat.application.mp.MpService;
 import top.kx.heartbeat.domain.common.audit.OperLog;
 import top.kx.heartbeat.interfaces.common.Result;
@@ -36,9 +38,9 @@ public class MpController {
     @PreAuthorize("@permissionGuard.has('biz:mp:list')")
     public Result<List<DynamicRecordResponse>> accounts() {
         // 查询公众号账号动态记录列表。
-        List<Map<String, Object>> accounts = mpService.listAccounts();
+        List<RecordResponse> accounts = mpService.listAccounts();
         // 将动态记录列表转换为统一响应对象列表。
-        List<DynamicRecordResponse> response = DynamicRecordResponse.fromList(accounts);
+        List<DynamicRecordResponse> response = DynamicRecordResponse.fromRecordList(accounts);
         // 返回公众号账号列表。
         return Result.success(response);
     }
@@ -53,7 +55,7 @@ public class MpController {
     @PreAuthorize("@permissionGuard.has('biz:mp:list')")
     public Result<DynamicRecordResponse> account(@PathVariable String id) {
         // 查询公众号账号动态记录。
-        Map<String, Object> account = mpService.getAccount(id);
+        RecordResponse account = mpService.getAccount(id);
         // 将动态记录转换为统一响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(account);
         // 返回公众号账号详情。
@@ -73,7 +75,7 @@ public class MpController {
         // 转换动态请求对象为业务字段映射。
         Map<String, Object> payload = request.toMap();
         // 保存公众号账号动态记录。
-        Map<String, Object> account = mpService.saveAccount(payload);
+        RecordResponse account = mpService.saveAccount(payload);
         // 将动态记录转换为统一响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(account);
         // 返回公众号账号保存结果。
@@ -90,9 +92,9 @@ public class MpController {
     @PreAuthorize("@permissionGuard.has('biz:mp:list')")
     public Result<List<DynamicRecordResponse>> menus(@PathVariable String accountId) {
         // 查询公众号菜单动态记录列表。
-        List<Map<String, Object>> menus = mpService.listMenus(accountId);
+        List<RecordResponse> menus = mpService.listMenus(accountId);
         // 将动态记录列表转换为统一响应对象列表。
-        List<DynamicRecordResponse> response = DynamicRecordResponse.fromList(menus);
+        List<DynamicRecordResponse> response = DynamicRecordResponse.fromRecordList(menus);
         // 返回公众号菜单列表。
         return Result.success(response);
     }
@@ -110,7 +112,7 @@ public class MpController {
         // 转换动态请求对象为业务字段映射。
         Map<String, Object> payload = request.toMap();
         // 保存公众号菜单动态记录。
-        Map<String, Object> menu = mpService.saveMenu(payload);
+        RecordResponse menu = mpService.saveMenu(payload);
         // 将动态记录转换为统一响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(menu);
         // 返回公众号菜单保存结果。
@@ -128,7 +130,7 @@ public class MpController {
     @OperLog(module = "公众号", action = "同步公众号菜单")
     public Result<DynamicRecordResponse> syncMenu(@PathVariable String accountId) {
         // 同步公众号菜单动态记录。
-        Map<String, Object> menu = mpService.syncMenu(accountId);
+        RecordResponse menu = mpService.syncMenu(accountId);
         // 将动态记录转换为统一响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(menu);
         // 返回公众号菜单同步结果。
@@ -145,9 +147,9 @@ public class MpController {
     @PreAuthorize("@permissionGuard.has('biz:mp:list')")
     public Result<List<DynamicRecordResponse>> materials(@PathVariable String accountId) {
         // 查询公众号素材动态记录列表。
-        List<Map<String, Object>> materials = mpService.listMaterials(accountId);
+        List<RecordResponse> materials = mpService.listMaterials(accountId);
         // 将动态记录列表转换为统一响应对象列表。
-        List<DynamicRecordResponse> response = DynamicRecordResponse.fromList(materials);
+        List<DynamicRecordResponse> response = DynamicRecordResponse.fromRecordList(materials);
         // 返回公众号素材列表。
         return Result.success(response);
     }
@@ -165,7 +167,7 @@ public class MpController {
         // 转换动态请求对象为业务字段映射。
         Map<String, Object> payload = request.toMap();
         // 保存公众号素材动态记录。
-        Map<String, Object> material = mpService.saveMaterial(payload);
+        RecordResponse material = mpService.saveMaterial(payload);
         // 将动态记录转换为统一响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(material);
         // 返回公众号素材保存结果。
@@ -182,9 +184,9 @@ public class MpController {
     @PreAuthorize("@permissionGuard.has('biz:mp:list')")
     public Result<List<DynamicRecordResponse>> autoReplies(@PathVariable String accountId) {
         // 查询公众号自动回复动态记录列表。
-        List<Map<String, Object>> replies = mpService.listAutoReplies(accountId);
+        List<RecordResponse> replies = mpService.listAutoReplies(accountId);
         // 将动态记录列表转换为统一响应对象列表。
-        List<DynamicRecordResponse> response = DynamicRecordResponse.fromList(replies);
+        List<DynamicRecordResponse> response = DynamicRecordResponse.fromRecordList(replies);
         // 返回公众号自动回复列表。
         return Result.success(response);
     }
@@ -202,7 +204,7 @@ public class MpController {
         // 转换动态请求对象为业务字段映射。
         Map<String, Object> payload = request.toMap();
         // 保存公众号自动回复动态记录。
-        Map<String, Object> reply = mpService.saveAutoReply(payload);
+        RecordResponse reply = mpService.saveAutoReply(payload);
         // 将动态记录转换为统一响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(reply);
         // 返回公众号自动回复保存结果。

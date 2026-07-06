@@ -1,14 +1,9 @@
 package top.kx.heartbeat.interfaces.admin;
 
+
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import top.kx.heartbeat.application.common.response.RecordResponse;
 import top.kx.heartbeat.application.platform.PlatformAdministrationService;
 import top.kx.heartbeat.interfaces.common.Result;
 import top.kx.heartbeat.interfaces.common.request.DynamicRecordRequest;
@@ -209,11 +204,11 @@ public class AdminResourceController {
         return listResponse(platformAdministrationService.listOauthClients());
     }
 
-    private Result<List<DynamicRecordResponse>> listResponse(List<Map<String, Object>> records) {
-        return Result.success(DynamicRecordResponse.fromList(records));
+    private Result<List<DynamicRecordResponse>> listResponse(List<RecordResponse> records) {
+        return Result.success(DynamicRecordResponse.fromRecordList(records));
     }
 
-    private Result<DynamicRecordResponse> recordResponse(Map<String, Object> record) {
+    private Result<DynamicRecordResponse> recordResponse(RecordResponse record) {
         return Result.success(DynamicRecordResponse.from(record));
     }
 

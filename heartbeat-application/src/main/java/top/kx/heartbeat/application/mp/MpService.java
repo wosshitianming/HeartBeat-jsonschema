@@ -4,6 +4,7 @@ package top.kx.heartbeat.application.mp;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.kx.heartbeat.application.common.model.DomainRecord;
+import top.kx.heartbeat.application.common.response.RecordResponse;
 import top.kx.heartbeat.application.mp.port.MpMenuSyncGateway;
 import top.kx.heartbeat.application.mp.port.MpRepository;
 
@@ -36,9 +37,9 @@ public class MpService {
      *
      * @return 公众号账号列表。
      */
-    public List<Map<String, Object>> listAccounts() {
+    public List<RecordResponse> listAccounts() {
         // 查询公众号账号领域记录并转换为字段 Map 列表。
-        return maps(mpRepository.listAccounts());
+        return RecordResponse.fromMaps(maps(mpRepository.listAccounts()));
     }
 
     /**
@@ -47,9 +48,9 @@ public class MpService {
      * @param id 公众号账号标识。
      * @return 公众号账号详情。
      */
-    public Map<String, Object> getAccount(String id) {
+    public RecordResponse getAccount(String id) {
         // 委托仓储查询公众号账号并返回字段 Map。
-        return mpRepository.getAccount(id).toMap();
+        return RecordResponse.from(mpRepository.getAccount(id));
     }
 
     /**
@@ -59,9 +60,9 @@ public class MpService {
      * @return 保存后的公众号账号。
      */
     @Transactional
-    public Map<String, Object> saveAccount(Map<String, Object> command) {
+    public RecordResponse saveAccount(Map<String, Object> command) {
         // 委托仓储保存公众号账号并返回字段 Map。
-        return mpRepository.saveAccount(command).toMap();
+        return RecordResponse.from(mpRepository.saveAccount(command));
     }
 
     /**
@@ -70,9 +71,9 @@ public class MpService {
      * @param accountId 公众号账号标识。
      * @return 公众号菜单列表。
      */
-    public List<Map<String, Object>> listMenus(String accountId) {
+    public List<RecordResponse> listMenus(String accountId) {
         // 查询公众号菜单领域记录并转换为字段 Map 列表。
-        return maps(mpRepository.listMenus(accountId));
+        return RecordResponse.fromMaps(maps(mpRepository.listMenus(accountId)));
     }
 
     /**
@@ -82,9 +83,9 @@ public class MpService {
      * @return 保存后的公众号菜单。
      */
     @Transactional
-    public Map<String, Object> saveMenu(Map<String, Object> command) {
+    public RecordResponse saveMenu(Map<String, Object> command) {
         // 委托仓储保存公众号菜单并返回字段 Map。
-        return mpRepository.saveMenu(command).toMap();
+        return RecordResponse.from(mpRepository.saveMenu(command));
     }
 
     /**
@@ -93,7 +94,7 @@ public class MpService {
      * @param accountId 公众号账号标识。
      * @return 菜单同步结果。
      */
-    public Map<String, Object> syncMenu(String accountId) {
+    public RecordResponse syncMenu(String accountId) {
         // 查询公众号账号上下文。
         Map<String, Object> account = mpRepository.getAccount(accountId).toMap();
         // 查询公众号菜单上下文。
@@ -108,9 +109,9 @@ public class MpService {
      * @param accountId 公众号账号标识。
      * @return 公众号素材列表。
      */
-    public List<Map<String, Object>> listMaterials(String accountId) {
+    public List<RecordResponse> listMaterials(String accountId) {
         // 查询公众号素材领域记录并转换为字段 Map 列表。
-        return maps(mpRepository.listMaterials(accountId));
+        return RecordResponse.fromMaps(maps(mpRepository.listMaterials(accountId)));
     }
 
     /**
@@ -120,9 +121,9 @@ public class MpService {
      * @return 保存后的公众号素材。
      */
     @Transactional
-    public Map<String, Object> saveMaterial(Map<String, Object> command) {
+    public RecordResponse saveMaterial(Map<String, Object> command) {
         // 委托仓储保存公众号素材并返回字段 Map。
-        return mpRepository.saveMaterial(command).toMap();
+        return RecordResponse.from(mpRepository.saveMaterial(command));
     }
 
     /**
@@ -131,9 +132,9 @@ public class MpService {
      * @param accountId 公众号账号标识。
      * @return 公众号自动回复列表。
      */
-    public List<Map<String, Object>> listAutoReplies(String accountId) {
+    public List<RecordResponse> listAutoReplies(String accountId) {
         // 查询公众号自动回复领域记录并转换为字段 Map 列表。
-        return maps(mpRepository.listAutoReplies(accountId));
+        return RecordResponse.fromMaps(maps(mpRepository.listAutoReplies(accountId)));
     }
 
     /**
@@ -143,9 +144,9 @@ public class MpService {
      * @return 保存后的公众号自动回复。
      */
     @Transactional
-    public Map<String, Object> saveAutoReply(Map<String, Object> command) {
+    public RecordResponse saveAutoReply(Map<String, Object> command) {
         // 委托仓储保存公众号自动回复并返回字段 Map。
-        return mpRepository.saveAutoReply(command).toMap();
+        return RecordResponse.from(mpRepository.saveAutoReply(command));
     }
 
     /**

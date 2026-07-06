@@ -37,7 +37,7 @@ public class FlowablePayloadStore {
      * @param payload 原始 payload
      * @return Flowable 变量安全载荷
      */
-    public Map<String, Object> slim(Map<String, Object> payload) {
+    Map<String, Object> slim(Map<String, Object> payload) {
         // 创建安全 payload。
         Map<String, Object> safePayload = payload == null ? new LinkedHashMap<>() : payload;
         // 计算 JSON 字节长度。

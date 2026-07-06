@@ -5,10 +5,15 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
+import top.kx.heartbeat.application.auth.response.AuthTokenResponse;
+import top.kx.heartbeat.application.common.model.DomainRecord;
+import top.kx.heartbeat.application.common.response.RecordResponse;
+import top.kx.heartbeat.application.platform.port.PlatformLoginLogRepository;
+import top.kx.heartbeat.application.platform.port.PlatformPermissionRepository;
+import top.kx.heartbeat.application.platform.port.PlatformSocialRepository;
+import top.kx.heartbeat.application.platform.port.PlatformUserRepository;
 import top.kx.heartbeat.domain.auth.SocialLoginHandlerRegistry;
 import top.kx.heartbeat.domain.auth.TokenIssuer;
-import top.kx.heartbeat.application.common.model.DomainRecord;
-import top.kx.heartbeat.application.platform.port.PlatformAdminRepository;
 
 import javax.annotation.Resource;
 import java.net.URLEncoder;
@@ -24,9 +29,14 @@ import java.util.*;
 @Service
 public class SocialLoginService {
 
-    // 平台管理仓储：用户、绑定关系、渠道配置
     @Resource
-    private PlatformAdminRepository platformAdminRepository;
+    private PlatformUserRepository platformUserRepository;
+    @Resource
+    private PlatformPermissionRepository platformPermissionRepository;
+    @Resource
+    private PlatformSocialRepository platformSocialRepository;
+    @Resource
+    private PlatformLoginLogRepository platformLoginLogRepository;
     // JWT 与 OAuth state / bindTicket 签发端口
     @Resource
     private TokenIssuer tokenIssuer;
@@ -42,11 +52,11 @@ public class SocialLoginService {
      *
      * @return provider、name、icon 组成的列表
      */
-    public List<Map<String, Object>> listProvidersForLogin() {
+    public List<RecordResponse> listProvidersForLogin() {
         // 返回给前端的精简渠道列表
         List<Map<String, Object>> providers = new ArrayList<>();
         // 遍历已启用渠道
-        for (Map<String, Object> provider : maps(platformAdminRepository.listActiveSocialProviders())) {
+        for (Map<String, Object> provider : maps(platformSocialRepository.listActiveSocialProviders())) {
             // 单条渠道展示对象
             Map<String, Object> item = new LinkedHashMap<>();
             // 渠道编码，如 WECHAT、DINGTALK、MOCK
@@ -59,7 +69,7 @@ public class SocialLoginService {
             providers.add(item);
         }
         // 返回登录页第三方按钮数据
-        return providers;
+        return RecordResponse.fromMaps(providers);
     }
 
     /**
@@ -69,9 +79,9 @@ public class SocialLoginService {
      * @param redirectAfterLogin 登录成功后前端回跳路径
      * @return authorizeUrl、state、redirectAfterLogin
      */
-    public Map<String, Object> buildAuthorizeUrl(String provider, String redirectAfterLogin) {
+    public RecordResponse buildAuthorizeUrl(String provider, String redirectAfterLogin) {
         // 查询渠道配置
-        Map<String, Object> config = platformAdminRepository.findSocialProvider(provider)
+        Map<String, Object> config = platformSocialRepository.findSocialProvider(provider)
                 .map(DomainRecord::toMap)
                 // 未配置则拒绝
                 .orElseThrow(() -> new IllegalArgumentException("未启用的登录渠道: " + provider));
@@ -91,7 +101,7 @@ public class SocialLoginService {
         // 登录成功后回跳业务页
         result.put("redirectAfterLogin", redirectAfterLogin);
         // 返回授权包
-        return result;
+        return RecordResponse.from(result);
     }
 
     /**
@@ -102,14 +112,14 @@ public class SocialLoginService {
      * @param state    防 CSRF 状态值
      * @return JWT 登录结果或 PENDING_BIND 待绑定信息
      */
-    public Map<String, Object> handleCallback(String provider, String code, String state) {
+    public RecordResponse handleCallback(String provider, String code, String state) {
         // 校验 state 防止伪造回调
         if (!tokenIssuer.validateSocialState(state)) {
             // 校验失败直接拒绝
             throw new IllegalArgumentException("state 无效或已过期");
         }
         // 再次加载渠道配置
-        Map<String, Object> config = platformAdminRepository.findSocialProvider(provider)
+        Map<String, Object> config = platformSocialRepository.findSocialProvider(provider)
                 .map(DomainRecord::toMap)
                 // 渠道必须存在
                 .orElseThrow(() -> new IllegalArgumentException("未启用的登录渠道: " + provider));
@@ -119,13 +129,13 @@ public class SocialLoginService {
         return transactionTemplate.execute(status -> handleResolvedProfile(provider, config, profile));
     }
 
-    private Map<String, Object> handleResolvedProfile(String provider,
+    private RecordResponse handleResolvedProfile(String provider,
                                                       Map<String, Object> config,
                                                       Map<String, String> profile) {
         // 第三方唯一标识
         String openId = profile.get("openId");
         // 查是否已绑定本地账号
-        Optional<Map<String, Object>> bindOptional = platformAdminRepository.findSocialBind(provider, openId)
+        Optional<Map<String, Object>> bindOptional = platformSocialRepository.findSocialBind(provider, openId)
                 .map(DomainRecord::toMap);
         // 已绑定则直接登录
         if (bindOptional.isPresent()) {
@@ -147,7 +157,7 @@ public class SocialLoginService {
             // 随机密码占位（第三方登录不走密码）
             userCommand.put("password", openId);
             // 创建本地用户
-            Map<String, Object> user = platformAdminRepository.createSocialUser(userCommand).toMap();
+            Map<String, Object> user = platformUserRepository.createSocialUser(userCommand).toMap();
             // 写入绑定关系
             bindSocial(user, provider, profile);
             // 返回登录结果
@@ -173,7 +183,7 @@ public class SocialLoginService {
         // 第三方头像
         pending.put("avatar", profile.getOrDefault("avatar", ""));
         // 返回待绑定信息给前端
-        return pending;
+        return RecordResponse.from(pending);
     }
 
     /**
@@ -185,11 +195,11 @@ public class SocialLoginService {
      * @return 绑定成功后的 JWT 登录结果
      */
     @Transactional
-    public Map<String, Object> bindExistingAccount(String bindTicket, String username, String password) {
+    public RecordResponse bindExistingAccount(String bindTicket, String username, String password) {
         // 解析绑定票据
         Map<String, String> ticket = tokenIssuer.parseBindTicket(bindTicket);
         // 查本地用户
-        Optional<Map<String, Object>> userOptional = platformAdminRepository.findUserByUsername(username)
+        Optional<Map<String, Object>> userOptional = platformUserRepository.findUserByUsername(username)
                 .map(DomainRecord::toMap);
         // 用户不存在则终止
         if (!userOptional.isPresent()) {
@@ -200,7 +210,7 @@ public class SocialLoginService {
         // 校验密码
         if (!matchesPassword(password, stringValue(user.get("passwordHash")))) {
             // 记录失败登录日志
-            platformAdminRepository.recordLogin(username, "FAIL", "第三方绑定密码错误");
+            platformLoginLogRepository.recordLogin(username, "FAIL", "第三方绑定密码错误");
             // 密码不正确
             throw new IllegalArgumentException("密码错误");
         }
@@ -229,34 +239,41 @@ public class SocialLoginService {
         // 第三方头像
         command.put("avatar", profile.get("avatar"));
         // 持久化绑定记录
-        platformAdminRepository.saveSocialBind(command);
+        platformSocialRepository.saveSocialBind(command);
     }
 
     /**
      * 组装完整登录结果：JWT + 用户 + 权限。
      */
-    private Map<String, Object> loginResult(String userId, String provider) {
+    private RecordResponse loginResult(String userId, String provider) {
         // 加载用户详情
-        Map<String, Object> user = platformAdminRepository.findUserById(userId)
+        Map<String, Object> user = platformUserRepository.findUserById(userId)
                 .map(DomainRecord::toMap)
                 // 用户必须存在
                 .orElseThrow(() -> new IllegalArgumentException("用户不存在"));
         // 写登录日志
-        platformAdminRepository.recordLogin(stringValue(user.get("username")), "SUCCESS", provider + " 登录成功");
+        platformLoginLogRepository.recordLogin(stringValue(user.get("username")), "SUCCESS", provider + " 登录成功");
         // 签发访问令牌与刷新令牌，并创建可撤销的服务端会话
-        Map<String, Object> result = new LinkedHashMap<>(authenticationSessionService.createSession(
+        AuthTokenResponse tokens = authenticationSessionService.createSession(
                 userId,
                 stringValue(user.get("username")),
                 stringValue(user.get("tenantId"))
-        ));
+        );
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("accessToken", tokens.getAccessToken());
+        result.put("refreshToken", tokens.getRefreshToken());
+        result.put("tokenType", tokens.getTokenType());
+        result.put("expiresIn", tokens.getExpiresIn());
+        result.put("tenantId", tokens.getTenantId());
+        result.put("sessionId", tokens.getSessionId());
         // 响应中移除密码哈希
         user.remove("passwordHash");
         // 附带用户基本信息
         result.put("user", user);
         // 附带权限码列表
-        result.put("permissions", platformAdminRepository.listPermissionsByUserId(userId));
+        result.put("permissions", platformPermissionRepository.listPermissionsByUserId(userId));
         // 返回完整登录结果
-        return result;
+        return RecordResponse.from(result);
     }
 
     private List<Map<String, Object>> maps(List<DomainRecord> records) {

@@ -1,7 +1,9 @@
 package top.kx.heartbeat.interfaces.workflow;
 
+
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import top.kx.heartbeat.application.common.response.RecordResponse;
 import top.kx.heartbeat.application.workflow.WorkflowService;
 import top.kx.heartbeat.domain.common.audit.OperLog;
 import top.kx.heartbeat.interfaces.common.Result;
@@ -36,9 +38,9 @@ public class WorkflowController {
     @PreAuthorize("@permissionGuard.has('biz:workflow:list')")
     public Result<List<DynamicRecordResponse>> listDefinitions() {
         // 查询流程定义动态记录列表。
-        List<Map<String, Object>> definitions = workflowService.listDefinitions();
+        List<RecordResponse> definitions = workflowService.listDefinitions();
         // 转换为统一动态响应对象列表。
-        List<DynamicRecordResponse> response = DynamicRecordResponse.fromList(definitions);
+        List<DynamicRecordResponse> response = DynamicRecordResponse.fromRecordList(definitions);
         // 返回统一接口响应。
         return Result.success(response);
     }
@@ -53,7 +55,7 @@ public class WorkflowController {
     @PreAuthorize("@permissionGuard.has('biz:workflow:list')")
     public Result<DynamicRecordResponse> getDefinition(@PathVariable String id) {
         // 查询流程定义动态记录。
-        Map<String, Object> definition = workflowService.getDefinition(id);
+        RecordResponse definition = workflowService.getDefinition(id);
         // 转换为统一动态响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(definition);
         // 返回统一接口响应。
@@ -73,7 +75,7 @@ public class WorkflowController {
         // 转换动态请求对象为业务字段映射。
         Map<String, Object> payload = request.toMap();
         // 创建流程定义动态记录。
-        Map<String, Object> definition = workflowService.createDefinition(payload);
+        RecordResponse definition = workflowService.createDefinition(payload);
         // 转换为统一动态响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(definition);
         // 返回统一接口响应。
@@ -91,7 +93,7 @@ public class WorkflowController {
     @OperLog(module = "工作流", action = "部署流程定义")
     public Result<DynamicRecordResponse> deploy(@PathVariable String id) {
         // 部署流程定义动态记录。
-        Map<String, Object> definition = workflowService.deployDefinition(id);
+        RecordResponse definition = workflowService.deployDefinition(id);
         // 转换为统一动态响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(definition);
         // 返回统一接口响应。
@@ -112,7 +114,7 @@ public class WorkflowController {
         // 转换动态请求对象为业务字段映射。
         Map<String, Object> payload = request.toMap();
         // 启动流程实例动态记录。
-        Map<String, Object> instance = workflowService.startInstance(id, payload);
+        RecordResponse instance = workflowService.startInstance(id, payload);
         // 转换为统一动态响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(instance);
         // 返回统一接口响应。
@@ -128,9 +130,9 @@ public class WorkflowController {
     @PreAuthorize("@permissionGuard.has('biz:workflow:list')")
     public Result<List<DynamicRecordResponse>> listInstances() {
         // 查询流程实例动态记录列表。
-        List<Map<String, Object>> instances = workflowService.listInstances();
+        List<RecordResponse> instances = workflowService.listInstances();
         // 转换为统一动态响应对象列表。
-        List<DynamicRecordResponse> response = DynamicRecordResponse.fromList(instances);
+        List<DynamicRecordResponse> response = DynamicRecordResponse.fromRecordList(instances);
         // 返回统一接口响应。
         return Result.success(response);
     }
@@ -144,9 +146,9 @@ public class WorkflowController {
     @PreAuthorize("@permissionGuard.has('biz:workflow:todo')")
     public Result<List<DynamicRecordResponse>> todoTasks() {
         // 查询待办任务动态记录列表。
-        List<Map<String, Object>> tasks = workflowService.listTodoTasks();
+        List<RecordResponse> tasks = workflowService.listTodoTasks();
         // 转换为统一动态响应对象列表。
-        List<DynamicRecordResponse> response = DynamicRecordResponse.fromList(tasks);
+        List<DynamicRecordResponse> response = DynamicRecordResponse.fromRecordList(tasks);
         // 返回统一接口响应。
         return Result.success(response);
     }
@@ -165,7 +167,7 @@ public class WorkflowController {
         // 转换动态请求对象为业务字段映射。
         Map<String, Object> payload = request.toMap();
         // 审批通过任务动态记录。
-        Map<String, Object> task = workflowService.approve(id, payload);
+        RecordResponse task = workflowService.approve(id, payload);
         // 转换为统一动态响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(task);
         // 返回统一接口响应。
@@ -186,7 +188,7 @@ public class WorkflowController {
         // 转换动态请求对象为业务字段映射。
         Map<String, Object> payload = request.toMap();
         // 审批拒绝任务动态记录。
-        Map<String, Object> task = workflowService.reject(id, payload);
+        RecordResponse task = workflowService.reject(id, payload);
         // 转换为统一动态响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(task);
         // 返回统一接口响应。

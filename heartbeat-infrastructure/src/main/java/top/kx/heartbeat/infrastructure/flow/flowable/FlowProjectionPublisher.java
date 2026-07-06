@@ -3,9 +3,6 @@ package top.kx.heartbeat.infrastructure.flow.flowable;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-
 /**
  * Flow 运行投影发布器。
  *
@@ -25,18 +22,8 @@ public class FlowProjectionPublisher {
      *
      * @param eventType 事件类型
      * @param processInstanceId 流程实例标识
-     * @return 投影摘要
      */
-    public Map<String, Object> publishRawEvent(String eventType, String processInstanceId) {
-        // 创建投影摘要。
-        Map<String, Object> projection = new LinkedHashMap<>();
-        // 写入投影模式。
-        projection.put("projectionMode", projectionMode);
-        // 写入事件类型。
-        projection.put("eventType", eventType);
-        // 写入流程实例标识。
-        projection.put("processInstanceId", processInstanceId);
-        // 返回投影摘要。
-        return projection;
+    void publishRawEvent(String eventType, String processInstanceId) {
+        // LOCAL_TX 模式下事件已在当前事务中完成；后续 MQ/Outbox 模式在这里扩展。
     }
 }

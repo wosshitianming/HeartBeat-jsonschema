@@ -1,5 +1,7 @@
 package top.kx.heartbeat.application.tool.port;
 
+import top.kx.heartbeat.application.common.response.RecordResponse;
+
 import java.util.List;
 import java.util.Map;
 
@@ -11,12 +13,12 @@ public interface MybatisGeneratorPreviewer {
     /**
      * 列出当前数据源中可导入的业务表（排除 QRTZ_、ACT_ 等系统表）。
      */
-    List<Map<String, Object>> listDatabaseTables();
+    List<RecordResponse> listDatabaseTables();
 
     /**
      * 读取单表列元数据。
      */
-    List<Map<String, Object>> listTableColumns(String tableName);
+    List<RecordResponse> listTableColumns(String tableName);
 
     /**
      * 预览生成代码（文件名 -> 内容）。

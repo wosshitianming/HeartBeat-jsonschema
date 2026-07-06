@@ -1,15 +1,16 @@
 package top.kx.heartbeat.interfaces.monitor;
 
+
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import top.kx.heartbeat.application.common.response.RecordResponse;
 import top.kx.heartbeat.application.monitor.MonitorService;
 import top.kx.heartbeat.interfaces.common.Result;
 import top.kx.heartbeat.interfaces.common.response.DynamicRecordResponse;
 
 import javax.annotation.Resource;
-import java.util.Map;
 
 /**
  * 系统监控接口控制器。
@@ -35,7 +36,7 @@ public class MonitorController {
     @PreAuthorize("@permissionGuard.has('monitor:server:list')")
     public Result<DynamicRecordResponse> server() {
         // 查询服务器动态监控记录。
-        Map<String, Object> serverInfo = monitorService.serverInfo();
+        RecordResponse serverInfo = monitorService.serverInfo();
         // 转换为统一动态响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(serverInfo);
         // 返回统一接口响应。
@@ -51,7 +52,7 @@ public class MonitorController {
     @PreAuthorize("@permissionGuard.has('monitor:cache:list')")
     public Result<DynamicRecordResponse> cache() {
         // 查询缓存动态监控记录。
-        Map<String, Object> cacheInfo = monitorService.cacheInfo();
+        RecordResponse cacheInfo = monitorService.cacheInfo();
         // 转换为统一动态响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(cacheInfo);
         // 返回统一接口响应。
@@ -67,7 +68,7 @@ public class MonitorController {
     @PreAuthorize("@permissionGuard.has('monitor:druid:list')")
     public Result<DynamicRecordResponse> dataSource() {
         // 查询数据源动态监控记录。
-        Map<String, Object> dataSourceInfo = monitorService.dataSourceInfo();
+        RecordResponse dataSourceInfo = monitorService.dataSourceInfo();
         // 转换为统一动态响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(dataSourceInfo);
         // 返回统一接口响应。

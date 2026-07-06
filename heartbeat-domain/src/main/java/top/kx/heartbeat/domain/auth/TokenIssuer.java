@@ -8,15 +8,15 @@ import java.util.Map;
 public interface TokenIssuer {
 
     /** Issue an access/refresh token pair for a user. */
-    Map<String, Object> issueTokens(String userId, String username);
+    AuthTokenPayload issueTokens(String userId, String username);
 
     /** Issue an access/refresh token pair for a tenant-scoped server session. */
-    default Map<String, Object> issueTokens(String userId, String username, String tenantId, String sessionId) {
+    default AuthTokenPayload issueTokens(String userId, String username, String tenantId, String sessionId) {
         return issueTokens(userId, username);
     }
 
     /** Exchange a refresh token for a new access/refresh token pair. */
-    Map<String, Object> refreshTokens(String refreshToken);
+    AuthTokenPayload refreshTokens(String refreshToken);
 
     /** Parse and validate a refresh token without mutating server-side session state. */
     default AuthTokenClaims parseRefreshToken(String refreshToken) {

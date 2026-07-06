@@ -4,6 +4,7 @@ package top.kx.heartbeat.application.auth;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import top.kx.heartbeat.application.auth.response.AuthTokenResponse;
 import top.kx.heartbeat.domain.auth.*;
 
 import javax.annotation.Resource;
@@ -11,9 +12,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
-import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -25,18 +23,17 @@ public class AuthenticationSessionService {
     private TokenIssuer tokenIssuer;
 
     @Transactional
-    public Map<String, Object> createSession(String userId, String username, String tenantId) {
+    public AuthTokenResponse createSession(String userId, String username, String tenantId) {
         long uid = positiveLong(userId, "userId");
         long tid = positiveLong(tenantId, "tenantId");
         String sessionId = UUID.randomUUID().toString();
-        Map<String, Object> tokens = new LinkedHashMap<>(tokenIssuer.issueTokens(
-                String.valueOf(uid), username, String.valueOf(tid), sessionId));
+        AuthTokenPayload tokens = tokenIssuer.issueTokens(String.valueOf(uid), username, String.valueOf(tid), sessionId);
         LocalDateTime now = LocalDateTime.now();
         authSessionRepository.create(AuthSession.builder()
                 .tenantId(tid)
                 .sessionId(sessionId)
                 .userId(uid)
-                .refreshTokenHash(sha256(stringValue(tokens.get("refreshToken"))))
+                .refreshTokenHash(sha256(tokens.getRefreshToken()))
                 .status(AuthSessionStatus.ACTIVE.getCode())
                 .issuedAt(now)
                 .expireAt(now.plusSeconds(tokenIssuer.accessTokenTtlSeconds()))
@@ -45,7 +42,7 @@ public class AuthenticationSessionService {
                 .createTime(now)
                 .updateTime(now)
                 .build());
-        return tokens;
+        return AuthTokenResponse.from(tokens);
     }
 
     @Transactional
@@ -62,7 +59,7 @@ public class AuthenticationSessionService {
     }
 
     @Transactional
-    public Map<String, Object> refresh(String refreshToken) {
+    public AuthTokenResponse refresh(String refreshToken) {
         AuthTokenClaims claims = tokenIssuer.parseRefreshToken(refreshToken);
         LocalDateTime now = LocalDateTime.now();
         AuthSession session = authSessionRepository.findActive(claims.getTenantId(), claims.getSessionId())
@@ -74,19 +71,19 @@ public class AuthenticationSessionService {
             throw new IllegalArgumentException("Refresh token has been rotated");
         }
 
-        Map<String, Object> tokens = new LinkedHashMap<>(tokenIssuer.issueTokens(
+        AuthTokenPayload tokens = tokenIssuer.issueTokens(
                 claims.getUserId(),
                 claims.getUsername(),
                 String.valueOf(claims.getTenantId()),
                 claims.getSessionId()
-        ));
+        );
         authSessionRepository.rotateRefreshToken(
                 claims.getTenantId(),
                 claims.getSessionId(),
-                sha256(stringValue(tokens.get("refreshToken"))),
+                sha256(tokens.getRefreshToken()),
                 now.plusSeconds(tokenIssuer.refreshTokenTtlSeconds())
         );
-        return tokens;
+        return AuthTokenResponse.from(tokens);
     }
 
     @Transactional

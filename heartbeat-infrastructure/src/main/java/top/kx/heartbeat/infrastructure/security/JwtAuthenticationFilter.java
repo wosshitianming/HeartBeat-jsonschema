@@ -9,9 +9,9 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import top.kx.heartbeat.application.platform.port.PlatformPermissionRepository;
 import top.kx.heartbeat.domain.auth.AuthSession;
 import top.kx.heartbeat.domain.auth.AuthSessionRepository;
-import top.kx.heartbeat.application.platform.port.PlatformAdminRepository;
 import top.kx.heartbeat.infrastructure.tenant.TenantContext;
 
 import javax.annotation.Resource;
@@ -33,7 +33,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Resource
     private JwtTokenService jwtTokenService;
     @Resource
-    private PlatformAdminRepository adminPlatformRepository;
+    private PlatformPermissionRepository platformPermissionRepository;
     @Resource
     private AuthSessionRepository authSessionRepository;
 
@@ -66,7 +66,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private UsernamePasswordAuthenticationToken authenticationFor(String userId) {
         List<GrantedAuthority> authorities = new ArrayList<>();
         authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
-        for (String permission : adminPlatformRepository.listPermissionsByUserId(userId)) {
+        for (String permission : platformPermissionRepository.listPermissionsByUserId(userId)) {
             if (StringUtils.isNotBlank(permission)) {
                 authorities.add(new SimpleGrantedAuthority(permission));
             }

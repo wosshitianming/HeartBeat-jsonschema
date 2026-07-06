@@ -41,26 +41,24 @@ public class BpmnWorkflowDefinitionCommandHandler implements WorkflowDefinitionC
      */
     @Override
     public void handle(WorkflowDefinitionCommandContext context) {
-        // 读取共享命令参数。
-        Map<String, Object> command = context.getCommand();
         // 读取 BPMN XML 字符串。
-        String bpmnXml = stringValue(command.get("bpmnXml"));
+        String bpmnXml = context.stringValue("bpmnXml");
         // 判断是否需要处理 BPMN XML。
         if (StringUtils.isEmpty(bpmnXml)) {
             // 没有 BPMN XML 时直接交给后续处理器。
             return;
         }
         // 解析 BPMN XML 并补齐命令参数。
-        normalize(command, bpmnXml);
+        normalize(context, bpmnXml);
     }
 
     /**
      * 解析 BPMN XML 并写入命令参数。
      *
-     * @param command 工作流定义命令参数
+     * @param context 工作流定义命令上下文
      * @param bpmnXml BPMN XML 字符串
      */
-    private void normalize(Map<String, Object> command, String bpmnXml) {
+    private void normalize(WorkflowDefinitionCommandContext context, String bpmnXml) {
         // 捕获 XML 解析异常并转换为业务参数异常。
         try {
             // 创建 XML 文档构建工厂。
@@ -74,12 +72,12 @@ public class BpmnWorkflowDefinitionCommandHandler implements WorkflowDefinitionC
             // 判断 process 元素是否存在。
             if (process != null) {
                 // 使用 process id 补齐定义编码。
-                putIfBlank(command, "definitionKey", process.getAttribute("id"));
+                context.putIfBlank("definitionKey", process.getAttribute("id"));
                 // 使用 process name 补齐定义名称。
-                putIfBlank(command, "name", process.getAttribute("name"));
+                context.putIfBlank("name", process.getAttribute("name"));
             }
             // 写入内部表单结构。
-            command.put("formSchema", formSchema(document, bpmnXml));
+            context.put("formSchema", formSchema(document, bpmnXml));
         } catch (Exception ex) {
             // 抛出统一 BPMN 解析失败异常。
             throw new IllegalArgumentException("BPMN XML 解析失败", ex);
@@ -151,21 +149,6 @@ public class BpmnWorkflowDefinitionCommandHandler implements WorkflowDefinitionC
     }
 
     /**
-     * 当目标字段为空时写入默认值。
-     *
-     * @param command 命令参数
-     * @param key 字段名称
-     * @param value 默认值
-     */
-    private void putIfBlank(Map<String, Object> command, String key, String value) {
-        // 判断命令字段为空且默认值非空。
-        if (StringUtils.isEmpty(stringValue(command.get(key))) && StringUtils.isNotBlank(value)) {
-            // 写入裁剪后的默认值。
-            command.put(key, value.trim());
-        }
-    }
-
-    /**
      * 返回第一个非空字符串。
      *
      * @param values 候选字符串数组
@@ -184,14 +167,4 @@ public class BpmnWorkflowDefinitionCommandHandler implements WorkflowDefinitionC
         return "";
     }
 
-    /**
-     * 转换安全字符串。
-     *
-     * @param value 原始值
-     * @return 非空字符串
-     */
-    private String stringValue(Object value) {
-        // 返回空字符串或裁剪后的字符串。
-        return value == null ? "" : String.valueOf(value).trim();
-    }
 }

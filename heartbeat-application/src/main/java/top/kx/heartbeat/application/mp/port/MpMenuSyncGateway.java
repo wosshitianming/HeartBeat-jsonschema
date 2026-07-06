@@ -1,9 +1,11 @@
 package top.kx.heartbeat.application.mp.port;
 
+import top.kx.heartbeat.application.common.response.RecordResponse;
+
 import java.util.List;
 import java.util.Map;
 
 public interface MpMenuSyncGateway {
 
-    Map<String, Object> syncMenus(Map<String, Object> account, List<Map<String, Object>> menus);
+    RecordResponse syncMenus(Map<String, Object> account, List<Map<String, Object>> menus);
 }

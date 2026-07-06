@@ -4,6 +4,7 @@ package top.kx.heartbeat.application.mobile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.kx.heartbeat.application.common.model.DomainRecord;
+import top.kx.heartbeat.application.common.response.RecordResponse;
 import top.kx.heartbeat.application.mobile.port.MobileRepository;
 
 import javax.annotation.Resource;
@@ -29,9 +30,9 @@ public class MobileService {
      *
      * @return 移动应用列表。
      */
-    public List<Map<String, Object>> listApps() {
+    public List<RecordResponse> listApps() {
         // 查询移动应用领域记录并转换为字段 Map 列表。
-        return maps(mobileRepository.listApps());
+        return RecordResponse.fromMaps(maps(mobileRepository.listApps()));
     }
 
     /**
@@ -41,9 +42,9 @@ public class MobileService {
      * @return 保存后的移动应用。
      */
     @Transactional
-    public Map<String, Object> saveApp(Map<String, Object> command) {
+    public RecordResponse saveApp(Map<String, Object> command) {
         // 委托仓储保存移动应用并返回字段 Map。
-        return mobileRepository.saveApp(command).toMap();
+        return RecordResponse.from(mobileRepository.saveApp(command));
     }
 
     /**
@@ -52,9 +53,9 @@ public class MobileService {
      * @param appId 移动应用标识。
      * @return 移动应用页面列表。
      */
-    public List<Map<String, Object>> listPages(String appId) {
+    public List<RecordResponse> listPages(String appId) {
         // 查询移动应用页面领域记录并转换为字段 Map 列表。
-        return maps(mobileRepository.listPages(appId));
+        return RecordResponse.fromMaps(maps(mobileRepository.listPages(appId)));
     }
 
     /**
@@ -64,9 +65,9 @@ public class MobileService {
      * @return 保存后的移动应用页面。
      */
     @Transactional
-    public Map<String, Object> savePage(Map<String, Object> command) {
+    public RecordResponse savePage(Map<String, Object> command) {
         // 委托仓储保存移动应用页面并返回字段 Map。
-        return mobileRepository.savePage(command).toMap();
+        return RecordResponse.from(mobileRepository.savePage(command));
     }
 
     /**
@@ -75,9 +76,9 @@ public class MobileService {
      * @param appId 移动应用标识。
      * @return 移动应用 API 路由列表。
      */
-    public List<Map<String, Object>> listApiRoutes(String appId) {
+    public List<RecordResponse> listApiRoutes(String appId) {
         // 查询移动应用 API 路由领域记录并转换为字段 Map 列表。
-        return maps(mobileRepository.listApiRoutes(appId));
+        return RecordResponse.fromMaps(maps(mobileRepository.listApiRoutes(appId)));
     }
 
     /**
@@ -87,9 +88,9 @@ public class MobileService {
      * @return 保存后的移动应用 API 路由。
      */
     @Transactional
-    public Map<String, Object> saveApiRoute(Map<String, Object> command) {
+    public RecordResponse saveApiRoute(Map<String, Object> command) {
         // 委托仓储保存移动应用 API 路由并返回字段 Map。
-        return mobileRepository.saveApiRoute(command).toMap();
+        return RecordResponse.from(mobileRepository.saveApiRoute(command));
     }
 
     /**

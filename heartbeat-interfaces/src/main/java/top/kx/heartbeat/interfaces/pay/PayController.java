@@ -1,7 +1,9 @@
 package top.kx.heartbeat.interfaces.pay;
 
+
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import top.kx.heartbeat.application.common.response.RecordResponse;
 import top.kx.heartbeat.application.pay.PayService;
 import top.kx.heartbeat.domain.common.audit.OperLog;
 import top.kx.heartbeat.interfaces.common.Result;
@@ -36,9 +38,9 @@ public class PayController {
     @PreAuthorize("@permissionGuard.has('biz:pay:list')")
     public Result<List<DynamicRecordResponse>> listChannels() {
         // 查询支付渠道动态记录列表。
-        List<Map<String, Object>> channels = payService.listChannels();
+        List<RecordResponse> channels = payService.listChannels();
         // 转换为统一动态响应对象列表。
-        List<DynamicRecordResponse> response = DynamicRecordResponse.fromList(channels);
+        List<DynamicRecordResponse> response = DynamicRecordResponse.fromRecordList(channels);
         // 返回统一接口响应。
         return Result.success(response);
     }
@@ -53,7 +55,7 @@ public class PayController {
     @PreAuthorize("@permissionGuard.has('biz:pay:list')")
     public Result<DynamicRecordResponse> getChannel(@PathVariable String id) {
         // 查询支付渠道动态记录。
-        Map<String, Object> channel = payService.getChannel(id);
+        RecordResponse channel = payService.getChannel(id);
         // 转换为统一动态响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(channel);
         // 返回统一接口响应。
@@ -73,7 +75,7 @@ public class PayController {
         // 转换动态请求对象为业务字段映射。
         Map<String, Object> payload = request.toMap();
         // 创建支付渠道动态记录。
-        Map<String, Object> channel = payService.createChannel(payload);
+        RecordResponse channel = payService.createChannel(payload);
         // 转换为统一动态响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(channel);
         // 返回统一接口响应。
@@ -94,7 +96,7 @@ public class PayController {
         // 转换动态请求对象为业务字段映射。
         Map<String, Object> payload = request.toMap();
         // 更新支付渠道动态记录。
-        Map<String, Object> channel = payService.updateChannel(id, payload);
+        RecordResponse channel = payService.updateChannel(id, payload);
         // 转换为统一动态响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(channel);
         // 返回统一接口响应。
@@ -114,7 +116,7 @@ public class PayController {
         // 转换动态请求对象为业务字段映射。
         Map<String, Object> payload = request.toMap();
         // 创建支付订单动态记录。
-        Map<String, Object> order = payService.createOrder(payload);
+        RecordResponse order = payService.createOrder(payload);
         // 转换为统一动态响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(order);
         // 返回统一接口响应。
@@ -130,9 +132,9 @@ public class PayController {
     @PreAuthorize("@permissionGuard.has('biz:pay:list')")
     public Result<List<DynamicRecordResponse>> listOrders() {
         // 查询支付订单动态记录列表。
-        List<Map<String, Object>> orders = payService.listOrders();
+        List<RecordResponse> orders = payService.listOrders();
         // 转换为统一动态响应对象列表。
-        List<DynamicRecordResponse> response = DynamicRecordResponse.fromList(orders);
+        List<DynamicRecordResponse> response = DynamicRecordResponse.fromRecordList(orders);
         // 返回统一接口响应。
         return Result.success(response);
     }
@@ -147,7 +149,7 @@ public class PayController {
     @PreAuthorize("@permissionGuard.has('biz:pay:list')")
     public Result<DynamicRecordResponse> getOrder(@PathVariable String id) {
         // 查询支付订单动态记录。
-        Map<String, Object> order = payService.getOrder(id);
+        RecordResponse order = payService.getOrder(id);
         // 转换为统一动态响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(order);
         // 返回统一接口响应。
@@ -168,7 +170,7 @@ public class PayController {
         // 转换动态请求对象为业务字段映射。
         Map<String, Object> payload = request.toMap();
         // 处理支付通知并返回订单动态记录。
-        Map<String, Object> order = payService.handleNotify(orderNo, payload);
+        RecordResponse order = payService.handleNotify(orderNo, payload);
         // 转换为统一动态响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(order);
         // 返回统一接口响应。
@@ -189,7 +191,7 @@ public class PayController {
         // 转换动态请求对象为业务字段映射。
         Map<String, Object> payload = request.toMap();
         // 处理模拟支付通知并返回订单动态记录。
-        Map<String, Object> order = payService.handleNotify(orderNo, payload);
+        RecordResponse order = payService.handleNotify(orderNo, payload);
         // 转换为统一动态响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(order);
         // 返回统一接口响应。
@@ -205,9 +207,9 @@ public class PayController {
     @PreAuthorize("@permissionGuard.has('biz:pay:list')")
     public Result<List<DynamicRecordResponse>> notifyLogs() {
         // 查询全部支付通知日志动态记录。
-        List<Map<String, Object>> logs = payService.listNotifyLogs("");
+        List<RecordResponse> logs = payService.listNotifyLogs("");
         // 转换为统一动态响应对象列表。
-        List<DynamicRecordResponse> response = DynamicRecordResponse.fromList(logs);
+        List<DynamicRecordResponse> response = DynamicRecordResponse.fromRecordList(logs);
         // 返回统一接口响应。
         return Result.success(response);
     }
@@ -222,9 +224,9 @@ public class PayController {
     @PreAuthorize("@permissionGuard.has('biz:pay:list')")
     public Result<List<DynamicRecordResponse>> orderNotifyLogs(@PathVariable String orderNo) {
         // 查询指定订单支付通知日志动态记录。
-        List<Map<String, Object>> logs = payService.listNotifyLogs(orderNo);
+        List<RecordResponse> logs = payService.listNotifyLogs(orderNo);
         // 转换为统一动态响应对象列表。
-        List<DynamicRecordResponse> response = DynamicRecordResponse.fromList(logs);
+        List<DynamicRecordResponse> response = DynamicRecordResponse.fromRecordList(logs);
         // 返回统一接口响应。
         return Result.success(response);
     }

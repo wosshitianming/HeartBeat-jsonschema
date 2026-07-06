@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import top.kx.heartbeat.application.common.response.RecordResponse;
 import top.kx.heartbeat.application.platform.PlatformAdministrationService;
 
 import java.util.LinkedHashMap;
@@ -29,7 +30,7 @@ class TypedAdminApplicationServiceTest {
         dept.put("name", "Typed Dept " + suffix);
         dept.put("code", "typed_dept_" + suffix);
         dept.put("status", "ENABLED");
-        Map<String, Object> createdDept = platformAdministrationService.createDepartment(dept);
+        RecordResponse createdDept = platformAdministrationService.createDepartment(dept);
         assertTrue(String.valueOf(createdDept.get("id")).length() > 0);
         assertFalse(platformAdministrationService.listDepartments().isEmpty());
 
@@ -38,7 +39,7 @@ class TypedAdminApplicationServiceTest {
         config.put("name", "Typed Config");
         config.put("value", "enabled");
         config.put("status", "ENABLED");
-        Map<String, Object> createdConfig = platformAdministrationService.createConfiguration(config);
+        RecordResponse createdConfig = platformAdministrationService.createConfiguration(config);
         assertEquals("typed.config." + suffix, createdConfig.get("key"));
 
         Map<String, Object> provider = new LinkedHashMap<>();
@@ -46,7 +47,7 @@ class TypedAdminApplicationServiceTest {
         provider.put("name", "Typed Provider");
         provider.put("enabled", true);
         provider.put("status", "ENABLED");
-        Map<String, Object> createdProvider = platformAdministrationService.createSocialProvider(provider);
+        RecordResponse createdProvider = platformAdministrationService.createSocialProvider(provider);
         assertEquals("TYPED_" + suffix, createdProvider.get("provider"));
     }
 

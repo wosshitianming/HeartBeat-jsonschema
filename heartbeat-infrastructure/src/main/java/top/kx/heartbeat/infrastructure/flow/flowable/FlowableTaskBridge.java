@@ -3,6 +3,7 @@ package top.kx.heartbeat.infrastructure.flow.flowable;
 import org.flowable.engine.TaskService;
 import org.flowable.task.api.Task;
 import org.springframework.stereotype.Service;
+import top.kx.heartbeat.application.common.response.RecordResponse;
 
 import javax.annotation.Resource;
 import java.util.ArrayList;
@@ -30,7 +31,7 @@ public class FlowableTaskBridge {
      * @param assignee 处理人标识
      * @return 待办任务列表
      */
-    public List<Map<String, Object>> todo(String assignee) {
+    public List<RecordResponse> todo(String assignee) {
         // 查询 Flowable 待办任务。
         List<Task> tasks = taskService.createTaskQuery()
                 .taskAssignee(assignee)
@@ -58,7 +59,7 @@ public class FlowableTaskBridge {
             result.add(item);
         }
         // 返回待办任务列表。
-        return result;
+        return RecordResponse.fromMaps(result);
     }
 
     /**

@@ -4,6 +4,7 @@ package top.kx.heartbeat.application.admin;
 import org.springframework.stereotype.Service;
 import top.kx.heartbeat.application.admin.dto.AdminMetricDTO;
 import top.kx.heartbeat.application.admin.dto.AdminModuleDTO;
+import top.kx.heartbeat.application.common.response.RecordResponse;
 import top.kx.heartbeat.application.platform.PlatformAdministrationService;
 import top.kx.heartbeat.domain.platform.PlatformMenuType;
 import top.kx.heartbeat.domain.security.PermissionCategory;
@@ -22,7 +23,7 @@ public class SystemAdminService {
 
     public List<AdminModuleDTO> listModules() {
         List<AdminModuleDTO> modules = new ArrayList<>();
-        flattenMenus(adminPlatformService.routes(), modules);
+        flattenMenus(recordsToMaps(adminPlatformService.routes()), modules);
         return modules;
     }
 
@@ -75,5 +76,13 @@ public class SystemAdminService {
 
     private String stringValue(Object value) {
         return value == null ? "" : String.valueOf(value);
+    }
+
+    private List<Map<String, Object>> recordsToMaps(List<RecordResponse> records) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (RecordResponse record : records) {
+            result.add(record.toMap());
+        }
+        return result;
     }
 }

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
+import top.kx.heartbeat.application.common.response.RecordResponse;
 import top.kx.heartbeat.application.mp.port.MpMenuSyncGateway;
 
 import javax.annotation.Resource;
@@ -28,7 +29,7 @@ public class WechatMpMenuSyncGateway implements MpMenuSyncGateway {
     private ObjectMapper objectMapper;
 
     @Override
-    public Map<String, Object> syncMenus(Map<String, Object> account, List<Map<String, Object>> menus) {
+    public RecordResponse syncMenus(Map<String, Object> account, List<Map<String, Object>> menus) {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("accountId", account.get("id"));
         result.put("syncedAt", Instant.now().toString());
@@ -38,18 +39,18 @@ public class WechatMpMenuSyncGateway implements MpMenuSyncGateway {
             result.put("status", "WAITING_TOKEN");
             result.put("message", "公众号菜单已完成本地校验，请配置有效 access token 后执行真实同步");
             result.put("payload", buildWechatMenuPayload(menus));
-            return result;
+            return RecordResponse.from(result);
         }
         try {
             String response = postJson(WECHAT_MENU_CREATE_URL + accessToken, buildWechatMenuPayload(menus));
             result.put("status", "SYNCED");
             result.put("message", "微信菜单同步请求已提交");
             result.put("providerResponse", response);
-            return result;
+            return RecordResponse.from(result);
         } catch (Exception ex) {
             result.put("status", "FAILED");
             result.put("message", ex.getMessage());
-            return result;
+            return RecordResponse.from(result);
         }
     }
 
