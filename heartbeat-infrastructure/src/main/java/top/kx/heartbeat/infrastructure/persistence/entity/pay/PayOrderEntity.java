@@ -76,12 +76,12 @@ public class PayOrderEntity {
     /**
      * 创建人主键。
      */
-    private Long createBy;
+    private String createBy;
 
     /**
      * 更新人主键。
      */
-    private Long updateBy;
+    private String updateBy;
 
     /**
      * 支付完成时间。

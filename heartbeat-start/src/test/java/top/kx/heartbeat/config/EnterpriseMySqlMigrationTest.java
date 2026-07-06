@@ -86,8 +86,24 @@ class EnterpriseMySqlMigrationTest {
             for (String table : ENTERPRISE_TABLES) {
                 assertTrue(idIsUnsignedBigintAutoIncrement(connection, table),
                         table + ".id should be bigint unsigned auto_increment");
+                assertAuditColumns(connection, table);
             }
         }
+    }
+
+    private void assertAuditColumns(Connection connection, String tableName) throws SQLException {
+        assertTrue(columnExists(connection, tableName, "create_by"),
+                tableName + ".create_by should exist");
+        assertTrue(columnExists(connection, tableName, "create_time"),
+                tableName + ".create_time should exist");
+        assertTrue(columnExists(connection, tableName, "update_by"),
+                tableName + ".update_by should exist");
+        assertTrue(columnExists(connection, tableName, "update_time"),
+                tableName + ".update_time should exist");
+        assertTrue(columnIsVarchar(connection, tableName, "create_by"),
+                tableName + ".create_by should be varchar");
+        assertTrue(columnIsVarchar(connection, tableName, "update_by"),
+                tableName + ".update_by should be varchar");
     }
 
     private boolean tableExists(Connection connection, String tableName) throws SQLException {
@@ -109,6 +125,18 @@ class EnterpriseMySqlMigrationTest {
             statement.setString(2, columnName);
             try (ResultSet resultSet = statement.executeQuery()) {
                 return resultSet.next() && resultSet.getInt(1) > 0;
+            }
+        }
+    }
+
+    private boolean columnIsVarchar(Connection connection, String tableName, String columnName) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "select data_type from information_schema.columns "
+                        + "where table_schema = database() and table_name = ? and column_name = ?")) {
+            statement.setString(1, tableName);
+            statement.setString(2, columnName);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next() && "varchar".equalsIgnoreCase(resultSet.getString("data_type"));
             }
         }
     }

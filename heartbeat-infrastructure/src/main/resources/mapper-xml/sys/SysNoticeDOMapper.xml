@@ -16,9 +16,9 @@
     <result column="expired_at" jdbcType="TIMESTAMP" property="expiredAt"/>
     <result column="version" jdbcType="INTEGER" property="version"/>
     <result column="delete_marker" jdbcType="BIGINT" property="deleteMarker"/>
-    <result column="create_by" jdbcType="BIGINT" property="createBy"/>
+    <result column="create_by" jdbcType="VARCHAR" property="createBy"/>
     <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
-    <result column="update_by" jdbcType="BIGINT" property="updateBy"/>
+    <result column="update_by" jdbcType="VARCHAR" property="updateBy"/>
     <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
   </resultMap>
   <resultMap extends="BaseResultMap" id="ResultMapWithBLOBs" type="top.kx.heartbeat.infrastructure.persistence.entity.sys.SysNoticeDO">
@@ -191,8 +191,8 @@
     values (#{id,jdbcType=BIGINT}, #{tenantId,jdbcType=BIGINT}, #{noticeTitle,jdbcType=VARCHAR},
     #{noticeType,jdbcType=VARCHAR}, #{publishScope,jdbcType=VARCHAR}, #{publishStatus,jdbcType=VARCHAR},
     #{publishedAt,jdbcType=TIMESTAMP}, #{expiredAt,jdbcType=TIMESTAMP}, #{version,jdbcType=INTEGER},
-    #{deleteMarker,jdbcType=BIGINT}, #{createBy,jdbcType=BIGINT}, #{createTime,jdbcType=TIMESTAMP},
-    #{updateBy,jdbcType=BIGINT}, #{updateTime,jdbcType=TIMESTAMP}, #{noticeContent,jdbcType=LONGVARCHAR}
+    #{deleteMarker,jdbcType=BIGINT}, #{createBy,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP},
+    #{updateBy,jdbcType=VARCHAR}, #{updateTime,jdbcType=TIMESTAMP}, #{noticeContent,jdbcType=LONGVARCHAR}
     )
   </insert>
   <insert id="insertSelective" parameterType="top.kx.heartbeat.infrastructure.persistence.entity.sys.SysNoticeDO">
@@ -280,13 +280,13 @@
         #{deleteMarker,jdbcType=BIGINT},
       </if>
       <if test="createBy != null">
-        #{createBy,jdbcType=BIGINT},
+        #{createBy,jdbcType=VARCHAR},
       </if>
       <if test="createTime != null">
         #{createTime,jdbcType=TIMESTAMP},
       </if>
       <if test="updateBy != null">
-        #{updateBy,jdbcType=BIGINT},
+        #{updateBy,jdbcType=VARCHAR},
       </if>
       <if test="updateTime != null">
         #{updateTime,jdbcType=TIMESTAMP},
@@ -447,13 +447,13 @@
         delete_marker = #{deleteMarker,jdbcType=BIGINT},
       </if>
       <if test="createBy != null">
-        create_by = #{createBy,jdbcType=BIGINT},
+        create_by = #{createBy,jdbcType=VARCHAR},
       </if>
       <if test="createTime != null">
         create_time = #{createTime,jdbcType=TIMESTAMP},
       </if>
       <if test="updateBy != null">
-        update_by = #{updateBy,jdbcType=BIGINT},
+        update_by = #{updateBy,jdbcType=VARCHAR},
       </if>
       <if test="updateTime != null">
         update_time = #{updateTime,jdbcType=TIMESTAMP},
@@ -479,9 +479,9 @@
     expired_at = #{expiredAt,jdbcType=TIMESTAMP},
     version = #{version,jdbcType=INTEGER},
     delete_marker = #{deleteMarker,jdbcType=BIGINT},
-    create_by = #{createBy,jdbcType=BIGINT},
+    create_by = #{createBy,jdbcType=VARCHAR},
     create_time = #{createTime,jdbcType=TIMESTAMP},
-    update_by = #{updateBy,jdbcType=BIGINT},
+    update_by = #{updateBy,jdbcType=VARCHAR},
     update_time = #{updateTime,jdbcType=TIMESTAMP},
     notice_content = #{noticeContent,jdbcType=LONGVARCHAR}
     where id = #{id,jdbcType=BIGINT}
@@ -501,9 +501,9 @@
     expired_at = #{expiredAt,jdbcType=TIMESTAMP},
     version = #{version,jdbcType=INTEGER},
     delete_marker = #{deleteMarker,jdbcType=BIGINT},
-    create_by = #{createBy,jdbcType=BIGINT},
+    create_by = #{createBy,jdbcType=VARCHAR},
     create_time = #{createTime,jdbcType=TIMESTAMP},
-    update_by = #{updateBy,jdbcType=BIGINT},
+    update_by = #{updateBy,jdbcType=VARCHAR},
     update_time = #{updateTime,jdbcType=TIMESTAMP}
     where id = #{id,jdbcType=BIGINT}
   </update>

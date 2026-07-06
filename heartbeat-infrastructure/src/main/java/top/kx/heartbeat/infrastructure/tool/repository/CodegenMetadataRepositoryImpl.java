@@ -34,7 +34,7 @@ public class CodegenMetadataRepositoryImpl implements CodegenMetadataRepository 
     /**
      * 默认操作人标识。
      */
-    private static final long DEFAULT_OPERATOR_ID = 1L;
+    private static final String DEFAULT_OPERATOR_ID = "1";
 
     /**
      * 代码生成表配置 MBG Mapper。

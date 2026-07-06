@@ -94,7 +94,7 @@ public class HbFlowDefinitionDO {
      *
      * @mbg.generated
      */
-    private Long createBy;
+    private String createBy;
 
     /**
      * Database Column Remarks:
@@ -127,7 +127,7 @@ public class HbFlowDefinitionDO {
      *
      * @mbg.generated
      */
-    private Long updateBy;
+    private String updateBy;
 
     /**
      * Database Column Remarks:
@@ -316,7 +316,7 @@ public class HbFlowDefinitionDO {
      *
      * @mbg.generated
      */
-    public Long getCreateBy() {
+    public String getCreateBy() {
         return createBy;
     }
 
@@ -328,7 +328,7 @@ public class HbFlowDefinitionDO {
      *
      * @mbg.generated
      */
-    public void setCreateBy(Long createBy) {
+    public void setCreateBy(String createBy) {
         this.createBy = createBy;
     }
 
@@ -388,7 +388,7 @@ public class HbFlowDefinitionDO {
      *
      * @mbg.generated
      */
-    public Long getUpdateBy() {
+    public String getUpdateBy() {
         return updateBy;
     }
 
@@ -400,7 +400,7 @@ public class HbFlowDefinitionDO {
      *
      * @mbg.generated
      */
-    public void setUpdateBy(Long updateBy) {
+    public void setUpdateBy(String updateBy) {
         this.updateBy = updateBy;
     }
 

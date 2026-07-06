@@ -50,8 +50,8 @@ public class FlowDefinitionDTO implements Serializable {
     private LocalDateTime updateTime;
 
     /** 创建者 ID */
-    private Long createBy;
+    private String createBy;
 
     /** 更新者 ID */
-    private Long updateBy;
+    private String updateBy;
 }

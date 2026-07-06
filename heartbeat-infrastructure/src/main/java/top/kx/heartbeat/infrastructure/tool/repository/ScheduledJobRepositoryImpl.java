@@ -35,7 +35,7 @@ public class ScheduledJobRepositoryImpl implements ScheduledJobRepository {
     /**
      * 默认操作人标识。
      */
-    private static final long DEFAULT_OPERATOR_ID = 1L;
+    private static final String DEFAULT_OPERATOR_ID = "1";
 
     /**
      * 定时任务 MBG Mapper。

@@ -50,8 +50,8 @@ public class StructurePublishAuditRepositoryImpl implements StructurePublishAudi
         row.setSummary(summary);
         row.setCreateTime(now);
         row.setUpdateTime(now);
-        row.setCreateBy(operatorId);
-        row.setUpdateBy(operatorId);
+        row.setCreateBy(String.valueOf(operatorId));
+        row.setUpdateBy(String.valueOf(operatorId));
         publishAuditMapper.insertSelective(row);
     }
 

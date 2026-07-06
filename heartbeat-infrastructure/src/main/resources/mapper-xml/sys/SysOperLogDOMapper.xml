@@ -25,8 +25,8 @@
     <result column="operated_at" jdbcType="TIMESTAMP" property="operatedAt"/>
     <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
     <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
-    <result column="create_by" jdbcType="BIGINT" property="createBy"/>
-    <result column="update_by" jdbcType="BIGINT" property="updateBy"/>
+    <result column="create_by" jdbcType="VARCHAR" property="createBy"/>
+    <result column="update_by" jdbcType="VARCHAR" property="updateBy"/>
   </resultMap>
   <resultMap extends="BaseResultMap" id="ResultMapWithBLOBs"
              type="top.kx.heartbeat.infrastructure.persistence.entity.sys.SysOperLogDOWithBLOBs">
@@ -209,7 +209,7 @@
     #{requestPath,jdbcType=VARCHAR}, #{requestIp,jdbcType=VARCHAR}, #{userAgent,jdbcType=VARCHAR},
     #{resultStatus,jdbcType=VARCHAR}, #{errorCode,jdbcType=VARCHAR}, #{errorMessage,jdbcType=VARCHAR},
     #{durationMs,jdbcType=BIGINT}, #{operatedAt,jdbcType=TIMESTAMP}, #{createTime,jdbcType=TIMESTAMP},
-    #{updateTime,jdbcType=TIMESTAMP}, #{createBy,jdbcType=BIGINT}, #{updateBy,jdbcType=BIGINT},
+    #{updateTime,jdbcType=TIMESTAMP}, #{createBy,jdbcType=VARCHAR}, #{updateBy,jdbcType=VARCHAR},
     #{requestParams,jdbcType=LONGVARCHAR}, #{responseSummary,jdbcType=LONGVARCHAR})
   </insert>
   <insert id="insertSelective"
@@ -349,10 +349,10 @@
         #{updateTime,jdbcType=TIMESTAMP},
       </if>
       <if test="createBy != null">
-        #{createBy,jdbcType=BIGINT},
+        #{createBy,jdbcType=VARCHAR},
       </if>
       <if test="updateBy != null">
-        #{updateBy,jdbcType=BIGINT},
+        #{updateBy,jdbcType=VARCHAR},
       </if>
       <if test="requestParams != null">
         #{requestParams,jdbcType=LONGVARCHAR},
@@ -580,10 +580,10 @@
         update_time = #{updateTime,jdbcType=TIMESTAMP},
       </if>
       <if test="createBy != null">
-        create_by = #{createBy,jdbcType=BIGINT},
+        create_by = #{createBy,jdbcType=VARCHAR},
       </if>
       <if test="updateBy != null">
-        update_by = #{updateBy,jdbcType=BIGINT},
+        update_by = #{updateBy,jdbcType=VARCHAR},
       </if>
       <if test="requestParams != null">
         request_params = #{requestParams,jdbcType=LONGVARCHAR},
@@ -619,8 +619,8 @@
     operated_at = #{operatedAt,jdbcType=TIMESTAMP},
     create_time = #{createTime,jdbcType=TIMESTAMP},
     update_time = #{updateTime,jdbcType=TIMESTAMP},
-    create_by = #{createBy,jdbcType=BIGINT},
-    update_by = #{updateBy,jdbcType=BIGINT},
+    create_by = #{createBy,jdbcType=VARCHAR},
+    update_by = #{updateBy,jdbcType=VARCHAR},
     request_params = #{requestParams,jdbcType=LONGVARCHAR},
     response_summary = #{responseSummary,jdbcType=LONGVARCHAR}
     where id = #{id,jdbcType=BIGINT}
@@ -649,8 +649,8 @@
     operated_at = #{operatedAt,jdbcType=TIMESTAMP},
     create_time = #{createTime,jdbcType=TIMESTAMP},
     update_time = #{updateTime,jdbcType=TIMESTAMP},
-    create_by = #{createBy,jdbcType=BIGINT},
-    update_by = #{updateBy,jdbcType=BIGINT}
+    create_by = #{createBy,jdbcType=VARCHAR},
+    update_by = #{updateBy,jdbcType=VARCHAR}
     where id = #{id,jdbcType=BIGINT}
   </update>
 </mapper>

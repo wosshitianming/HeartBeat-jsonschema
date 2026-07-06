@@ -150,7 +150,7 @@ public class PayOrderDO {
      *
      * @mbg.generated
      */
-    private Long createBy;
+    private String createBy;
 
     /**
      * Database Column Remarks:
@@ -161,7 +161,7 @@ public class PayOrderDO {
      *
      * @mbg.generated
      */
-    private Long updateBy;
+    private String updateBy;
 
     /**
      * Database Column Remarks:
@@ -470,7 +470,7 @@ public class PayOrderDO {
      *
      * @mbg.generated
      */
-    public Long getCreateBy() {
+    public String getCreateBy() {
         return createBy;
     }
 
@@ -482,7 +482,7 @@ public class PayOrderDO {
      *
      * @mbg.generated
      */
-    public void setCreateBy(Long createBy) {
+    public void setCreateBy(String createBy) {
         this.createBy = createBy;
     }
 
@@ -494,7 +494,7 @@ public class PayOrderDO {
      *
      * @mbg.generated
      */
-    public Long getUpdateBy() {
+    public String getUpdateBy() {
         return updateBy;
     }
 
@@ -506,7 +506,7 @@ public class PayOrderDO {
      *
      * @mbg.generated
      */
-    public void setUpdateBy(Long updateBy) {
+    public void setUpdateBy(String updateBy) {
         this.updateBy = updateBy;
     }
 

@@ -55,8 +55,8 @@ public class SysRoleEntity {
     private LocalDateTime updateTime;
 
     /** 创建者 */
-    private Long createBy;
+    private String createBy;
 
     /** 更新者 */
-    private Long updateBy;
+    private String updateBy;
 }
