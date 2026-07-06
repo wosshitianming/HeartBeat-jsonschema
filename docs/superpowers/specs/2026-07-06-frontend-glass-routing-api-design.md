@@ -94,8 +94,40 @@ State preservation rules:
 - Preserve lightweight per-module view state for generic resource pages, including selected row, table pagination, filters, and dialog draft values.
 - Keep specialized pages responsible for their own state unless routing integration forces a shared shell concern.
 - Prefer React Context plus local reducers for shell state because the codebase does not currently use a third-party state manager.
-- Consider a lightweight state manager or route/component cache only if Context creates excessive prop threading or cannot preserve required state cleanly.
-- Avoid mounting every visited page indefinitely by default. If CSS `display: none` or keep-alive caching is used, cap or prune cached views to avoid memory growth.
+- Use a bounded workspace view cache for open tabs whose component-local state must survive tab switching. Inactive cached views stay mounted and hidden with CSS, while active view identity is driven by the URL.
+- Do not rely on React Context alone for complex page state that lives inside component instances, uncontrolled inputs, focus state, scroll position, or third-party widgets.
+- Because cached views do not unmount when hidden, page effects must be guarded by an active/inactive signal from the shell instead of assuming mount/unmount equals active/inactive.
+- Cap or prune cached views to avoid memory growth. Generic resource pages can use lightweight state restoration; detail/form pages can use mounted view caching when they need true keep-alive behavior.
+- Consider a lightweight state manager or route/component cache library only if the custom bounded cache becomes too complex or cannot preserve required state cleanly.
+
+### Route Initialization Guard
+
+Direct URL loads must not flash a false unknown-route state while IAM routes are still loading.
+
+Initialization rules:
+
+- Track IAM route loading explicitly with states such as `loading`, `ready`, and `fallback`.
+- While route status is `loading`, render an admin-shell loading state and postpone unknown-route decisions.
+- Only render unknown-route or unavailable-route states after authorized routes have loaded or the fallback route source has been selected.
+- If route loading fails, use the existing fallback menu/module data and keep login/auth flows usable.
+
+### History And Dynamic Tag Identity
+
+The URL is the source of truth for the active workspace item. Tags are a remembered list of opened workspace entries; browser back/forward changes the active tag but does not implicitly close tags.
+
+History rules:
+
+- Browser back/forward should select or open the tag matching the new URL. It should not close other open tags.
+- Closing an inactive tag only removes it from the tag list.
+- Closing the active tag navigates to the nearest sensible remaining tag, preferring the left neighbor, then the right neighbor, then the default workspace tag.
+- Closing the active tag should call `navigate(targetPath, { replace: true })` to avoid polluting browser history with a closed page.
+
+Dynamic route rules:
+
+- Use the normalized `location.pathname + location.search` as the tag instance key, not only the backend `menuId`.
+- Keep the matched backend menu id as metadata for permission/resource mapping.
+- Support backend route patterns such as `/admin/user/detail/:id` when matching direct URLs.
+- Allow a page to report a dynamic tag title to the shell, for example changing `User Detail` to `User Detail - Alice`.
 
 ### Menu Data
 
@@ -133,6 +165,9 @@ Resource loading rules:
 - Specialized pages own their own API loading.
 - Refresh reloads the active module resource or specialized page data where supported.
 - Create/update/delete refresh the active resource and, for menus, also refresh route navigation so settings changes are reflected.
+- Resource requests must be bound to the route/resource instance that started them.
+- When the active tab, route instance, or resource changes, abort any in-flight resource request that is no longer relevant.
+- Stale responses must not update the currently active module after the user has switched tabs.
 
 ### UI Composition
 
@@ -165,6 +200,8 @@ Glass tuning:
 - Add GPU-composition hints such as `transform: translateZ(0)` to major frosted shell containers where it improves scroll smoothness.
 - Use `will-change` sparingly and only on elements that animate or repeatedly change; do not blanket-apply it to tables, panels, or every glass surface.
 - Prefer more opaque or restrained surfaces on DOM-heavy table pages to reduce backdrop-filter repaint cost.
+- Apply automatic local surface downgrade for high-density views instead of relying only on users finding the flat-mode setting.
+- If `backdrop-filter` is unsupported, `prefers-reduced-motion` is enabled, or a resource table exceeds the configured density threshold, force the affected content area to a more opaque balanced/restrained/flat surface while preserving the user's global visual preference elsewhere.
 - Keep border radius at 8px or less for admin cards/panels unless existing component style requires otherwise.
 - Avoid giant decorative hero sections, marketing cards, and one-note color palettes.
 - Keep table cells, labels, buttons, and sidebar items readable over fluid backgrounds.
@@ -209,6 +246,11 @@ Frontend tests should cover:
 - Direct URL selects active module/top/sidebar/tag.
 - Open tags and active tag restore from session storage.
 - Switching tabs preserves generic resource view state such as selected rows, pagination/filter state, and in-progress dialog input where implemented.
+- Direct URL does not show unknown-route state before IAM route loading has completed or fallback routes have been selected.
+- Browser back/forward changes the active tag without closing existing tags.
+- Closing the active tag navigates with history replacement to the nearest remaining tag.
+- Dynamic parameter URLs create distinct tag instances when their full path/search differs.
+- Stale or aborted resource requests do not overwrite the active module after fast tab switching.
 - Menu CRUD refreshes both menu table data and route navigation.
 - Appearance settings still persist through local cache and remote preference API.
 
@@ -225,7 +267,11 @@ Manual verification should include:
 - `App.jsx` is large, so routing changes must be incremental and well-tested.
 - Backend route paths may not always map cleanly to current frontend module keys. The route helper must support both backend `path` and fallback module URLs.
 - Keeping too many tab views mounted can increase memory use. The implementation should preserve important shell state without unbounded keep-alive caching.
+- Cached views invert the usual mount/unmount lifecycle. Effects in cached pages must respect active/inactive state to avoid background polling, duplicate fetches, or stale subscriptions.
 - `backdrop-filter` can cause dropped frames on table-heavy screens. Glass performance hints and restrained/flat fallbacks are part of the implementation, not optional polish.
+- Asynchronous IAM route loading can race with direct URL matching. Unknown-route decisions must wait for route initialization to settle.
+- Fast tab switching can race with resource fetches. Requests need abort/stale-response guards.
+- Dynamic hidden routes can open multiple instances. Tags must be keyed by URL instance, not only by backend menu id.
 - Current source text includes encoding artifacts in some labels. This design does not require copy cleanup, but implementation should avoid making encoding churn worse.
 - Glass effects can reduce readability if opacity is too low. Balanced/restrained defaults should keep admin workflows legible.
 
@@ -233,12 +279,16 @@ Manual verification should include:
 
 - The admin shell uses real browser URLs for module navigation.
 - Backend authorized routes drive top/side navigation.
-- Open tags persist across reloads, and normal tab switching preserves routine generic module view state.
+- Open tags persist across reloads, normal tab switching preserves routine generic module view state, and cached pages receive active/inactive signals.
+- Direct URL loads are guarded until IAM routes are ready or fallback routes are selected.
+- Browser history, tag closing, and browser back/forward follow deterministic synchronization rules.
+- Dynamic parameter routes can create multiple independent tag instances and update their displayed titles.
 - Hidden menus are removed from navigation while remaining directly accessible if authorized.
 - Disabled menus are removed from navigation and show unavailable state on direct access.
 - Generic admin modules load their backend resources reliably.
+- Fast tab switching does not allow stale resource responses to overwrite the active module.
 - Menu settings changes are reflected after save without a full page reload.
-- Major glass containers include performance-conscious CSS, and dense pages remain readable and smooth enough under balanced/restrained modes.
+- Major glass containers include performance-conscious CSS, dense pages automatically downgrade local glass intensity, and the UI remains readable and smooth enough under balanced/restrained modes.
 - Frosted glass styling is polished, readable, and aligned with mainstream admin product conventions.
 - Existing appearance preference behavior continues to work.
 - Focused frontend tests pass.

@@ -4,7 +4,7 @@
 
 **Goal:** Implement the approved HeartBeat admin frontend shell with backend-driven routes, restrained frosted glass, multi-tab state persistence, and DDD-style frontend boundaries.
 
-**Architecture:** Keep infrastructure concerns in API/storage adapters, encode navigation/menu/workspace rules as pure domain functions, and expose app workflows through focused hooks. `App.jsx` becomes the composition shell instead of owning auth, routing, tags, resources, and visual settings directly.
+**Architecture:** Keep infrastructure concerns in API/storage adapters, encode navigation/menu/workspace/performance rules as pure domain functions, and expose app workflows through focused hooks. `App.jsx` becomes the composition shell instead of owning auth, routing, tags, resources, and visual settings directly. The shell must include a route initialization guard, URL-instance tab identity, bounded keep-alive view hosting, abortable resource requests, and automatic local glass downgrades for dense or low-capability views.
 
 **Tech Stack:** React 18, Vite, React Router DOM 6, Vitest, Testing Library, browser `sessionStorage`, existing HeartBeat CSS/theme system.
 
@@ -16,11 +16,19 @@
 - Create `heartbeat-web/src/domain/admin/navigationPolicy.test.js`: tests for hidden menus, disabled menus, path fallback, special routes, and top-module resolution.
 - Create `heartbeat-web/src/domain/admin/workspaceState.js`: pure workspace/tag state functions: normalize tags, open/select/close tags, serialize/restore state, update per-module view state.
 - Create `heartbeat-web/src/domain/admin/workspaceState.test.js`: tests for tag persistence rules and per-module view state.
+- Create `heartbeat-web/src/domain/admin/workspaceRouting.js`: pure URL instance-key, dynamic path-pattern, adjacent-tag close-target, and history synchronization rules.
+- Create `heartbeat-web/src/domain/admin/workspaceRouting.test.js`: tests for `pathname + search` tag keys, `:id` route pattern matching, browser back behavior, and close-active-tag replacement targets.
+- Create `heartbeat-web/src/domain/admin/performancePolicy.js`: pure surface-mode downgrade policy based on backdrop support, reduced motion, row count, and manual surface mode.
+- Create `heartbeat-web/src/domain/admin/performancePolicy.test.js`: tests for unsupported backdrop, reduced motion, dense table, and normal glass cases.
 - Create `heartbeat-web/src/infrastructure/browser/workspaceStorage.js`: small sessionStorage adapter with safe JSON parsing.
 - Create `heartbeat-web/src/infrastructure/browser/workspaceStorage.test.js`: storage adapter tests.
+- Modify `heartbeat-web/src/api.js`: accept `AbortSignal` in the shared request wrapper and resource APIs.
 - Create `heartbeat-web/src/application/admin/useAdminSession.js`: auth/session/social-login workflow hook extracted from `App.jsx`.
 - Create `heartbeat-web/src/application/admin/useAdminNavigation.js`: route tree loading, active module path synchronization, tags persistence, and route refresh workflow.
 - Create `heartbeat-web/src/application/admin/useAdminResources.js`: generic resource list/mutation workflow, selected-row/view-state persistence, and menu CRUD route refresh callback.
+- Create `heartbeat-web/src/application/admin/WorkspaceActivationContext.jsx`: active/inactive view signal for cached tab content.
+- Create `heartbeat-web/src/application/admin/useWorkspaceTitle.js`: page hook for reporting dynamic tab titles to the shell.
+- Create `heartbeat-web/src/components/admin/WorkspaceViewHost.jsx`: bounded keep-alive host that keeps open tab views mounted and hides inactive views.
 - Modify `heartbeat-web/src/application/admin/adminModuleService.js`: keep resource mapping and module building, but delegate menu visibility/path policy to domain helpers where useful.
 - Modify `heartbeat-web/src/main.jsx`: wrap `App` in `BrowserRouter`.
 - Modify `heartbeat-web/src/App.jsx`: consume new hooks, use URL-driven navigation, keep specialized pages in place, and render unavailable/unknown route states.
@@ -30,6 +38,226 @@
 - Modify `heartbeat-web/src/components/AppearanceSettingsPanel/AppearanceSettingsPanel.jsx`: support controlled open/focus from shell.
 - Modify `heartbeat-web/src/theme/heartbeat-admin.css` and `heartbeat-web/src/styles.css`: restrained glass polish, GPU composition hints, restrained dense-page fallback.
 - Modify `heartbeat-web/src/App.test.jsx`: integration tests for route-driven navigation, hidden/disabled menus, tag persistence, menu CRUD route refresh, and appearance behavior.
+
+---
+
+## Mandatory Review Corrections
+
+These corrections supersede the earlier plan snippets wherever they differ.
+
+1. **Keep-alive implementation:** Do not assume Context can preserve complex page state. Context/reducers store serializable shell state; `WorkspaceViewHost` keeps opened route views mounted when component-local state must survive tab switching. Inactive views are hidden with CSS and receive `isActive=false` through `WorkspaceActivationContext`.
+
+2. **Route initialization guard:** `useAdminNavigation` must expose route status. The shell renders a loading state while IAM routes are loading and must not render unknown-route UI until route status is `ready` or `fallback`.
+
+3. **History synchronization:** Browser URL changes are one-way input into active tag selection. Browser back/forward selects or opens the matching tag and does not close other tags. Closing the active tag chooses the left neighbor, then right neighbor, then default tag, and calls `navigate(targetPath, { replace: true })`.
+
+4. **Dynamic route identity:** Workspace tag keys are `normalize(pathname) + search`, not backend menu ids. The matched backend menu id is metadata. Dynamic route patterns such as `/admin/user/detail/:id` must match concrete URLs, and multiple concrete detail URLs create separate tags. Pages can update their tag title through `useWorkspaceTitle(title)`.
+
+5. **Abortable resources:** `api.request` must pass through `options.signal`. `adminApi.resources`, `iamApi.menus`, and any resource list requests used by `useAdminResources` must accept `signal`. `useAdminResources` creates an `AbortController` per active resource instance, aborts on tab/resource change, and ignores stale responses.
+
+6. **Automatic glass downgrade:** Add a testable performance policy before CSS tuning. Dense tables, unsupported backdrop filter, or reduced-motion preference should force local content surfaces toward opaque balanced/restrained/flat styling without changing the user's global preference.
+
+---
+
+## Task 0: Routing, Workspace, And Performance Hardening Domains
+
+**Files:**
+- Create: `heartbeat-web/src/domain/admin/workspaceRouting.js`
+- Create: `heartbeat-web/src/domain/admin/workspaceRouting.test.js`
+- Create: `heartbeat-web/src/domain/admin/performancePolicy.js`
+- Create: `heartbeat-web/src/domain/admin/performancePolicy.test.js`
+- Modify: `heartbeat-web/src/domain/admin/workspaceState.js`
+- Modify: `heartbeat-web/src/domain/admin/workspaceState.test.js`
+
+- [ ] **Step 1: Write failing routing-domain tests**
+
+Add `heartbeat-web/src/domain/admin/workspaceRouting.test.js`:
+
+```js
+import {describe, expect, test} from 'vitest'
+import {
+  closeTargetForActiveTag,
+  matchRoutePattern,
+  tagKeyForLocation,
+  upsertTagForLocation
+} from './workspaceRouting'
+
+describe('workspace routing', () => {
+  test('uses path and search as unique tab instance key', () => {
+    expect(tagKeyForLocation({pathname: '/admin/user/detail/1', search: '?tab=profile'}))
+        .toBe('/admin/user/detail/1?tab=profile')
+    expect(tagKeyForLocation({pathname: '/admin/user/detail/2', search: ''}))
+        .toBe('/admin/user/detail/2')
+  })
+
+  test('matches dynamic route patterns without merging different instances', () => {
+    expect(matchRoutePattern('/admin/user/detail/:id', '/admin/user/detail/1')).toEqual({id: '1'})
+    expect(matchRoutePattern('/admin/user/detail/:id', '/admin/user/list')).toBeNull()
+  })
+
+  test('browser navigation opens or activates tag without closing existing tags', () => {
+    const state = {activeTagKey: '/a', tags: [{key: '/a', path: '/a', title: 'A'}]}
+    const next = upsertTagForLocation(state, {
+      location: {pathname: '/b', search: ''},
+      menu: {id: 'menu-b', name: 'B'}
+    })
+
+    expect(next.activeTagKey).toBe('/b')
+    expect(next.tags.map((tag) => tag.key)).toEqual(['/a', '/b'])
+  })
+
+  test('closing active tag chooses neighbor and requests history replacement', () => {
+    const state = {
+      activeTagKey: '/b',
+      tags: [
+        {key: '/a', path: '/a', title: 'A'},
+        {key: '/b', path: '/b', title: 'B'},
+        {key: '/c', path: '/c', title: 'C'}
+      ]
+    }
+
+    expect(closeTargetForActiveTag(state, '/b')).toEqual({key: '/a', path: '/a', replace: true})
+    expect(closeTargetForActiveTag({...state, activeTagKey: '/a'}, '/a')).toEqual({key: '/b', path: '/b', replace: true})
+  })
+})
+```
+
+- [ ] **Step 2: Write failing performance policy tests**
+
+Add `heartbeat-web/src/domain/admin/performancePolicy.test.js`:
+
+```js
+import {describe, expect, test} from 'vitest'
+import {effectiveSurfaceMode} from './performancePolicy'
+
+describe('performance policy', () => {
+  test('uses flat surface when backdrop filter is unsupported', () => {
+    expect(effectiveSurfaceMode({manualMode: 'balanced', supportsBackdrop: false, reducedMotion: false, rowCount: 0}))
+        .toBe('flat')
+  })
+
+  test('uses restrained surface for reduced motion or dense tables', () => {
+    expect(effectiveSurfaceMode({manualMode: 'immersive', supportsBackdrop: true, reducedMotion: true, rowCount: 10}))
+        .toBe('restrained')
+    expect(effectiveSurfaceMode({manualMode: 'immersive', supportsBackdrop: true, reducedMotion: false, rowCount: 80}))
+        .toBe('restrained')
+  })
+
+  test('keeps manual mode when the view is not dense and capabilities are good', () => {
+    expect(effectiveSurfaceMode({manualMode: 'balanced', supportsBackdrop: true, reducedMotion: false, rowCount: 12}))
+        .toBe('balanced')
+  })
+})
+```
+
+- [ ] **Step 3: Run tests to verify they fail**
+
+Run:
+
+```powershell
+npm.cmd test -- workspaceRouting.test.js performancePolicy.test.js --run
+```
+
+Expected: FAIL because the new modules do not exist.
+
+- [ ] **Step 4: Implement workspace routing domain**
+
+Add `heartbeat-web/src/domain/admin/workspaceRouting.js`:
+
+```js
+function normalizePath(pathname = '/') {
+  const value = pathname.startsWith('/') ? pathname : `/${pathname}`
+  return value.replace(/\/+/g, '/').replace(/\/$/, '') || '/'
+}
+
+export function tagKeyForLocation(location) {
+  return `${normalizePath(location?.pathname || '/')}${location?.search || ''}`
+}
+
+export function matchRoutePattern(pattern, pathname) {
+  const patternParts = normalizePath(pattern).split('/').filter(Boolean)
+  const pathParts = normalizePath(pathname).split('/').filter(Boolean)
+  if (patternParts.length !== pathParts.length) return null
+  const params = {}
+  for (let index = 0; index < patternParts.length; index += 1) {
+    const patternPart = patternParts[index]
+    const pathPart = pathParts[index]
+    if (patternPart.startsWith(':')) {
+      params[patternPart.slice(1)] = decodeURIComponent(pathPart)
+      continue
+    }
+    if (patternPart !== pathPart) return null
+  }
+  return params
+}
+
+export function upsertTagForLocation(state, {location, menu, title}) {
+  const key = tagKeyForLocation(location)
+  const path = key
+  const tag = {
+    key,
+    id: menu?.id || key,
+    menuId: menu?.id || '',
+    title: title || menu?.name || key,
+    name: title || menu?.name || key,
+    path,
+    closable: menu?.closable === false ? false : true
+  }
+  const tags = (state.tags || []).some((item) => item.key === key)
+      ? state.tags.map((item) => item.key === key ? {...item, ...tag} : item)
+      : [...(state.tags || []), tag]
+  return {...state, tags, activeTagKey: key}
+}
+
+export function closeTargetForActiveTag(state, closingKey) {
+  const tags = state.tags || []
+  const index = tags.findIndex((tag) => tag.key === closingKey)
+  if (index < 0) return null
+  const closing = tags[index]
+  if (closing.closable === false) return null
+  const remaining = tags.filter((tag) => tag.key !== closingKey)
+  if (state.activeTagKey !== closingKey) return null
+  const target = remaining[index - 1] || remaining[index] || remaining[0] || null
+  return target ? {key: target.key, path: target.path, replace: true} : null
+}
+```
+
+- [ ] **Step 5: Implement performance policy domain**
+
+Add `heartbeat-web/src/domain/admin/performancePolicy.js`:
+
+```js
+export const DENSE_TABLE_ROW_THRESHOLD = 50
+
+export function effectiveSurfaceMode({
+  manualMode = 'balanced',
+  supportsBackdrop = true,
+  reducedMotion = false,
+  rowCount = 0
+} = {}) {
+  if (!supportsBackdrop) return 'flat'
+  if (reducedMotion) return manualMode === 'flat' ? 'flat' : 'restrained'
+  if (rowCount > DENSE_TABLE_ROW_THRESHOLD && manualMode !== 'flat') return 'restrained'
+  return manualMode
+}
+```
+
+- [ ] **Step 6: Run tests to verify they pass**
+
+Run:
+
+```powershell
+npm.cmd test -- workspaceRouting.test.js performancePolicy.test.js --run
+```
+
+Expected: PASS.
+
+- [ ] **Step 7: Commit hardening domains**
+
+```powershell
+git add -- heartbeat-web/src/domain/admin/workspaceRouting.js heartbeat-web/src/domain/admin/workspaceRouting.test.js heartbeat-web/src/domain/admin/performancePolicy.js heartbeat-web/src/domain/admin/performancePolicy.test.js
+git commit -m "feat: add admin routing and performance policies"
+```
 
 ---
 
