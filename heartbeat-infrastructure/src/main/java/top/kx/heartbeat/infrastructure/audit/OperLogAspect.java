@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import top.kx.heartbeat.domain.common.audit.OperLog;
-import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysOperLogDO;
+import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysOperLogDOWithBLOBs;
 import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysOperLogDOMapper;
 import top.kx.heartbeat.infrastructure.tenant.TenantContext;
 
@@ -49,7 +49,7 @@ public class OperLogAspect {
             HttpServletRequest request = currentRequest();
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String operator = authentication == null ? "" : String.valueOf(authentication.getPrincipal());
-            SysOperLogDO entity = new SysOperLogDO();
+            SysOperLogDOWithBLOBs entity = new SysOperLogDOWithBLOBs();
             entity.setTenantId(resolveTenantId());
             entity.setTraceId(resolveTraceId(request));
             entity.setModuleCode(operLog.module());
