@@ -1,19 +1,30 @@
-import {useEffect, useMemo, useState} from 'react'
+import {useCallback, useEffect, useMemo, useState} from 'react'
+import {useLocation, useNavigate} from 'react-router-dom'
 import {adminApi, authApi, iamApi, structureApi, toolApi} from './api'
 import {
-    buildResourcePayload,
-    columnsForResource,
-    firstMenuInTree,
-    flattenMenuRows,
-    flattenRouteModules,
-    isResourceReadOnly,
-    recordFromResource,
-    resolveTopModuleId,
-    resourceFromModule,
-    sideMenusForTop,
-    splitTopSideMenus,
-    toResourceFormValues
+  buildResourcePayload,
+  columnsForResource,
+  firstMenuInTree,
+  flattenMenuRows,
+  flattenRouteModules,
+  isResourceReadOnly,
+  recordFromResource,
+  resolveTopModuleId,
+  resolveTopModuleIdForPath,
+  resourceFromModule,
+  sideMenusForTop,
+  splitTopSideMenus,
+  toResourceFormValues
 } from './application/admin/adminModuleService'
+import {appPathForMenu, findMenuByAppPath, findMenuById} from './domain/admin/navigationPolicy'
+import {detectBackdropSupport, effectiveSurfaceMode} from './domain/admin/performancePolicy'
+import {
+  DEFAULT_ADMIN_PATH,
+  tagKeyForLocation,
+  updateTagTitle,
+  upsertTagForLocation
+} from './domain/admin/workspaceRouting'
+import {readWorkspaceState, writeWorkspaceState} from './infrastructure/browser/workspaceStorage'
 import ResourceDialog from './components/admin/ResourceDialog'
 import RoleMenuDialog from './components/admin/RoleMenuDialog'
 import MobileAdminShell from './components/admin/MobileAdminShell'
@@ -454,8 +465,35 @@ const fallbackSideMenus = [
   }
 ]
 
+function tagFromLegacyMenu(tag) {
+    if (tag.key && tag.path) return tag
+    const menu = {id: tag.id, name: tag.name}
+    const path = appPathForMenu(menu)
+    return {
+        ...tag,
+        id: path,
+        key: path,
+        path,
+        menuId: tag.id,
+        title: tag.title || tag.name,
+        closable: tag.closable ?? tag.id !== 'structure'
+    }
+}
+
+function normalizeWorkspaceTags(tags = []) {
+    return tags.map(tagFromLegacyMenu)
+}
+
+function menuIdFromAdminPath(pathname = '') {
+    const match = pathname.match(/^\/admin\/module\/([^/?#]+)$/)
+    return match ? decodeURIComponent(match[1]) : null
+}
+
 // ----- ????? -----
 export default function App() {
+    const location = useLocation()
+    const navigate = useNavigate()
+    const activeTagKey = tagKeyForLocation(location)
   const [currentUser, setCurrentUser] = useState(null)
   const [loginForm, setLoginForm] = useState({ username: 'admin', password: 'admin123' })
   const [socialProviders, setSocialProviders] = useState([])
@@ -479,14 +517,20 @@ export default function App() {
   const [diffResult, setDiffResult] = useState(null)
   const [adminModules, setAdminModules] = useState(fallbackAdminModules)
   const [routeTree, setRouteTree] = useState([])
+    const [routeStatus, setRouteStatus] = useState('loading')
   const [activeTopModuleKey, setActiveTopModuleKey] = useState('data')
   const [openTags, setOpenTags] = useState([{ id: 'structure', name: '结构展示配置', closable: false }])
   const [activeModuleKey, setActiveModuleKey] = useState('structure')
+    const [workspaceRestored, setWorkspaceRestored] = useState(false)
   const [moduleData, setModuleData] = useState({})
   const [resourceDialog, setResourceDialog] = useState({ open: false, mode: 'create', row: null })
   const [roleMenuDialog, setRoleMenuDialog] = useState({ open: false, role: null })
   const [selectedResourceRow, setSelectedResourceRow] = useState(null)
   const [adminSurfaceMode, setAdminSurfaceMode] = useState(() => localStorage.getItem('heartbeat_admin_surface_mode') || 'balanced')
+    const [surfaceEnvironment, setSurfaceEnvironment] = useState({
+        supportsBackdrop: true,
+        reducedMotion: false
+    })
   const {
     colorMode,
     fluidEnabled,
@@ -529,11 +573,89 @@ export default function App() {
       () => sideMenusForTop(routeTree, activeTopModuleKey),
       [routeTree, activeTopModuleKey]
   )
+    const navigationTree = useMemo(
+        () => (routeTree.length > 0 ? routeTree : fallbackSideMenus),
+        [routeTree]
+    )
+    const routeReady = routeStatus === 'ready' || routeStatus === 'fallback'
+    const resolveMenuForPath = useCallback((pathname) => {
+        const matchedMenu = findMenuByAppPath(navigationTree, pathname)
+        if (matchedMenu) return matchedMenu
+
+        const menuId = menuIdFromAdminPath(pathname)
+        if (menuId) {
+            const menu = findMenuById(navigationTree, menuId)
+            if (menu) return menu
+            const module = adminModules.find((item) => item.key === menuId)
+            if (module) {
+                return {
+                    id: module.key,
+                    name: module.name,
+                    path: module.appPath || `/admin/module/${encodeURIComponent(module.key)}`,
+                    type: 'MENU'
+                }
+            }
+        }
+
+        if (pathname === '/' || pathname === '/admin') {
+            return findMenuById(navigationTree, 'structure') || {
+                id: 'structure',
+                name: '缁撴瀯灞曠ず閰嶇疆',
+                type: 'MENU'
+            }
+        }
+
+        return null
+    }, [adminModules, navigationTree])
   const structureMode = false
-  const glassMode = visualStyle === 'flat' || !fluidEnabled
+    const requestedGlassMode = visualStyle === 'flat' || !fluidEnabled
       ? 'flat'
       : (structureMode ? 'immersive' : adminSurfaceMode)
+    const glassMode = requestedGlassMode === 'flat'
+        ? 'flat'
+        : effectiveSurfaceMode({
+            manualMode: requestedGlassMode,
+            supportsBackdrop: surfaceEnvironment.supportsBackdrop,
+            reducedMotion: surfaceEnvironment.reducedMotion,
+            rowCount: activeRecords.length
+        })
   const liquidGlassEnabled = glassMode !== 'flat'
+
+    useEffect(() => {
+        const media = window.matchMedia?.('(prefers-reduced-motion: reduce)')
+        const update = () => {
+            setSurfaceEnvironment({
+                supportsBackdrop: detectBackdropSupport(window),
+                reducedMotion: Boolean(media?.matches)
+            })
+        }
+        update()
+        media?.addEventListener?.('change', update)
+        return () => {
+            media?.removeEventListener?.('change', update)
+        }
+    }, [])
+
+    useEffect(() => {
+        if (currentUser?.id && !workspaceRestored) return
+        const userId = currentUser?.id || 'anonymous'
+        writeWorkspaceState(userId, {
+            activeKey: activeTagKey,
+            tags: openTags
+        })
+    }, [activeTagKey, currentUser?.id, openTags, workspaceRestored])
+
+    useEffect(() => {
+        if (!currentUser?.id) {
+            setWorkspaceRestored(false)
+            return
+        }
+        const cached = readWorkspaceState(currentUser.id)
+        if (cached?.tags?.length) {
+            setOpenTags(normalizeWorkspaceTags(cached.tags))
+        }
+        setWorkspaceRestored(true)
+    }, [currentUser?.id])
 
   useEffect(() => {
     let mounted = true
@@ -579,7 +701,9 @@ export default function App() {
 
   useEffect(() => {
     let mounted = true
-    iamApi.routes()
+      const controller = new AbortController()
+      setRouteStatus('loading')
+      iamApi.routes({signal: controller.signal})
         .then((routes) => {
           if (mounted && Array.isArray(routes)) {
             setRouteTree(routes)
@@ -587,32 +711,86 @@ export default function App() {
             setAdminModules(modules.length > 0 ? modules : fallbackAdminModules)
             const topId = resolveTopModuleId(routes, activeModuleKey)
             if (topId) setActiveTopModuleKey(topId)
+              setRouteStatus('ready')
           }
         })
-        .catch(() => adminApi.modules())
+          .catch((error) => {
+              if (error?.name === 'AbortError') return []
+              return adminApi.modules({signal: controller.signal})
+          })
         .then((items) => {
           if (mounted && Array.isArray(items)) {
             const modules = items.some((item) => item.key === 'structure')
                 ? items
                 : [fallbackAdminModules[0], ...items]
             setAdminModules(modules.length > 0 ? modules : fallbackAdminModules)
+              if (routeStatus !== 'ready') setRouteStatus('fallback')
           }
         })
-        .catch(() => {
+          .catch((error) => {
+              if (error?.name === 'AbortError') return
           if (mounted) {
             setAdminModules(fallbackAdminModules)
+              setRouteStatus('fallback')
           }
         })
     return () => {
       mounted = false
+        controller.abort()
     }
   }, [])
 
   useEffect(() => {
     if (!currentUser || activeModuleKey === 'structure' || !activeResource) return
-    loadModuleResource(activeResource)
+      const controller = new AbortController()
+      loadModuleResource(activeResource, {signal: controller.signal}).catch((err) => {
+          if (err?.name !== 'AbortError') {
+              setError(err.message || 'Resource loading failed')
+          }
+      })
     setSelectedResourceRow(null)
+      return () => {
+          controller.abort()
+      }
   }, [currentUser, activeModuleKey, activeResource])
+
+    useEffect(() => {
+        if (!currentUser || !routeReady) return
+        if (location.pathname === '/' || location.pathname === '/admin') {
+            navigate(DEFAULT_ADMIN_PATH, {replace: true})
+            return
+        }
+
+        const menu = resolveMenuForPath(location.pathname)
+        if (!menu) {
+            setError('Unknown route')
+            return
+        }
+
+        setError('')
+        setActiveModuleKey(menu.id)
+        const topId = resolveTopModuleIdForPath(navigationTree, location.pathname)
+            || resolveTopModuleId(navigationTree, menu.id)
+        if (topId) setActiveTopModuleKey(topId)
+        setOpenTags((previous) => upsertTagForLocation(
+            normalizeWorkspaceTags(previous),
+            location,
+            {
+                menuId: menu.id,
+                name: menu.name,
+                title: menu.name,
+                closable: menu.id !== 'structure'
+            }
+        ))
+        setSelectedResourceRow(null)
+    }, [
+        currentUser,
+        location,
+        navigate,
+        navigationTree,
+        resolveMenuForPath,
+        routeReady
+    ])
 
   // ??????
   const uiOverrides = useMemo(() => {
@@ -708,36 +886,47 @@ export default function App() {
 
   function openMenuTag(menu) {
     if (!menu?.id) return
-    setActiveModuleKey(menu.id)
-    setActiveTopModuleKey(resolveTopModuleId(routeTree, menu.id))
-    setOpenTags((previous) => {
-      if (previous.some((tag) => tag.id === menu.id)) return previous
-      return [...previous, { id: menu.id, name: menu.name }]
-    })
-    setSelectedResourceRow(null)
+      navigate(appPathForMenu(menu))
   }
 
   function handleSelectTopModule(topModuleId) {
     setActiveTopModuleKey(topModuleId)
-    const menus = sideMenusForTop(routeTree, topModuleId)
+      const menus = sideMenusForTop(navigationTree, topModuleId)
     const firstMenu = firstMenuInTree(menus)
     if (firstMenu) openMenuTag(firstMenu)
   }
 
   function handleCloseTag(tagId) {
     setOpenTags((previous) => {
-      const next = previous.filter((tag) => tag.id !== tagId || tag.closable === false)
-      if (tagId === activeModuleKey) {
-        const fallback = next[next.length - 1]
-        if (fallback) setActiveModuleKey(fallback.id)
+        const normalized = normalizeWorkspaceTags(previous)
+        const closingTag = normalized.find((tag) => tag.key === tagId || tag.id === tagId)
+        if (!closingTag || closingTag.closable === false) return normalized
+        const next = normalized.filter((tag) => tag !== closingTag)
+        if ((closingTag.key || closingTag.id) === activeTagKey) {
+            const currentIndex = normalized.indexOf(closingTag)
+            const target = next[Math.max(0, currentIndex - 1)] || next[currentIndex] || next[0]
+            navigate(target?.path || DEFAULT_ADMIN_PATH, {replace: true})
       }
       return next
     })
   }
 
-  async function loadModuleResource(resource = activeResource) {
+    function handleSelectTag(tag) {
+        const target = typeof tag === 'string'
+            ? normalizeWorkspaceTags(openTags).find((item) => item.key === tag || item.id === tag)
+            : tag
+        if (target?.path) {
+            navigate(target.path)
+        }
+    }
+
+    const handleWorkspaceTitleChange = useCallback((tagKey, title) => {
+        setOpenTags((previous) => updateTagTitle(normalizeWorkspaceTags(previous), tagKey, title))
+    }, [])
+
+    async function loadModuleResource(resource = activeResource, options = {}) {
     if (!resource) return []
-    const items = resource === 'menus' ? await iamApi.menus() : await adminApi.resources(resource)
+        const items = resource === 'menus' ? await iamApi.menus(options) : await adminApi.resources(resource, options)
     const rows = resource === 'menus'
         ? flattenMenuRows(items)
         : items.map((item) => recordFromResource(resource, item))
@@ -1146,6 +1335,26 @@ export default function App() {
     )
   }
 
+    if (routeStatus === 'loading') {
+        return (
+            <>
+                <FluidBackground
+                    enabled={liquidGlassEnabled}
+                    visualStyle={liquidGlassEnabled ? 'glass' : visualStyle}
+                    accentColor={accentColor}
+                    colorScheme={glassMode === 'immersive' ? colorScheme : 'light'}
+                />
+                <div className="login-page">
+                    <div className="login-card">
+                        <span className="brand-orb"/>
+                        <h1>HeartBeat</h1>
+                        <p>Loading workspace routes...</p>
+                    </div>
+                </div>
+            </>
+        )
+    }
+
   return (
       <>
         <FluidBackground
@@ -1172,7 +1381,10 @@ export default function App() {
             fluidEnabled={fluidEnabled}
             onFluidChange={changeFluidEnabled}
             syncState={syncState}
-            onSelectModule={(moduleKey) => openMenuTag({ id: moduleKey, name: moduleKey })}
+            onSelectModule={(moduleKey) => {
+                const module = adminModules.find((item) => item.key === moduleKey)
+                openMenuTag({id: moduleKey, name: module?.name || moduleKey, path: module?.appPath})
+            }}
             onSelectRecord={setSelectedResourceRow}
             onCreate={() => openResourceDialog('create')}
             onEdit={(record) => {
@@ -1187,8 +1399,9 @@ export default function App() {
             structureMode={structureMode}
             topModules={topModules.length > 0 ? topModules : fallbackTopModules}
             sideMenus={sideMenus.length > 0 ? sideMenus : fallbackSideMenus}
-            tags={openTags}
+            tags={normalizeWorkspaceTags(openTags)}
             activeTopModuleId={activeTopModuleKey}
+            activeTagKey={activeTagKey}
             activeModuleKey={activeModuleKey}
             liquidGlassEnabled={liquidGlassEnabled}
             glassMode={glassMode}
@@ -1196,10 +1409,17 @@ export default function App() {
             busy={busy}
             fluidEnabled={fluidEnabled}
             onFluidChange={changeFluidEnabled}
+            colorMode={colorMode}
+            onColorModeChange={changeColorMode}
+            accentColor={accentColor}
+            onAccentColorChange={changeAccentColor}
+            visualStyle={visualStyle}
+            onVisualStyleChange={changeVisualStyle}
+            syncState={syncState}
             onSelectTopModule={handleSelectTopModule}
             onGlassModeChange={handleSurfaceModeChange}
             onSelectMenu={openMenuTag}
-            onSelectTag={setActiveModuleKey}
+            onSelectTag={handleSelectTag}
             onCloseTag={handleCloseTag}
             onRefresh={handleRefresh}
             onLogout={handleLogout}

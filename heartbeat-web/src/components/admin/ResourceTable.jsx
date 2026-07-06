@@ -8,8 +8,10 @@ export default function ResourceTable({
   onEdit,
   onDelete
 }) {
+    const density = records.length > 50 ? 'dense' : 'normal'
+
   return (
-      <div className="resource-table-wrap">
+      <div className="resource-table-wrap" data-density={density}>
         <table className="resource-table" aria-label={`${moduleName}列表`}>
           <thead>
             <tr>

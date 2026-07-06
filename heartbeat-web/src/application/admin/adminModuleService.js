@@ -1,9 +1,17 @@
 import {
-    actionsForResource,
-    getResourceDefinition,
-    isResourceReadOnly,
-    payloadDisplay
+  actionsForResource,
+  getResourceDefinition,
+  isResourceReadOnly,
+  payloadDisplay
 } from '../../domain/admin/resourceDefinitions'
+import {
+  appPathForMenu,
+  filterNavigableTree,
+  findMenuById,
+  firstAvailableMenu,
+  isNavigableMenu,
+  resolveTopModuleIdByPath
+} from '../../domain/admin/navigationPolicy'
 
 export function categoryFromPermission(permission = '') {
   if (permission.startsWith('system:')) return '系统管理'
@@ -20,6 +28,7 @@ function moduleFromRoute(route) {
   return {
     key: route.id,
     name: route.name,
+      appPath: appPathForMenu(route),
     category: categoryFromPermission(permission),
     description: `${route.name}对接后端 ${resource ? `/api/v1/admin/resources/${resource}` : '专用接口'}，数据来自真实持久化层。`,
     permissionPrefix: permission,
@@ -38,7 +47,7 @@ function moduleFromRoute(route) {
 
 export function flattenRouteModules(routes = [], target = []) {
   routes.forEach((route) => {
-    if (route.type === 'MENU') {
+      if (isNavigableMenu(route)) {
       target.push(moduleFromRoute(route))
     }
     flattenRouteModules(route.children || [], target)
@@ -47,11 +56,11 @@ export function flattenRouteModules(routes = [], target = []) {
 }
 
 export function splitTopSideMenus(routeTree = []) {
-  return routeTree.filter((route) => route.type === 'DIR')
+    return filterNavigableTree(routeTree).filter((route) => route.type === 'DIR')
 }
 
 export function sideMenusForTop(routeTree = [], topModuleId) {
-  const top = routeTree.find((item) => item.id === topModuleId)
+    const top = filterNavigableTree(routeTree).find((item) => item.id === topModuleId)
   return top?.children || []
 }
 
@@ -64,21 +73,16 @@ export function resolveTopModuleId(routeTree = [], menuId) {
   return routeTree[0]?.id
 }
 
+export function resolveTopModuleIdForPath(routeTree = [], pathname) {
+    return resolveTopModuleIdByPath(routeTree, pathname)
+}
+
 export function firstMenuInTree(nodes = []) {
-  for (const node of nodes) {
-    if (node.type === 'MENU') return node
-    const child = firstMenuInTree(node.children || [])
-    if (child) return child
-  }
-  return null
+    return firstAvailableMenu(nodes)
 }
 
 function containsMenuId(nodes, menuId) {
-  for (const node of nodes) {
-    if (node.id === menuId) return true
-    if (containsMenuId(node.children || [], menuId)) return true
-  }
-  return false
+    return Boolean(findMenuById(nodes, menuId))
 }
 
 export function resourceFromModule(module) {

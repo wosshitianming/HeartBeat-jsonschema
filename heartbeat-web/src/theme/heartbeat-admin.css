@@ -604,3 +604,69 @@
     display: none;
   }
 }
+
+.hb-header-settings {
+    position: relative;
+}
+
+.hb-header-settings-popover {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    z-index: 40;
+    width: min(320px, calc(100vw - 32px));
+    padding: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 18px 48px rgba(15, 23, 42, 0.16);
+    backdrop-filter: blur(18px) saturate(150%);
+    -webkit-backdrop-filter: blur(18px) saturate(150%);
+    transform: translateZ(0);
+}
+
+.workspace-view-host,
+.workspace-view {
+    min-width: 0;
+}
+
+.workspace-view.inactive {
+    pointer-events: none;
+}
+
+.hb-admin-layout.liquid-glass-enabled .hb-layout-header,
+.hb-admin-layout.liquid-glass-enabled .hb-layout-sider,
+.hb-admin-layout.liquid-glass-enabled .hb-page-card,
+.hb-admin-layout.liquid-glass-enabled .hb-stat-card,
+.hb-admin-layout.liquid-glass-enabled .module-toolbar,
+.hb-admin-layout.liquid-glass-enabled .panel {
+    transform: translateZ(0);
+}
+
+.hb-admin-layout[data-glass-mode="flat"] .hb-layout-header,
+.hb-admin-layout[data-glass-mode="flat"] .hb-layout-sider,
+.hb-admin-layout[data-glass-mode="flat"] .hb-tags-view,
+.hb-admin-layout[data-glass-mode="flat"] .hb-page-card,
+.hb-admin-layout[data-glass-mode="flat"] .hb-stat-card,
+.hb-admin-layout[data-glass-mode="flat"] .module-toolbar,
+.hb-admin-layout[data-glass-mode="flat"] .panel,
+.hb-admin-layout[data-glass-mode="flat"] .hb-header-settings-popover {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgba(255, 255, 255, 0.96);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .hb-layout-header,
+    .hb-layout-sider,
+    .hb-tags-view,
+    .hb-page-card,
+    .hb-stat-card,
+    .module-toolbar,
+    .panel,
+    .hb-header-settings-popover {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        background: rgba(255, 255, 255, 0.96);
+    }
+}

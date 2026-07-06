@@ -207,6 +207,30 @@ class MybatisFlexMigrationGuardTest {
                         + String.join("\n", missingArtifacts));
     }
 
+    @Test
+    void sysUserMapperUsesEnterpriseUserColumns() throws IOException {
+        Path root = findProjectRoot();
+        Path mapperXml = root.resolve("heartbeat-infrastructure/src/main/resources/mapper-xml/sys/SysUserDOMapper.xml");
+        String content = new String(Files.readAllBytes(mapperXml), StandardCharsets.UTF_8);
+
+        for (String expectedColumn : Arrays.asList(
+                "id", "tenant_id", "dept_id", "username", "nickname", "real_name", "email", "phone",
+                "avatar_url", "password_hash", "password_algo", "password_updated_at", "gender",
+                "user_type", "status", "last_login_at", "last_login_ip", "version", "delete_marker",
+                "create_by", "create_time", "update_by", "update_time"
+        )) {
+            assertTrue(content.contains(expectedColumn),
+                    "SysUserDOMapper.xml should map enterprise sys_user column " + expectedColumn);
+        }
+
+        for (String legacyColumn : Arrays.asList(
+                "user_id", "user_name", "nick_name", "phonenumber", "del_flag", "login_date", "pwd_update_date"
+        )) {
+            assertTrue(!content.contains(legacyColumn),
+                    "SysUserDOMapper.xml must not use legacy RuoYi sys_user column " + legacyColumn);
+        }
+    }
+
     private List<SourceFile> productionSources() throws IOException {
         Path projectRoot = findProjectRoot();
         List<SourceFile> sources = new ArrayList<>();

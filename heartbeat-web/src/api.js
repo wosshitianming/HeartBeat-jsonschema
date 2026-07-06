@@ -21,14 +21,15 @@ function sessionHeaders() {
 
 // 统一 fetch 封装：自动附加 JSON 头与会话头，并解析 Result 包装
 async function request(path, options = {}) {
+    const {headers: optionHeaders, ...fetchOptions} = options
   // 发起 HTTP 请求
   const response = await fetch(path, {
+      ...fetchOptions,
     headers: {
       'Content-Type': 'application/json',
       ...sessionHeaders(),
-      ...(options.headers || {})
-    },
-    ...options
+        ...(optionHeaders || {})
+    }
   })
 
   // 解析 JSON 响应体
@@ -42,8 +43,9 @@ async function request(path, options = {}) {
 }
 
 export const structureApi = {
-  preview(payload) {
+    preview(payload, options = {}) {
     return request('/api/v1/structure-definitions/preview', {
+        ...options,
       method: 'POST',
       body: JSON.stringify(payload)
     })
@@ -54,8 +56,8 @@ export const structureApi = {
       body: JSON.stringify(payload)
     })
   },
-  list() {
-    return request('/api/v1/structure-definitions')
+    list(options = {}) {
+        return request('/api/v1/structure-definitions', options)
   },
   createVersion(id, payload) {
     return request(`/api/v1/structure-definitions/${id}/versions`, {
@@ -104,14 +106,14 @@ export const structureApi = {
 }
 
 export const adminApi = {
-  modules() {
-    return request('/api/v1/admin/modules')
+    modules(options = {}) {
+        return request('/api/v1/admin/modules', options)
   },
-  module(key) {
-    return request(`/api/v1/admin/modules/${key}`)
+    module(key, options = {}) {
+        return request(`/api/v1/admin/modules/${key}`, options)
   },
-  resources(resource) {
-    return request(`/api/v1/admin/resources/${resource}`)
+    resources(resource, options = {}) {
+        return request(`/api/v1/admin/resources/${resource}`, options)
   },
   createResource(resource, payload) {
     return request(`/api/v1/admin/resources/${resource}`, {
@@ -133,11 +135,11 @@ export const adminApi = {
 }
 
 export const iamApi = {
-  routes() {
-    return request('/api/v1/iam/routes')
+    routes(options = {}) {
+        return request('/api/v1/iam/routes', options)
   },
-  menus() {
-    return request('/api/v1/iam/menus')
+    menus(options = {}) {
+        return request('/api/v1/iam/menus', options)
   },
   createMenu(payload) {
     return request('/api/v1/iam/menus', {
@@ -156,11 +158,11 @@ export const iamApi = {
       method: 'DELETE'
     })
   },
-  menuTreeSelect() {
-    return request('/api/v1/iam/menus/tree-select')
+    menuTreeSelect(options = {}) {
+        return request('/api/v1/iam/menus/tree-select', options)
   },
-  roleMenus(roleId) {
-    return request(`/api/v1/iam/roles/${roleId}/menus`)
+    roleMenus(roleId, options = {}) {
+        return request(`/api/v1/iam/roles/${roleId}/menus`, options)
   },
   assignRoleMenus(roleId, menuIds) {
     return request(`/api/v1/iam/roles/${roleId}/menus`, {

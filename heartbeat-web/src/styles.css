@@ -3794,3 +3794,11 @@ textarea:focus,
   font-size: 18px;
   color: var(--text);
 }
+
+.resource-table-wrap[data-density="dense"] {
+    background: var(--surface-solid, #fff);
+}
+
+.resource-table-wrap[data-density="dense"] .resource-table {
+    background: var(--surface-solid, #fff);
+}

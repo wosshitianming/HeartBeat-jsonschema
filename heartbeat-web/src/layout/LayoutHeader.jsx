@@ -1,3 +1,6 @@
+import {useState} from 'react'
+import AppearanceSettingsPanel from '../components/AppearanceSettingsPanel/AppearanceSettingsPanel'
+
 export default function LayoutHeader({
   brand = 'HeartBeat',
   topModules,
@@ -6,19 +9,28 @@ export default function LayoutHeader({
   busy,
   fluidEnabled,
   onFluidChange,
+                                         colorMode,
+                                         onColorModeChange,
+                                         accentColor,
+                                         onAccentColorChange,
+                                         visualStyle,
+                                         onVisualStyleChange,
+                                         syncState,
   onSelectTopModule,
   glassMode,
   onGlassModeChange,
   onRefresh,
   onLogout
 }) {
+    const [settingsOpen, setSettingsOpen] = useState(false)
+
   return (
       <header className="hb-layout-header">
         <div className="hb-layout-brand">
           <span />
           <div>{brand}</div>
         </div>
-        <nav className="hb-top-nav" aria-label="顶栏导航">
+          <nav className="hb-top-nav" aria-label="top navigation">
           {topModules.map((module) => (
               <button
                   key={module.id}
@@ -31,26 +43,49 @@ export default function LayoutHeader({
           ))}
         </nav>
         <div className="hb-header-tools">
-          <button type="button" disabled={Boolean(busy)}>
-            主题与视觉效果
-          </button>
+            <div className="hb-header-settings">
+                <button
+                    type="button"
+                    disabled={Boolean(busy)}
+                    aria-expanded={settingsOpen}
+                    onClick={() => setSettingsOpen((value) => !value)}
+                >
+                    Theme
+                </button>
+                {settingsOpen && (
+                    <div className="hb-header-settings-popover">
+                        <AppearanceSettingsPanel
+                            colorMode={colorMode}
+                            onColorModeChange={onColorModeChange}
+                            accentColor={accentColor}
+                            onAccentColorChange={onAccentColorChange}
+                            visualStyle={visualStyle}
+                            onVisualStyleChange={onVisualStyleChange}
+                            fluidEnabled={fluidEnabled}
+                            onFluidChange={onFluidChange}
+                            syncState={syncState}
+                            defaultOpen
+                        />
+                    </div>
+                )}
+            </div>
           <label className="hb-header-switch">
             <input
                 type="checkbox"
                 role="switch"
-                aria-label="背景动效"
+                aria-label="background animation"
                 checked={Boolean(fluidEnabled)}
                 onChange={(event) => onFluidChange?.(event.target.checked)}
                 disabled={Boolean(busy)}
             />
-            背景动效
+              Motion
           </label>
-          <div className="hb-surface-switcher" aria-label="玻璃表面模式">
+            <div className="hb-surface-switcher" aria-label="surface mode">
             {[
-              ['immersive', '沉浸'],
-              ['balanced', '均衡'],
-              ['restrained', '克制'],
-              ['flat', '简洁']
+                ['immersive', 'Deep'],
+                ['balanced', 'Glass'],
+                ['restrained', 'Soft'],
+                ['flat', 'Flat']
             ].map(([mode, label]) => (
                 <button
                     key={mode}
@@ -63,9 +98,9 @@ export default function LayoutHeader({
                 </button>
             ))}
           </div>
-          <button type="button" onClick={onRefresh} disabled={Boolean(busy)}>刷新</button>
+            <button type="button" onClick={onRefresh} disabled={Boolean(busy)}>Refresh</button>
           <span>{currentUser?.nickname || currentUser?.username}</span>
-          <button type="button" onClick={onLogout} disabled={Boolean(busy)}>退出</button>
+            <button type="button" onClick={onLogout} disabled={Boolean(busy)}>Logout</button>
         </div>
       </header>
   )

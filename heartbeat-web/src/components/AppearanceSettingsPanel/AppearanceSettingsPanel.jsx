@@ -15,9 +15,10 @@ export default function AppearanceSettingsPanel({
   fluidEnabled,
   onFluidChange,
   syncState,
+                                                    defaultOpen = false,
   className = ''
 }) {
-  const [open, setOpen] = useState(false)
+    const [open, setOpen] = useState(defaultOpen)
   const syncHint = syncState === 'pending' ? '等待同步' : '跟随当前账号保存'
   const fluidDescription = visualStyle === 'glass'
       ? 'WebGL 液态玻璃背景折射'
