@@ -36,7 +36,7 @@ public class AuthSocialProviderDOExample {
      * @mbg.generated
      */
     public AuthSocialProviderDOExample() {
-        oredCriteria = new ArrayList<>();
+        oredCriteria = new ArrayList<Criteria>();
     }
 
     /**
@@ -159,7 +159,7 @@ public class AuthSocialProviderDOExample {
 
         protected GeneratedCriteria() {
             super();
-            criteria = new ArrayList<>();
+            criteria = new ArrayList<Criterion>();
         }
 
         public boolean isValid() {
@@ -1513,6 +1513,7 @@ public class AuthSocialProviderDOExample {
      * @mbg.generated do_not_delete_during_merge
      */
     public static class Criteria extends GeneratedCriteria {
+
         protected Criteria() {
             super();
         }
