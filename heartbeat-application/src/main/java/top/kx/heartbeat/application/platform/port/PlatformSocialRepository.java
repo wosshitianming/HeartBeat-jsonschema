@@ -1,18 +1,19 @@
 package top.kx.heartbeat.application.platform.port;
 
 import top.kx.heartbeat.application.common.model.DomainRecord;
+import top.kx.heartbeat.application.platform.request.PlatformSocialBindRequest;
+import top.kx.heartbeat.application.platform.request.PlatformSocialProviderRequest;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 public interface PlatformSocialRepository {
 
     List<DomainRecord> listSocialProviders();
 
-    DomainRecord createSocialProvider(Map<String, Object> command);
+    DomainRecord createSocialProvider(PlatformSocialProviderRequest request);
 
-    DomainRecord updateSocialProvider(String id, Map<String, Object> command);
+    DomainRecord updateSocialProvider(String id, PlatformSocialProviderRequest request);
 
     void deleteSocialProvider(String id);
 
@@ -22,5 +23,5 @@ public interface PlatformSocialRepository {
 
     Optional<DomainRecord> findSocialBind(String provider, String openId);
 
-    DomainRecord saveSocialBind(Map<String, Object> command);
+    DomainRecord saveSocialBind(PlatformSocialBindRequest request);
 }

@@ -1,17 +1,17 @@
 package top.kx.heartbeat.application.platform.port;
 
 import top.kx.heartbeat.application.common.model.DomainRecord;
+import top.kx.heartbeat.application.platform.request.PlatformDepartmentRequest;
 
 import java.util.List;
-import java.util.Map;
 
 public interface PlatformOrganizationRepository {
 
     List<DomainRecord> listDepartments();
 
-    DomainRecord createDepartment(Map<String, Object> command);
+    DomainRecord createDepartment(PlatformDepartmentRequest request);
 
-    DomainRecord updateDepartment(String id, Map<String, Object> command);
+    DomainRecord updateDepartment(String id, PlatformDepartmentRequest request);
 
     void deleteDepartment(String id);
 

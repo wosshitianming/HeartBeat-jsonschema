@@ -23,11 +23,12 @@ public class PlatformLoginLogRepositoryImpl implements PlatformLoginLogRepositor
         SysLoginLogDO row = new SysLoginLogDO();
         row.setTenantId(tenantId());
         row.setUsername(username);
-        row.setLoginName(username);
+        //TODO 参数不明
+//        row.setLoginName(username);
         row.setResultStatus(status);
-        row.setLoginStatus(status);
-        row.setMessage(message);
-        row.setLoginMessage(message);
+//        row.setLoginStatus(status);
+//        row.setMessage(message);
+//        row.setLoginMessage(message);
         row.setCreateTime(new Date());
         row.setUpdateTime(new Date());
         loginLogMapper.insertSelective(row);

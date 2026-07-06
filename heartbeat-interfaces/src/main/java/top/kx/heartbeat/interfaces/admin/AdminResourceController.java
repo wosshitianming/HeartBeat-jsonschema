@@ -5,13 +5,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import top.kx.heartbeat.application.common.response.RecordResponse;
 import top.kx.heartbeat.application.platform.PlatformAdministrationService;
+import top.kx.heartbeat.application.platform.request.*;
 import top.kx.heartbeat.interfaces.common.Result;
-import top.kx.heartbeat.interfaces.common.request.DynamicRecordRequest;
 import top.kx.heartbeat.interfaces.common.response.DynamicRecordResponse;
 
 import javax.annotation.Resource;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/admin/resources")
@@ -28,15 +27,15 @@ public class AdminResourceController {
 
     @PostMapping("/users")
     @PreAuthorize("@permissionGuard.hasResource('users', 'create')")
-    public Result<DynamicRecordResponse> createUser(@RequestBody DynamicRecordRequest request) {
-        return recordResponse(platformAdministrationService.createUser(payload(request)));
+    public Result<DynamicRecordResponse> createUser(@RequestBody PlatformUserRequest request) {
+        return recordResponse(platformAdministrationService.createUser(request));
     }
 
     @PutMapping("/users/{id}")
     @PreAuthorize("@permissionGuard.hasResource('users', 'update')")
     public Result<DynamicRecordResponse> updateUser(@PathVariable String id,
-                                                    @RequestBody DynamicRecordRequest request) {
-        return recordResponse(platformAdministrationService.updateUser(id, payload(request)));
+                                                    @RequestBody PlatformUserRequest request) {
+        return recordResponse(platformAdministrationService.updateUser(id, request));
     }
 
     @DeleteMapping("/users/{id}")
@@ -54,15 +53,15 @@ public class AdminResourceController {
 
     @PostMapping("/depts")
     @PreAuthorize("@permissionGuard.hasResource('depts', 'create')")
-    public Result<DynamicRecordResponse> createDepartment(@RequestBody DynamicRecordRequest request) {
-        return recordResponse(platformAdministrationService.createDepartment(payload(request)));
+    public Result<DynamicRecordResponse> createDepartment(@RequestBody PlatformDepartmentRequest request) {
+        return recordResponse(platformAdministrationService.createDepartment(request));
     }
 
     @PutMapping("/depts/{id}")
     @PreAuthorize("@permissionGuard.hasResource('depts', 'update')")
     public Result<DynamicRecordResponse> updateDepartment(@PathVariable String id,
-                                                          @RequestBody DynamicRecordRequest request) {
-        return recordResponse(platformAdministrationService.updateDepartment(id, payload(request)));
+                                                          @RequestBody PlatformDepartmentRequest request) {
+        return recordResponse(platformAdministrationService.updateDepartment(id, request));
     }
 
     @DeleteMapping("/depts/{id}")
@@ -80,15 +79,15 @@ public class AdminResourceController {
 
     @PostMapping("/roles")
     @PreAuthorize("@permissionGuard.hasResource('roles', 'create')")
-    public Result<DynamicRecordResponse> createRole(@RequestBody DynamicRecordRequest request) {
-        return recordResponse(platformAdministrationService.createRole(payload(request)));
+    public Result<DynamicRecordResponse> createRole(@RequestBody PlatformRoleRequest request) {
+        return recordResponse(platformAdministrationService.createRole(request));
     }
 
     @PutMapping("/roles/{id}")
     @PreAuthorize("@permissionGuard.hasResource('roles', 'update')")
     public Result<DynamicRecordResponse> updateRole(@PathVariable String id,
-                                                    @RequestBody DynamicRecordRequest request) {
-        return recordResponse(platformAdministrationService.updateRole(id, payload(request)));
+                                                    @RequestBody PlatformRoleRequest request) {
+        return recordResponse(platformAdministrationService.updateRole(id, request));
     }
 
     @DeleteMapping("/roles/{id}")
@@ -106,15 +105,15 @@ public class AdminResourceController {
 
     @PostMapping("/configs")
     @PreAuthorize("@permissionGuard.hasResource('configs', 'create')")
-    public Result<DynamicRecordResponse> createConfiguration(@RequestBody DynamicRecordRequest request) {
-        return recordResponse(platformAdministrationService.createConfiguration(payload(request)));
+    public Result<DynamicRecordResponse> createConfiguration(@RequestBody PlatformConfigurationRequest request) {
+        return recordResponse(platformAdministrationService.createConfiguration(request));
     }
 
     @PutMapping("/configs/{id}")
     @PreAuthorize("@permissionGuard.hasResource('configs', 'update')")
     public Result<DynamicRecordResponse> updateConfiguration(@PathVariable String id,
-                                                             @RequestBody DynamicRecordRequest request) {
-        return recordResponse(platformAdministrationService.updateConfiguration(id, payload(request)));
+                                                             @RequestBody PlatformConfigurationRequest request) {
+        return recordResponse(platformAdministrationService.updateConfiguration(id, request));
     }
 
     @DeleteMapping("/configs/{id}")
@@ -132,15 +131,15 @@ public class AdminResourceController {
 
     @PostMapping("/social-providers")
     @PreAuthorize("@permissionGuard.hasResource('social-providers', 'create')")
-    public Result<DynamicRecordResponse> createSocialProvider(@RequestBody DynamicRecordRequest request) {
-        return recordResponse(platformAdministrationService.createSocialProvider(payload(request)));
+    public Result<DynamicRecordResponse> createSocialProvider(@RequestBody PlatformSocialProviderRequest request) {
+        return recordResponse(platformAdministrationService.createSocialProvider(request));
     }
 
     @PutMapping("/social-providers/{id}")
     @PreAuthorize("@permissionGuard.hasResource('social-providers', 'update')")
     public Result<DynamicRecordResponse> updateSocialProvider(@PathVariable String id,
-                                                              @RequestBody DynamicRecordRequest request) {
-        return recordResponse(platformAdministrationService.updateSocialProvider(id, payload(request)));
+                                                              @RequestBody PlatformSocialProviderRequest request) {
+        return recordResponse(platformAdministrationService.updateSocialProvider(id, request));
     }
 
     @DeleteMapping("/social-providers/{id}")
@@ -212,7 +211,4 @@ public class AdminResourceController {
         return Result.success(DynamicRecordResponse.from(record));
     }
 
-    private Map<String, Object> payload(DynamicRecordRequest request) {
-        return request.toMap();
-    }
 }

@@ -5,13 +5,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import top.kx.heartbeat.application.common.response.RecordResponse;
 import top.kx.heartbeat.application.platform.PlatformAdministrationService;
+import top.kx.heartbeat.application.platform.request.PlatformMenuRequest;
 import top.kx.heartbeat.interfaces.common.Result;
-import top.kx.heartbeat.interfaces.common.request.DynamicRecordRequest;
 import top.kx.heartbeat.interfaces.common.response.DynamicRecordResponse;
 
 import javax.annotation.Resource;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 身份权限菜单接口控制器。
@@ -102,11 +101,9 @@ public class IamMenuController {
      */
     @PostMapping("/menus")
     @PreAuthorize("@permissionGuard.has('system:menu:add')")
-    public Result<DynamicRecordResponse> create(@RequestBody DynamicRecordRequest request) {
-        // 转换动态请求对象为业务字段映射。
-        Map<String, Object> payload = request.toMap();
+    public Result<DynamicRecordResponse> create(@RequestBody PlatformMenuRequest request) {
         // 创建后台菜单动态记录。
-        RecordResponse menu = adminPlatformService.createMenu(payload);
+        RecordResponse menu = adminPlatformService.createMenu(request);
         // 将动态记录转换为统一响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(menu);
         // 返回后台菜单新增结果。
@@ -123,11 +120,9 @@ public class IamMenuController {
     @PutMapping("/menus/{id}")
     @PreAuthorize("@permissionGuard.has('system:menu:edit')")
     public Result<DynamicRecordResponse> update(@PathVariable String id,
-                                                @RequestBody DynamicRecordRequest request) {
-        // 转换动态请求对象为业务字段映射。
-        Map<String, Object> payload = request.toMap();
+                                                @RequestBody PlatformMenuRequest request) {
         // 修改后台菜单动态记录。
-        RecordResponse menu = adminPlatformService.updateMenu(id, payload);
+        RecordResponse menu = adminPlatformService.updateMenu(id, request);
         // 将动态记录转换为统一响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(menu);
         // 返回后台菜单修改结果。

@@ -1,9 +1,8 @@
 package top.kx.heartbeat.interfaces.auth.request;
 
 import lombok.Data;
+import top.kx.heartbeat.application.platform.request.PlatformLoginRequest;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 /**
  * 账号密码登录请求对象。
@@ -28,14 +27,10 @@ public class LoginRequest {
      *
      * @return 登录字段映射
      */
-    public Map<String, Object> toMap() {
-        // 创建有序字段映射。
-        Map<String, Object> payload = new LinkedHashMap<>();
-        // 写入登录账号字段。
-        payload.put("username", username);
-        // 写入登录密码字段。
-        payload.put("password", password);
-        // 返回登录字段映射。
-        return payload;
+    public PlatformLoginRequest toPlatformRequest() {
+        PlatformLoginRequest request = new PlatformLoginRequest();
+        request.setUsername(username);
+        request.setPassword(password);
+        return request;
     }
 }

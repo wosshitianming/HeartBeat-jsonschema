@@ -5,14 +5,14 @@ import org.springframework.stereotype.Repository;
 import top.kx.heartbeat.application.platform.port.PlatformPermissionRepository;
 import top.kx.heartbeat.infrastructure.persistence.entity.sys.*;
 import top.kx.heartbeat.infrastructure.persistence.mapper.sys.*;
+import top.kx.heartbeat.infrastructure.tenant.TenantContext;
 
 import javax.annotation.Resource;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Repository
-public class PlatformPermissionRepositoryImpl extends AbstractPlatformRepositorySupport
-        implements PlatformPermissionRepository {
+public class PlatformPermissionRepositoryImpl implements PlatformPermissionRepository {
 
     @Resource
     private SysUserRoleDOMapper userRoleMapper;
@@ -185,5 +185,21 @@ public class PlatformPermissionRepositoryImpl extends AbstractPlatformRepository
                 .filter(Objects::nonNull)
                 .distinct()
                 .collect(Collectors.toList());
+    }
+
+    private Long tenantId() {
+        Long tenantId = TenantContext.getTenantId();
+        return tenantId == null ? 1L : tenantId;
+    }
+
+    private Long longValue(Object value) {
+        if (value == null || String.valueOf(value).trim().isEmpty()) {
+            return null;
+        }
+        try {
+            return Long.parseLong(String.valueOf(value).trim());
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 }

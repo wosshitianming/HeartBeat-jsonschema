@@ -36,7 +36,7 @@ public class SysLoginLogDOExample {
      * @mbg.generated
      */
     public SysLoginLogDOExample() {
-        oredCriteria = new ArrayList<>();
+        oredCriteria = new ArrayList<Criteria>();
     }
 
     /**
@@ -159,7 +159,7 @@ public class SysLoginLogDOExample {
 
         protected GeneratedCriteria() {
             super();
-            criteria = new ArrayList<>();
+            criteria = new ArrayList<Criterion>();
         }
 
         public boolean isValid() {
@@ -1055,52 +1055,52 @@ public class SysLoginLogDOExample {
             return (Criteria) this;
         }
 
-        public Criteria andCreateByEqualTo(String value) {
+        public Criteria andCreateByEqualTo(Long value) {
             addCriterion("create_by =", value, "createBy");
             return (Criteria) this;
         }
 
-        public Criteria andCreateByNotEqualTo(String value) {
+        public Criteria andCreateByNotEqualTo(Long value) {
             addCriterion("create_by <>", value, "createBy");
             return (Criteria) this;
         }
 
-        public Criteria andCreateByGreaterThan(String value) {
+        public Criteria andCreateByGreaterThan(Long value) {
             addCriterion("create_by >", value, "createBy");
             return (Criteria) this;
         }
 
-        public Criteria andCreateByGreaterThanOrEqualTo(String value) {
+        public Criteria andCreateByGreaterThanOrEqualTo(Long value) {
             addCriterion("create_by >=", value, "createBy");
             return (Criteria) this;
         }
 
-        public Criteria andCreateByLessThan(String value) {
+        public Criteria andCreateByLessThan(Long value) {
             addCriterion("create_by <", value, "createBy");
             return (Criteria) this;
         }
 
-        public Criteria andCreateByLessThanOrEqualTo(String value) {
+        public Criteria andCreateByLessThanOrEqualTo(Long value) {
             addCriterion("create_by <=", value, "createBy");
             return (Criteria) this;
         }
 
-        public Criteria andCreateByIn(List<String> values) {
+        public Criteria andCreateByIn(List<Long> values) {
             addCriterion("create_by in", values, "createBy");
             return (Criteria) this;
         }
 
-        public Criteria andCreateByNotIn(List<String> values) {
+        public Criteria andCreateByNotIn(List<Long> values) {
             addCriterion("create_by not in", values, "createBy");
             return (Criteria) this;
         }
 
-        public Criteria andCreateByBetween(String value1, String value2) {
+        public Criteria andCreateByBetween(Long value1, Long value2) {
             addCriterion("create_by between", value1, value2, "createBy");
             return (Criteria) this;
         }
 
-        public Criteria andCreateByNotBetween(String value1, String value2) {
+        public Criteria andCreateByNotBetween(Long value1, Long value2) {
             addCriterion("create_by not between", value1, value2, "createBy");
             return (Criteria) this;
         }
@@ -1115,52 +1115,52 @@ public class SysLoginLogDOExample {
             return (Criteria) this;
         }
 
-        public Criteria andUpdateByEqualTo(String value) {
+        public Criteria andUpdateByEqualTo(Long value) {
             addCriterion("update_by =", value, "updateBy");
             return (Criteria) this;
         }
 
-        public Criteria andUpdateByNotEqualTo(String value) {
+        public Criteria andUpdateByNotEqualTo(Long value) {
             addCriterion("update_by <>", value, "updateBy");
             return (Criteria) this;
         }
 
-        public Criteria andUpdateByGreaterThan(String value) {
+        public Criteria andUpdateByGreaterThan(Long value) {
             addCriterion("update_by >", value, "updateBy");
             return (Criteria) this;
         }
 
-        public Criteria andUpdateByGreaterThanOrEqualTo(String value) {
+        public Criteria andUpdateByGreaterThanOrEqualTo(Long value) {
             addCriterion("update_by >=", value, "updateBy");
             return (Criteria) this;
         }
 
-        public Criteria andUpdateByLessThan(String value) {
+        public Criteria andUpdateByLessThan(Long value) {
             addCriterion("update_by <", value, "updateBy");
             return (Criteria) this;
         }
 
-        public Criteria andUpdateByLessThanOrEqualTo(String value) {
+        public Criteria andUpdateByLessThanOrEqualTo(Long value) {
             addCriterion("update_by <=", value, "updateBy");
             return (Criteria) this;
         }
 
-        public Criteria andUpdateByIn(List<String> values) {
+        public Criteria andUpdateByIn(List<Long> values) {
             addCriterion("update_by in", values, "updateBy");
             return (Criteria) this;
         }
 
-        public Criteria andUpdateByNotIn(List<String> values) {
+        public Criteria andUpdateByNotIn(List<Long> values) {
             addCriterion("update_by not in", values, "updateBy");
             return (Criteria) this;
         }
 
-        public Criteria andUpdateByBetween(String value1, String value2) {
+        public Criteria andUpdateByBetween(Long value1, Long value2) {
             addCriterion("update_by between", value1, value2, "updateBy");
             return (Criteria) this;
         }
 
-        public Criteria andUpdateByNotBetween(String value1, String value2) {
+        public Criteria andUpdateByNotBetween(Long value1, Long value2) {
             addCriterion("update_by not between", value1, value2, "updateBy");
             return (Criteria) this;
         }
@@ -1173,6 +1173,7 @@ public class SysLoginLogDOExample {
      * @mbg.generated do_not_delete_during_merge
      */
     public static class Criteria extends GeneratedCriteria {
+
         protected Criteria() {
             super();
         }

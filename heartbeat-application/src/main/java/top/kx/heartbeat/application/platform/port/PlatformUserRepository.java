@@ -1,9 +1,9 @@
 package top.kx.heartbeat.application.platform.port;
 
 import top.kx.heartbeat.application.common.model.DomainRecord;
+import top.kx.heartbeat.application.platform.request.PlatformUserRequest;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 public interface PlatformUserRepository {
@@ -18,11 +18,11 @@ public interface PlatformUserRepository {
 
     List<DomainRecord> listUsers();
 
-    DomainRecord createUser(Map<String, Object> command);
+    DomainRecord createUser(PlatformUserRequest request);
 
-    DomainRecord updateUser(String id, Map<String, Object> command);
+    DomainRecord updateUser(String id, PlatformUserRequest request);
 
     void deleteUser(String id);
 
-    DomainRecord createSocialUser(Map<String, Object> command);
+    DomainRecord createSocialUser(PlatformUserRequest request);
 }

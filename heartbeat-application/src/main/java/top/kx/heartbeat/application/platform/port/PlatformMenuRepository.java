@@ -1,9 +1,9 @@
 package top.kx.heartbeat.application.platform.port;
 
 import top.kx.heartbeat.application.common.model.DomainRecord;
+import top.kx.heartbeat.application.platform.request.PlatformMenuRequest;
 
 import java.util.List;
-import java.util.Map;
 
 public interface PlatformMenuRepository {
 
@@ -11,9 +11,9 @@ public interface PlatformMenuRepository {
 
     List<DomainRecord> listAuthorizedMenus(String userId);
 
-    DomainRecord createMenu(Map<String, Object> command);
+    DomainRecord createMenu(PlatformMenuRequest request);
 
-    DomainRecord updateMenu(String id, Map<String, Object> command);
+    DomainRecord updateMenu(String id, PlatformMenuRequest request);
 
     void deleteMenu(String id);
 }

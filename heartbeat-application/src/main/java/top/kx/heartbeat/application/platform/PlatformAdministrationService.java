@@ -10,6 +10,7 @@ import top.kx.heartbeat.application.auth.response.AuthTokenResponse;
 import top.kx.heartbeat.application.common.model.DomainRecord;
 import top.kx.heartbeat.application.common.response.RecordResponse;
 import top.kx.heartbeat.application.platform.port.*;
+import top.kx.heartbeat.application.platform.request.*;
 import top.kx.heartbeat.application.platform.response.LoginResponse;
 import top.kx.heartbeat.domain.auth.CurrentUserProvider;
 import top.kx.heartbeat.domain.auth.LoginResultStatus;
@@ -244,9 +245,9 @@ public class PlatformAdministrationService {
      * @return 更新后的外观偏好。
      */
     @Transactional
-    public RecordResponse updateAppearancePreference(Map<String, Object> command) {
+    public RecordResponse updateAppearancePreference(PlatformAppearancePreferenceRequest request) {
         // 使用当前登录用户标识更新外观偏好。
-        return updateAppearancePreference(currentUserProvider.currentUserId(), command);
+        return updateAppearancePreference(currentUserProvider.currentUserId(), request);
     }
 
     /**
@@ -257,24 +258,26 @@ public class PlatformAdministrationService {
      * @return 更新后的外观偏好。
      */
     @Transactional
-    public RecordResponse updateAppearancePreference(String userId, Map<String, Object> command) {
+    public RecordResponse updateAppearancePreference(String userId, PlatformAppearancePreferenceRequest request) {
+        PlatformAppearancePreferenceRequest safeRequest =
+                request == null ? new PlatformAppearancePreferenceRequest() : request;
         // 查询当前外观偏好作为局部更新的默认值来源。
         Map<String, Object> current = appearancePreference(userId).toMap();
         // 解析颜色模式入参，未传时沿用当前值。
-        String colorMode = command.containsKey("colorMode")
-                ? stringValue(command.get("colorMode"))
+        String colorMode = safeRequest.getColorMode() != null
+                ? stringValue(safeRequest.getColorMode())
                 : stringValue(current.get("colorMode"));
         // 解析流体布局入参，未传时沿用当前值。
-        boolean fluidEnabled = command.containsKey("fluidEnabled")
-                ? booleanValue(command.get("fluidEnabled"), "fluidEnabled")
+        boolean fluidEnabled = safeRequest.getFluidEnabled() != null
+                ? safeRequest.getFluidEnabled()
                 : Boolean.TRUE.equals(current.get("fluidEnabled"));
         // 解析强调色入参，未传时沿用当前值。
-        String accentColor = command.containsKey("accentColor")
-                ? normalizeAccentColor(stringValue(command.get("accentColor")))
+        String accentColor = safeRequest.getAccentColor() != null
+                ? normalizeAccentColor(stringValue(safeRequest.getAccentColor()))
                 : stringValue(current.get("accentColor"));
         // 解析视觉风格入参，未传时沿用当前值。
-        String visualStyle = command.containsKey("visualStyle")
-                ? normalizeVisualStyle(stringValue(command.get("visualStyle")))
+        String visualStyle = safeRequest.getVisualStyle() != null
+                ? normalizeVisualStyle(stringValue(safeRequest.getVisualStyle()))
                 : stringValue(current.get("visualStyle"));
 
         // 固化原始颜色模式入参，供异常消息安全引用。
@@ -309,11 +312,12 @@ public class PlatformAdministrationService {
      * @return 登录结果。
      */
     @Transactional
-    public LoginResponse login(Map<String, Object> command) {
+    public LoginResponse login(PlatformLoginRequest request) {
+        PlatformLoginRequest safeRequest = request == null ? new PlatformLoginRequest() : request;
         // 读取登录用户名。
-        String username = stringValue(command.get("username"));
+        String username = stringValue(safeRequest.getUsername());
         // 读取登录密码。
-        String password = stringValue(command.get("password"));
+        String password = stringValue(safeRequest.getPassword());
         // 按用户名查询用户记录。
         Optional<Map<String, Object>> userOptional = optionalMap(platformUserRepository.findUserByUsername(username));
         // 用户不存在或密码不匹配时记录失败日志并中断登录。
@@ -391,9 +395,9 @@ public class PlatformAdministrationService {
      * @return 新建菜单记录。
      */
     @Transactional
-    public RecordResponse createMenu(Map<String, Object> command) {
+    public RecordResponse createMenu(PlatformMenuRequest request) {
         // 委托仓储创建菜单并返回字段 Map。
-        return RecordResponse.from(platformMenuRepository.createMenu(command));
+        return RecordResponse.from(platformMenuRepository.createMenu(request));
     }
 
     /**
@@ -404,9 +408,9 @@ public class PlatformAdministrationService {
      * @return 更新后的菜单记录。
      */
     @Transactional
-    public RecordResponse updateMenu(String id, Map<String, Object> command) {
+    public RecordResponse updateMenu(String id, PlatformMenuRequest request) {
         // 委托仓储更新菜单并返回字段 Map。
-        return RecordResponse.from(platformMenuRepository.updateMenu(id, command));
+        return RecordResponse.from(platformMenuRepository.updateMenu(id, request));
     }
 
     /**
@@ -485,9 +489,9 @@ public class PlatformAdministrationService {
      * @return 新建用户资源。
      */
     @Transactional
-    public RecordResponse createUser(Map<String, Object> command) {
+    public RecordResponse createUser(PlatformUserRequest request) {
         // 通过平台管理仓储创建用户记录。
-        return RecordResponse.from(platformUserRepository.createUser(command));
+        return RecordResponse.from(platformUserRepository.createUser(prepareUserRequest(request)));
     }
 
     /**
@@ -498,9 +502,9 @@ public class PlatformAdministrationService {
      * @return 更新后的用户资源。
      */
     @Transactional
-    public RecordResponse updateUser(String id, Map<String, Object> command) {
+    public RecordResponse updateUser(String id, PlatformUserRequest request) {
         // 通过平台管理仓储更新用户记录。
-        return RecordResponse.from(platformUserRepository.updateUser(id, command));
+        return RecordResponse.from(platformUserRepository.updateUser(id, prepareUserRequest(request)));
     }
 
     /**
@@ -531,9 +535,9 @@ public class PlatformAdministrationService {
      * @return 新建部门资源。
      */
     @Transactional
-    public RecordResponse createDepartment(Map<String, Object> command) {
+    public RecordResponse createDepartment(PlatformDepartmentRequest request) {
         // 通过平台管理仓储创建部门记录。
-        return RecordResponse.from(platformOrganizationRepository.createDepartment(command));
+        return RecordResponse.from(platformOrganizationRepository.createDepartment(request));
     }
 
     /**
@@ -544,9 +548,9 @@ public class PlatformAdministrationService {
      * @return 更新后的部门资源。
      */
     @Transactional
-    public RecordResponse updateDepartment(String id, Map<String, Object> command) {
+    public RecordResponse updateDepartment(String id, PlatformDepartmentRequest request) {
         // 通过平台管理仓储更新部门记录。
-        return RecordResponse.from(platformOrganizationRepository.updateDepartment(id, command));
+        return RecordResponse.from(platformOrganizationRepository.updateDepartment(id, request));
     }
 
     /**
@@ -577,9 +581,9 @@ public class PlatformAdministrationService {
      * @return 新建角色资源。
      */
     @Transactional
-    public RecordResponse createRole(Map<String, Object> command) {
+    public RecordResponse createRole(PlatformRoleRequest request) {
         // 通过平台管理仓储创建角色记录。
-        return RecordResponse.from(platformRoleRepository.createRole(command));
+        return RecordResponse.from(platformRoleRepository.createRole(request));
     }
 
     /**
@@ -590,9 +594,9 @@ public class PlatformAdministrationService {
      * @return 更新后的角色资源。
      */
     @Transactional
-    public RecordResponse updateRole(String id, Map<String, Object> command) {
+    public RecordResponse updateRole(String id, PlatformRoleRequest request) {
         // 通过平台管理仓储更新角色记录。
-        return RecordResponse.from(platformRoleRepository.updateRole(id, command));
+        return RecordResponse.from(platformRoleRepository.updateRole(id, request));
     }
 
     /**
@@ -623,9 +627,9 @@ public class PlatformAdministrationService {
      * @return 新建参数配置资源。
      */
     @Transactional
-    public RecordResponse createConfiguration(Map<String, Object> command) {
+    public RecordResponse createConfiguration(PlatformConfigurationRequest request) {
         // 通过平台管理仓储创建参数配置记录。
-        return RecordResponse.from(platformConfigRepository.createConfiguration(command));
+        return RecordResponse.from(platformConfigRepository.createConfiguration(request));
     }
 
     /**
@@ -636,9 +640,9 @@ public class PlatformAdministrationService {
      * @return 更新后的参数配置资源。
      */
     @Transactional
-    public RecordResponse updateConfiguration(String id, Map<String, Object> command) {
+    public RecordResponse updateConfiguration(String id, PlatformConfigurationRequest request) {
         // 通过平台管理仓储更新参数配置记录。
-        return RecordResponse.from(platformConfigRepository.updateConfiguration(id, command));
+        return RecordResponse.from(platformConfigRepository.updateConfiguration(id, request));
     }
 
     /**
@@ -669,9 +673,9 @@ public class PlatformAdministrationService {
      * @return 新建社交登录渠道资源。
      */
     @Transactional
-    public RecordResponse createSocialProvider(Map<String, Object> command) {
+    public RecordResponse createSocialProvider(PlatformSocialProviderRequest request) {
         // 通过平台管理仓储创建社交登录渠道记录。
-        return RecordResponse.from(platformSocialRepository.createSocialProvider(command));
+        return RecordResponse.from(platformSocialRepository.createSocialProvider(request));
     }
 
     /**
@@ -682,9 +686,9 @@ public class PlatformAdministrationService {
      * @return 更新后的社交登录渠道资源。
      */
     @Transactional
-    public RecordResponse updateSocialProvider(String id, Map<String, Object> command) {
+    public RecordResponse updateSocialProvider(String id, PlatformSocialProviderRequest request) {
         // 通过平台管理仓储更新社交登录渠道记录。
-        return RecordResponse.from(platformSocialRepository.updateSocialProvider(id, command));
+        return RecordResponse.from(platformSocialRepository.updateSocialProvider(id, request));
     }
 
     /**
@@ -906,6 +910,17 @@ public class PlatformAdministrationService {
         }
         // 兼容历史明文密码数据。
         return rawPassword.equals(passwordHash);
+    }
+
+    private PlatformUserRequest prepareUserRequest(PlatformUserRequest request) {
+        PlatformUserRequest safeRequest = request == null ? new PlatformUserRequest() : request;
+        String password = stringValue(safeRequest.getPassword());
+        if (StringUtils.isNotBlank(password)) {
+            safeRequest.setPasswordHash(passwordEncoder.encode(password));
+            safeRequest.setPasswordAlgo("BCrypt");
+            safeRequest.setPasswordUpdateTime(new Date());
+        }
+        return safeRequest;
     }
 
     /**

@@ -16,7 +16,6 @@ import top.kx.heartbeat.interfaces.common.response.DynamicRecordResponse;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 认证中心接口控制器。
@@ -53,11 +52,9 @@ public class AuthController {
      */
     @PostMapping("/login")
     public Result<LoginResponse> login(@RequestBody LoginRequest request) {
-        // 转换登录请求为平台服务字段映射。
-        Map<String, Object> payload = request.toMap();
         // 调用平台服务完成认证并签发令牌。
         // 返回登录成功响应。
-        return Result.success(adminPlatformService.login(payload));
+        return Result.success(adminPlatformService.login(request.toPlatformRequest()));
     }
 
     /**
@@ -111,10 +108,8 @@ public class AuthController {
             @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestHeader(value = "Authorization", required = false) String authorization,
             @RequestBody AppearancePreferenceRequest request) {
-        // 转换外观偏好请求为平台服务字段映射。
-        Map<String, Object> payload = request.toMap();
         // 持久化当前用户外观偏好。
-        RecordResponse saved = adminPlatformService.updateAppearancePreference(payload);
+        RecordResponse saved = adminPlatformService.updateAppearancePreference(request.toPlatformRequest());
         // 将动态偏好配置转换为统一响应对象。
         DynamicRecordResponse response = DynamicRecordResponse.from(saved);
         // 返回当前用户外观偏好保存结果。

@@ -1,17 +1,17 @@
 package top.kx.heartbeat.application.platform.port;
 
 import top.kx.heartbeat.application.common.model.DomainRecord;
+import top.kx.heartbeat.application.platform.request.PlatformRoleRequest;
 
 import java.util.List;
-import java.util.Map;
 
 public interface PlatformRoleRepository {
 
     List<DomainRecord> listRoles();
 
-    DomainRecord createRole(Map<String, Object> command);
+    DomainRecord createRole(PlatformRoleRequest request);
 
-    DomainRecord updateRole(String id, Map<String, Object> command);
+    DomainRecord updateRole(String id, PlatformRoleRequest request);
 
     void deleteRole(String id);
 }

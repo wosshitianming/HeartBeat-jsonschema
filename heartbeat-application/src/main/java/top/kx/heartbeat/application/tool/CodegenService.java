@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.kx.heartbeat.application.common.response.RecordResponse;
 import top.kx.heartbeat.application.platform.PlatformAdministrationService;
+import top.kx.heartbeat.application.platform.request.PlatformMenuRequest;
 import top.kx.heartbeat.application.tool.port.MybatisGeneratorPreviewer;
 import top.kx.heartbeat.domain.tool.CodegenMetadataRepository;
 import top.kx.heartbeat.domain.tool.model.GeneratedColumn;
@@ -115,16 +116,15 @@ public class CodegenService {
         String resourceKey = String.valueOf(options.get("resourceKey"));
         String className = String.valueOf(options.get("className"));
         String permissionPrefix = "biz:" + resourceKey.replace('-', ':');
-        Map<String, Object> menu = new LinkedHashMap<>();
-        menu.put("parentId", "biz");
-        menu.put("menuCode", permissionPrefix);
-        menu.put("type", "MENU");
-        menu.put("name", className + "管理");
-        menu.put("path", "/biz/generated/" + resourceKey);
-        menu.put("component", "generated/" + className + "Page");
-        menu.put("permission", permissionPrefix + ":list");
-        menu.put("icon", "code");
-        menu.put("sortNo", 90);
+        PlatformMenuRequest menu = new PlatformMenuRequest();
+        menu.setMenuCode(permissionPrefix);
+        menu.setMenuType("MENU");
+        menu.setMenuName(className + "管理");
+        menu.setRoutePath("/biz/generated/" + resourceKey);
+        menu.setComponentPath("generated/" + className + "Page");
+        menu.setPermissionMode(permissionPrefix + ":list");
+        menu.setIcon("code");
+        menu.setSortNo(90);
         RecordResponse createdMenu = adminPlatformService.createMenu(menu);
         String menuId = String.valueOf(createdMenu.get("id"));
         syncButton(menuId, className + "新增", permissionPrefix + ":add", 1);
@@ -133,13 +133,13 @@ public class CodegenService {
     }
 
     private void syncButton(String parentId, String name, String permission, int sortNo) {
-        Map<String, Object> button = new LinkedHashMap<>();
-        button.put("parentId", parentId);
-        button.put("menuCode", permission);
-        button.put("type", "BUTTON");
-        button.put("name", name);
-        button.put("permission", permission);
-        button.put("sortNo", sortNo);
+        PlatformMenuRequest button = new PlatformMenuRequest();
+        button.setParentId(parentId);
+        button.setMenuCode(permission);
+        button.setMenuType("BUTTON");
+        button.setMenuName(name);
+        button.setPermissionMode(permission);
+        button.setSortNo(sortNo);
         adminPlatformService.createMenu(button);
     }
 

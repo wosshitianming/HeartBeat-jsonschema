@@ -1,17 +1,17 @@
 package top.kx.heartbeat.application.platform.port;
 
 import top.kx.heartbeat.application.common.model.DomainRecord;
+import top.kx.heartbeat.application.platform.request.PlatformConfigurationRequest;
 
 import java.util.List;
-import java.util.Map;
 
 public interface PlatformConfigRepository {
 
     List<DomainRecord> listConfigurations();
 
-    DomainRecord createConfiguration(Map<String, Object> command);
+    DomainRecord createConfiguration(PlatformConfigurationRequest request);
 
-    DomainRecord updateConfiguration(String id, Map<String, Object> command);
+    DomainRecord updateConfiguration(String id, PlatformConfigurationRequest request);
 
     void deleteConfiguration(String id);
 
