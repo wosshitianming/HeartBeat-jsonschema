@@ -1,3 +1,4 @@
+// 注释：声明当前文件所属的包路径。
 package top.kx.heartbeat.infrastructure.persistence.entity.sys;
 
 import java.util.Date;
@@ -9,6 +10,10 @@ import java.util.Date;
  *
  * @mbg.generated do_not_delete_during_merge
  */
+
+/**
+ * 注释：当前类用于承载对应业务逻辑。
+ */
 public class SysLoginLogDO {
     /**
      * Database Column Remarks:
@@ -19,6 +24,7 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    // 注释：声明当前成员或方法。
     private Long id;
 
     /**
@@ -30,6 +36,7 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    // 注释：声明当前成员或方法。
     private Long tenantId;
 
     /**
@@ -41,6 +48,7 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    // 注释：声明当前成员或方法。
     private String traceId;
 
     /**
@@ -52,6 +60,7 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    // 注释：声明当前成员或方法。
     private Long userId;
 
     /**
@@ -63,6 +72,7 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    // 注释：声明当前成员或方法。
     private String username;
 
     /**
@@ -74,6 +84,7 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    // 注释：声明当前成员或方法。
     private String loginType;
 
     /**
@@ -85,6 +96,7 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    // 注释：声明当前成员或方法。
     private String loginIp;
 
     /**
@@ -96,6 +108,7 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    // 注释：声明当前成员或方法。
     private String userAgent;
 
     /**
@@ -107,6 +120,7 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    // 注释：声明当前成员或方法。
     private String resultStatus;
 
     /**
@@ -118,6 +132,7 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    // 注释：声明当前成员或方法。
     private String failureReason;
 
     /**
@@ -129,6 +144,7 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    // 注释：声明当前成员或方法。
     private Date loggedAt;
 
     /**
@@ -140,6 +156,7 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    // 注释：声明当前成员或方法。
     private Date createTime;
 
     /**
@@ -151,6 +168,7 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    // 注释：声明当前成员或方法。
     private Date updateTime;
 
     /**
@@ -162,6 +180,7 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    // 注释：声明当前成员或方法。
     private Long createBy;
 
     /**
@@ -173,6 +192,7 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    // 注释：声明当前成员或方法。
     private Long updateBy;
 
     /**
@@ -183,8 +203,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public Long getId() {
+        // 注释：返回当前处理结果。
         return id;
+        // 注释：结束当前代码块。
     }
 
     /**
@@ -195,8 +220,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public void setId(Long id) {
+        // 注释：设置或计算当前变量值。
         this.id = id;
+        // 注释：结束当前代码块。
     }
 
     /**
@@ -207,8 +237,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public Long getTenantId() {
+        // 注释：返回当前处理结果。
         return tenantId;
+        // 注释：结束当前代码块。
     }
 
     /**
@@ -219,8 +254,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public void setTenantId(Long tenantId) {
+        // 注释：设置或计算当前变量值。
         this.tenantId = tenantId;
+        // 注释：结束当前代码块。
     }
 
     /**
@@ -231,8 +271,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public String getTraceId() {
+        // 注释：返回当前处理结果。
         return traceId;
+        // 注释：结束当前代码块。
     }
 
     /**
@@ -243,8 +288,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public void setTraceId(String traceId) {
+        // 注释：设置或计算当前变量值。
         this.traceId = traceId == null ? null : traceId.trim();
+        // 注释：结束当前代码块。
     }
 
     /**
@@ -255,8 +305,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public Long getUserId() {
+        // 注释：返回当前处理结果。
         return userId;
+        // 注释：结束当前代码块。
     }
 
     /**
@@ -267,8 +322,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public void setUserId(Long userId) {
+        // 注释：设置或计算当前变量值。
         this.userId = userId;
+        // 注释：结束当前代码块。
     }
 
     /**
@@ -279,8 +339,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public String getUsername() {
+        // 注释：返回当前处理结果。
         return username;
+        // 注释：结束当前代码块。
     }
 
     /**
@@ -291,8 +356,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public void setUsername(String username) {
+        // 注释：设置或计算当前变量值。
         this.username = username == null ? null : username.trim();
+        // 注释：结束当前代码块。
     }
 
     /**
@@ -303,8 +373,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public String getLoginType() {
+        // 注释：返回当前处理结果。
         return loginType;
+        // 注释：结束当前代码块。
     }
 
     /**
@@ -315,8 +390,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public void setLoginType(String loginType) {
+        // 注释：设置或计算当前变量值。
         this.loginType = loginType == null ? null : loginType.trim();
+        // 注释：结束当前代码块。
     }
 
     /**
@@ -327,8 +407,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public String getLoginIp() {
+        // 注释：返回当前处理结果。
         return loginIp;
+        // 注释：结束当前代码块。
     }
 
     /**
@@ -339,8 +424,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public void setLoginIp(String loginIp) {
+        // 注释：设置或计算当前变量值。
         this.loginIp = loginIp == null ? null : loginIp.trim();
+        // 注释：结束当前代码块。
     }
 
     /**
@@ -351,8 +441,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public String getUserAgent() {
+        // 注释：返回当前处理结果。
         return userAgent;
+        // 注释：结束当前代码块。
     }
 
     /**
@@ -363,8 +458,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public void setUserAgent(String userAgent) {
+        // 注释：设置或计算当前变量值。
         this.userAgent = userAgent == null ? null : userAgent.trim();
+        // 注释：结束当前代码块。
     }
 
     /**
@@ -375,8 +475,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public String getResultStatus() {
+        // 注释：返回当前处理结果。
         return resultStatus;
+        // 注释：结束当前代码块。
     }
 
     /**
@@ -387,8 +492,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public void setResultStatus(String resultStatus) {
+        // 注释：设置或计算当前变量值。
         this.resultStatus = resultStatus == null ? null : resultStatus.trim();
+        // 注释：结束当前代码块。
     }
 
     /**
@@ -399,8 +509,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public String getFailureReason() {
+        // 注释：返回当前处理结果。
         return failureReason;
+        // 注释：结束当前代码块。
     }
 
     /**
@@ -411,8 +526,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public void setFailureReason(String failureReason) {
+        // 注释：设置或计算当前变量值。
         this.failureReason = failureReason == null ? null : failureReason.trim();
+        // 注释：结束当前代码块。
     }
 
     /**
@@ -423,8 +543,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public Date getLoggedAt() {
+        // 注释：返回当前处理结果。
         return loggedAt;
+        // 注释：结束当前代码块。
     }
 
     /**
@@ -435,8 +560,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public void setLoggedAt(Date loggedAt) {
+        // 注释：设置或计算当前变量值。
         this.loggedAt = loggedAt;
+        // 注释：结束当前代码块。
     }
 
     /**
@@ -447,8 +577,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public Date getCreateTime() {
+        // 注释：返回当前处理结果。
         return createTime;
+        // 注释：结束当前代码块。
     }
 
     /**
@@ -459,8 +594,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public void setCreateTime(Date createTime) {
+        // 注释：设置或计算当前变量值。
         this.createTime = createTime;
+        // 注释：结束当前代码块。
     }
 
     /**
@@ -471,8 +611,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public Date getUpdateTime() {
+        // 注释：返回当前处理结果。
         return updateTime;
+        // 注释：结束当前代码块。
     }
 
     /**
@@ -483,8 +628,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public void setUpdateTime(Date updateTime) {
+        // 注释：设置或计算当前变量值。
         this.updateTime = updateTime;
+        // 注释：结束当前代码块。
     }
 
     /**
@@ -495,8 +645,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public Long getCreateBy() {
+        // 注释：返回当前处理结果。
         return createBy;
+        // 注释：结束当前代码块。
     }
 
     /**
@@ -507,8 +662,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public void setCreateBy(Long createBy) {
+        // 注释：设置或计算当前变量值。
         this.createBy = createBy;
+        // 注释：结束当前代码块。
     }
 
     /**
@@ -519,8 +679,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public Long getUpdateBy() {
+        // 注释：返回当前处理结果。
         return updateBy;
+        // 注释：结束当前代码块。
     }
 
     /**
@@ -531,7 +696,13 @@ public class SysLoginLogDO {
      *
      * @mbg.generated
      */
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     public void setUpdateBy(Long updateBy) {
+        // 注释：设置或计算当前变量值。
         this.updateBy = updateBy;
+        // 注释：结束当前代码块。
     }
+// 注释：结束当前代码块。
 }

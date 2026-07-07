@@ -1,3 +1,4 @@
+// 注释：声明当前文件所属的包路径。
 package top.kx.heartbeat.infrastructure.mp.repository;
 
 import org.apache.commons.lang3.StringUtils;
@@ -17,118 +18,245 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * 注释：当前类用于承载对应业务逻辑。
+ */
+// 注释：声明当前元素使用的注解配置。
 @Repository
 public class MpAutoReplyRepositoryImpl implements MpAutoReplyRepository {
 
+    // 注释：声明当前元素使用的注解配置。
     @Resource
+    // 注释：声明当前成员或方法。
     private MpAutoReplyDOMapper autoReplyDOMapper;
 
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
+    // 注释：声明当前元素使用的注解配置。
     @Override
     public List<DomainRecord> listAutoReplies(String accountId) {
+        // 注释：设置或计算当前变量值。
         MpAutoReplyDOExample example = new MpAutoReplyDOExample();
+        // 注释：执行当前代码行。
         example.createCriteria().andTenantIdEqualTo(tenantId()).andAccountIdEqualTo(longValue(accountId, 0L));
+        // 注释：执行当前代码行。
         example.setOrderByClause("sort_no ASC, id ASC");
+        // 注释：返回当前处理结果。
         return autoReplyDOMapper.selectByExampleWithBLOBs(example)
+                // 注释：继续当前链式调用。
                 .stream()
+                // 注释：继续当前链式调用。
                 .map(this::toAutoReplyRecord)
+                // 注释：继续当前链式调用。
                 .collect(Collectors.toList());
+        // 注释：结束当前代码块。
     }
 
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
+    // 注释：声明当前元素使用的注解配置。
     @Override
     public DomainRecord saveAutoReply(MpAutoReplyRequest request) {
+        // 注释：设置或计算当前变量值。
         Date now = new Date();
+        // 注释：设置或计算当前变量值。
         MpAutoReplyDO record = findAutoReplyById(longValue(request.getId(), -1L));
+        // 注释：判断当前业务条件。
         if (record == null) {
+            // 注释：设置或计算当前变量值。
             record = new MpAutoReplyDO();
+            // 注释：执行当前代码行。
             record.setTenantId(tenantId());
+            // 注释：执行当前代码行。
             record.setCreateTime(now);
+            // 注释：执行当前代码行。
             applyAutoReply(record, request);
+            // 注释：执行当前代码行。
             record.setUpdateTime(now);
+            // 注释：执行当前代码行。
             autoReplyDOMapper.insertSelective(record);
+            // 注释：返回当前处理结果。
             return toAutoReplyRecord(record);
+            // 注释：结束当前代码块。
         }
+        // 注释：执行当前代码行。
         applyAutoReply(record, request);
+        // 注释：执行当前代码行。
         record.setUpdateTime(now);
+        // 注释：执行当前代码行。
         autoReplyDOMapper.updateByPrimaryKeySelective(record);
+        // 注释：返回当前处理结果。
         return toAutoReplyRecord(record);
+        // 注释：结束当前代码块。
     }
 
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     private void applyAutoReply(MpAutoReplyDO record, MpAutoReplyRequest request) {
+        // 注释：执行当前代码行。
         record.setAccountId(longValue(defaultText(request.getAccountId(), stringValue(record.getAccountId())), 0L));
+        // 注释：执行当前代码行。
         record.setKeyword(defaultText(request.getKeyword(), defaultText(record.getKeyword(), "")));
+        // 注释：执行当前代码行。
         record.setMatchType(defaultText(request.getMatchType(), defaultText(record.getMatchType(), "EXACT")));
+        // 注释：执行当前代码行。
         record.setReplyType(defaultText(request.getReplyType(), defaultText(record.getReplyType(), "TEXT")));
+        // 注释：设置或计算当前变量值。
         record.setSortNo(request.getSortNo() == null ? intValue(record.getSortNo(), 0) : request.getSortNo());
+        // 注释：执行当前代码行。
         record.setStatus(defaultText(request.getStatus(), defaultText(record.getStatus(), "ACTIVE")));
+        // 注释：执行当前代码行。
         record.setReplyContent(textValue(request.getReplyContent(), record.getReplyContent()));
+        // 注释：结束当前代码块。
     }
 
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     private MpAutoReplyDO findAutoReplyById(long id) {
+        // 注释：判断当前业务条件。
         if (id <= 0) {
+            // 注释：返回当前处理结果。
             return null;
+            // 注释：结束当前代码块。
         }
+        // 注释：设置或计算当前变量值。
         MpAutoReplyDO record = autoReplyDOMapper.selectByPrimaryKey(id);
+        // 注释：返回当前处理结果。
         return record != null && tenantId().equals(record.getTenantId()) ? record : null;
+        // 注释：结束当前代码块。
     }
 
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     private DomainRecord toAutoReplyRecord(MpAutoReplyDO entity) {
+        // 注释：设置或计算当前变量值。
         Map<String, Object> row = new LinkedHashMap<>();
+        // 注释：执行当前代码行。
         row.put("id", stringValue(entity.getId()));
+        // 注释：执行当前代码行。
         row.put("tenantId", stringValue(entity.getTenantId()));
+        // 注释：执行当前代码行。
         row.put("accountId", stringValue(entity.getAccountId()));
+        // 注释：执行当前代码行。
         row.put("keyword", entity.getKeyword());
+        // 注释：执行当前代码行。
         row.put("matchType", entity.getMatchType());
+        // 注释：执行当前代码行。
         row.put("replyType", entity.getReplyType());
+        // 注释：执行当前代码行。
         row.put("sortNo", entity.getSortNo());
+        // 注释：执行当前代码行。
         row.put("status", entity.getStatus());
+        // 注释：执行当前代码行。
         row.put("replyContent", entity.getReplyContent());
+        // 注释：执行当前代码行。
         row.put("createTime", stringValue(entity.getCreateTime()));
+        // 注释：执行当前代码行。
         row.put("updateTime", stringValue(entity.getUpdateTime()));
+        // 注释：返回当前处理结果。
         return DomainRecord.of(row);
+        // 注释：结束当前代码块。
     }
 
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     private String textValue(Object value, String defaultValue) {
+        // 注释：判断当前业务条件。
         if (value == null) {
+            // 注释：返回当前处理结果。
             return defaultValue == null ? "" : defaultValue;
+            // 注释：结束当前代码块。
         }
+        // 注释：判断当前业务条件。
         if (value instanceof String) {
+            // 注释：返回当前处理结果。
             return (String) value;
+            // 注释：结束当前代码块。
         }
+        // 注释：返回当前处理结果。
         return String.valueOf(value);
+        // 注释：结束当前代码块。
     }
 
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     private String defaultText(String value, String defaultValue) {
+        // 注释：返回当前处理结果。
         return StringUtils.isBlank(value) ? defaultValue : value.trim();
+        // 注释：结束当前代码块。
     }
 
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     private int intValue(Object raw, int defaultValue) {
+        // 注释：判断当前业务条件。
         if (raw instanceof Number) {
+            // 注释：返回当前处理结果。
             return ((Number) raw).intValue();
+            // 注释：结束当前代码块。
         }
+        // 注释：开始执行可能抛出异常的逻辑。
         try {
+            // 注释：返回当前处理结果。
             return raw == null ? defaultValue : Integer.parseInt(String.valueOf(raw).trim());
+            // 注释：捕获并处理当前异常。
         } catch (NumberFormatException ignored) {
+            // 注释：返回当前处理结果。
             return defaultValue;
+            // 注释：结束当前代码块。
         }
+        // 注释：结束当前代码块。
     }
 
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     private long longValue(Object raw, long defaultValue) {
+        // 注释：判断当前业务条件。
         if (raw instanceof Number) {
+            // 注释：返回当前处理结果。
             return ((Number) raw).longValue();
+            // 注释：结束当前代码块。
         }
+        // 注释：开始执行可能抛出异常的逻辑。
         try {
+            // 注释：返回当前处理结果。
             return raw == null ? defaultValue : Long.parseLong(String.valueOf(raw).trim());
+            // 注释：捕获并处理当前异常。
         } catch (NumberFormatException ignored) {
+            // 注释：返回当前处理结果。
             return defaultValue;
+            // 注释：结束当前代码块。
         }
+        // 注释：结束当前代码块。
     }
 
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     private String stringValue(Object value) {
+        // 注释：返回当前处理结果。
         return value == null ? "" : String.valueOf(value).trim();
+        // 注释：结束当前代码块。
     }
 
+    /**
+     * 注释：当前方法用于执行对应业务处理。
+     */
     private Long tenantId() {
+        // 注释：设置或计算当前变量值。
         Long tenantId = TenantContext.getTenantId();
+        // 注释：返回当前处理结果。
         return tenantId == null ? 1L : tenantId;
+        // 注释：结束当前代码块。
     }
+// 注释：结束当前代码块。
 }
