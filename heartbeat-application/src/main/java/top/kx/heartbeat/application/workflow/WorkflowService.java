@@ -84,10 +84,14 @@ public class WorkflowService {
      */
     @Transactional
     public RecordResponse deployDefinition(String id) {
+        // 从仓储或 Mapper 读取业务数据，为后续处理准备上下文。
         Map<String, Object> definition = definitionRepository.getDefinition(id).toMap();
+        // 校验关键文本参数，防止无效输入继续向后流转。
         if (StringUtils.isEmpty(stringValue(definition.get("definitionKey")))) {
+            // 对非法业务状态立即失败，避免错误继续扩散。
             throw new IllegalArgumentException("Workflow definition key cannot be blank");
         }
+        // 返回已经完成封装的业务结果。
         return RecordResponse.from(definitionRepository.deployDefinition(id));
     }
 
@@ -169,25 +173,40 @@ public class WorkflowService {
      * @param request 工作流请求参数。
      */
     private void normalizeDefinition(WorkflowDefinitionRequest request) {
+        // 先处理空值或缺省场景，避免后续业务流程出现空指针。
         if (request == null || StringUtils.isBlank(request.getBpmnXml())) {
+            // 返回已经完成封装的业务结果。
             return;
         }
+        // 进入可能失败的处理区间，后续异常会统一转换为业务可理解的结果。
         try {
+            // 解析流程定义 XML，提取后续页面和任务需要的结构信息。
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             factory.setNamespaceAware(false);
+            // 解析流程定义 XML，提取后续页面和任务需要的结构信息。
             Document document = factory.newDocumentBuilder()
+                    // 按签名算法处理字节数据，保证验签结果可重复计算。
                     .parse(new ByteArrayInputStream(request.getBpmnXml().getBytes(StandardCharsets.UTF_8)));
+            // 解析流程定义 XML，提取后续页面和任务需要的结构信息。
             Element process = firstElement(document, "process");
+            // 先处理空值或缺省场景，避免后续业务流程出现空指针。
             if (process != null) {
+                // 校验关键文本参数，防止无效输入继续向后流转。
                 if (StringUtils.isBlank(request.getDefinitionKey())) {
+                    // 设置持久化字段，保证数据库记录具备完整业务属性。
                     request.setDefinitionKey(process.getAttribute("id"));
                 }
+                // 校验关键文本参数，防止无效输入继续向后流转。
                 if (StringUtils.isBlank(request.getName())) {
+                    // 设置持久化字段，保证数据库记录具备完整业务属性。
                     request.setName(process.getAttribute("name"));
                 }
             }
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             request.setFormSchema(formSchema(document, request.getBpmnXml()));
         } catch (Exception ex) {
+            // 对非法业务状态立即失败，避免错误继续扩散。
             throw new IllegalArgumentException("BPMN XML parse failed", ex);
         }
     }
@@ -200,10 +219,15 @@ public class WorkflowService {
      * @return 处理后的业务结果。
      */
     private Map<String, Object> formSchema(Document document, String bpmnXml) {
+        // 创建有序字段容器，保证响应或领域记录的字段顺序稳定。
         Map<String, Object> formSchema = new LinkedHashMap<>();
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         formSchema.put("source", "BPMN");
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         formSchema.put("bpmnXml", bpmnXml);
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         formSchema.put("userTasks", userTasks(document));
+        // 返回已经完成封装的业务结果。
         return formSchema;
     }
 
@@ -214,21 +238,36 @@ public class WorkflowService {
      * @return 处理后的业务结果。
      */
     private List<Map<String, Object>> userTasks(Document document) {
+        // 创建结果集合，承接后续逐项组装的数据。
         List<Map<String, Object>> userTasks = new ArrayList<>();
+        // 解析流程定义 XML，提取后续页面和任务需要的结构信息。
         NodeList tasks = document.getElementsByTagName("userTask");
+        // 逐条遍历集合数据，完成业务结果组装或状态处理。
         for (int index = 0; index < tasks.getLength(); index++) {
+            // 解析流程定义 XML，提取后续页面和任务需要的结构信息。
             Element task = (Element) tasks.item(index);
+            // 创建有序字段容器，保证响应或领域记录的字段顺序稳定。
             Map<String, Object> item = new LinkedHashMap<>();
+            // 写入对外字段，保持调用方依赖的响应结构稳定。
             item.put("id", task.getAttribute("id"));
+            // 写入对外字段，保持调用方依赖的响应结构稳定。
             item.put("name", task.getAttribute("name"));
+            // 写入对外字段，保持调用方依赖的响应结构稳定。
             item.put("assigneeId", firstNonBlank(
+                    // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                     task.getAttribute("heartbeat:assignee"),
+                    // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                     task.getAttribute("flowable:assignee"),
+                    // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                     task.getAttribute("activiti:assignee"),
+                    // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                     task.getAttribute("assignee")
+                    // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
             ));
+            // 加入当前处理结果，供后续批量返回或继续组装。
             userTasks.add(item);
         }
+        // 返回已经完成封装的业务结果。
         return userTasks;
     }
 
@@ -251,11 +290,15 @@ public class WorkflowService {
      * @return 处理后的业务结果。
      */
     private String firstNonBlank(String... values) {
+        // 逐条遍历集合数据，完成业务结果组装或状态处理。
         for (String value : values) {
+            // 根据当前业务条件选择对应处理路径。
             if (StringUtils.isNotBlank(value)) {
+                // 返回已经完成封装的业务结果。
                 return value.trim();
             }
         }
+        // 返回已经完成封装的业务结果。
         return "";
     }
 

@@ -100,19 +100,30 @@ public class ReportService {
      * @return 处理后的业务结果。
      */
     public byte[] exportCsv(String datasetId, Map<String, Object> params, Integer limit) {
+        // 计算当前步骤所需的中间值，供后续业务判断使用。
         List<Map<String, Object>> rows = queryRows(datasetId, params, limit);
+        // 计算当前步骤所需的中间值，供后续业务判断使用。
         StringBuilder csv = new StringBuilder();
+        // 根据当前业务条件选择对应处理路径。
         if (CollectionUtils.isNotEmpty(rows)) {
+            // 创建结果集合，承接后续逐项组装的数据。
             List<String> headers = new ArrayList<>(rows.get(0).keySet());
+            // 追加当前片段，逐步拼接最终结果。
             csv.append(joinCsv(headers)).append('\n');
+            // 逐条遍历集合数据，完成业务结果组装或状态处理。
             for (Map<String, Object> row : rows) {
+                // 创建结果集合，承接后续逐项组装的数据。
                 List<String> values = new ArrayList<>();
+                // 逐条遍历集合数据，完成业务结果组装或状态处理。
                 for (String header : headers) {
+                    // 规范化文本值，降低空字符串和空对象带来的分支复杂度。
                     values.add(row.get(header) == null ? "" : String.valueOf(row.get(header)));
                 }
+                // 追加当前片段，逐步拼接最终结果。
                 csv.append(joinCsv(values)).append('\n');
             }
         }
+        // 返回已经完成封装的业务结果。
         return csv.toString().getBytes(StandardCharsets.UTF_8);
     }
 

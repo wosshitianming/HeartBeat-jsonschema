@@ -36,45 +36,74 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     public User save(User user) {
+        // 计算当前步骤所需的中间值，供后续业务判断使用。
         Long tenantId = tenantId();
+        // 返回已经完成封装的业务结果。
         return TenantContext.runAsPlatform(() -> {
+            // 调用 Mapper 完成数据库读写，保持持久化状态与业务动作一致。
             SysUserDO entity = user.getId() == null ? null : selectById(tenantId, user.getId().value());
+            // 先处理空值或缺省场景，避免后续业务流程出现空指针。
             if (entity == null) {
+                // 创建数据库记录对象，承载即将写入的业务字段。
                 entity = new SysUserDO();
+                // 设置持久化字段，保证数据库记录具备完整业务属性。
                 entity.setTenantId(tenantId);
+                // 设置持久化字段，保证数据库记录具备完整业务属性。
                 entity.setUsername(user.getUsername());
+                // 设置持久化字段，保证数据库记录具备完整业务属性。
                 entity.setNickname(user.getUsername());
+                // 设置持久化字段，保证数据库记录具备完整业务属性。
                 entity.setPasswordHash(passwordEncoder.encode("disabled-" + System.nanoTime()));
+                // 设置持久化字段，保证数据库记录具备完整业务属性。
                 entity.setPasswordAlgo("BCRYPT");
+                // 设置持久化字段，保证数据库记录具备完整业务属性。
                 entity.setPasswordUpdateTime(new Date());
+                // 设置持久化字段，保证数据库记录具备完整业务属性。
                 entity.setUserType("NORMAL");
+                // 设置持久化字段，保证数据库记录具备完整业务属性。
                 entity.setVersion(0);
+                // 设置持久化字段，保证数据库记录具备完整业务属性。
                 entity.setDeleteMarker(0L);
+                // 设置持久化字段，保证数据库记录具备完整业务属性。
                 entity.setCreateTime(user.getCreateTime());
             }
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             entity.setEmail(user.getEmail().value());
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             entity.setStatus(toPersistenceStatus(user.getStatus()));
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             entity.setUpdateTime(user.getUpdateTime());
+            // 先处理空值或缺省场景，避免后续业务流程出现空指针。
             if (entity.getId() == null) {
+                // 将当前业务变更写入持久化层，保持数据状态同步。
                 userMapper.insertSelective(entity);
             } else {
+                // 将当前业务变更写入持久化层，保持数据状态同步。
                 userMapper.updateByPrimaryKeySelective(entity);
             }
+            // 返回已经完成封装的业务结果。
             return convert.toDomain(entity);
+            // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
         });
     }
 
     @Override
     public Optional<User> findById(UserId id) {
+        // 计算当前步骤所需的中间值，供后续业务判断使用。
         Long tenantId = tenantId();
+        // 读取当前租户上下文，确保数据访问始终受租户隔离约束。
         SysUserDO entity = TenantContext.runAsPlatform(() -> selectById(tenantId, id.value()));
+        // 返回已经完成封装的业务结果。
         return Optional.ofNullable(entity).map(convert::toDomain);
     }
 
     @Override
     public Optional<User> findByEmail(Email email) {
+        // 计算当前步骤所需的中间值，供后续业务判断使用。
         Long tenantId = tenantId();
+        // 读取当前租户上下文，确保数据访问始终受租户隔离约束。
         SysUserDO entity = TenantContext.runAsPlatform(() -> selectByEmail(tenantId, email.value()));
+        // 返回已经完成封装的业务结果。
         return Optional.ofNullable(entity).map(convert::toDomain);
     }
 

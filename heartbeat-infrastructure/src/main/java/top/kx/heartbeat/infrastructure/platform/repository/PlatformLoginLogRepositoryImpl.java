@@ -28,8 +28,11 @@ public class PlatformLoginLogRepositoryImpl implements PlatformLoginLogRepositor
      */
     @Override
     public void recordLogin(String username, String status, String message) {
+        // 创建数据库记录对象，承载即将写入的业务字段。
         SysLoginLogDO row = new SysLoginLogDO();
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setTenantId(tenantId());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setUsername(username);
         //TODO 参数不明
 //        row.setLoginName(username);
@@ -38,7 +41,9 @@ public class PlatformLoginLogRepositoryImpl implements PlatformLoginLogRepositor
 //        row.setMessage(message);
 //        row.setLoginMessage(message);
         row.setCreateTime(new Date());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setUpdateTime(new Date());
+        // 将当前业务变更写入持久化层，保持数据状态同步。
         loginLogMapper.insertSelective(row);
     }
 

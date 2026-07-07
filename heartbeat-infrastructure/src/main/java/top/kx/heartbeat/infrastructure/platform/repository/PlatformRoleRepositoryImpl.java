@@ -89,15 +89,25 @@ public class PlatformRoleRepositoryImpl implements PlatformRoleRepository {
      * @return 处理后的业务结果。
      */
     private SysRoleDO roleRow(PlatformRoleRequest request) {
+        // 兜底空请求对象，保证后续字段读取不需要反复判空。
         PlatformRoleRequest safeRequest = request == null ? new PlatformRoleRequest() : request;
+        // 创建数据库记录对象，承载即将写入的业务字段。
         SysRoleDO row = new SysRoleDO();
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setRoleCode(safeRequest.getRoleCode());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setRoleName(safeRequest.getRoleName());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setRoleType(safeRequest.getRoleType());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setDataScope(safeRequest.getDataScope());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setDescription(safeRequest.getDescription());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setSortNo(safeRequest.getSortNo());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setStatus(safeRequest.getStatus());
+        // 返回已经完成封装的业务结果。
         return row;
     }
 
@@ -108,16 +118,25 @@ public class PlatformRoleRepositoryImpl implements PlatformRoleRepository {
      * @param creating 是否为新增写入。
      */
     private void touch(SysRoleDO row, boolean creating) {
+        // 统一生成当前时间，保证本次写入使用同一审计时间。
         Date now = new Date();
+        // 根据当前业务条件选择对应处理路径。
         if (creating) {
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             row.setTenantId(tenantId());
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             row.setCreateTime(now);
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             row.setVersion(0);
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             row.setDeleteMarker(0L);
+            // 先处理空值或缺省场景，避免后续业务流程出现空指针。
             if (row.getStatus() == null) {
+                // 设置持久化字段，保证数据库记录具备完整业务属性。
                 row.setStatus("ENABLED");
             }
         }
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setUpdateTime(now);
     }
 
@@ -128,23 +147,40 @@ public class PlatformRoleRepositoryImpl implements PlatformRoleRepository {
      * @return 处理后的业务结果。
      */
     private DomainRecord record(SysRoleDO row) {
+        // 创建有序字段容器，保证响应或领域记录的字段顺序稳定。
         Map<String, Object> values = new LinkedHashMap<>();
+        // 先处理空值或缺省场景，避免后续业务流程出现空指针。
         if (row == null) {
+            // 返回已经完成封装的业务结果。
             return DomainRecord.of(values);
         }
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("id", row.getId());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("tenantId", row.getTenantId());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("roleCode", row.getRoleCode());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("code", row.getRoleCode());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("roleName", row.getRoleName());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("name", row.getRoleName());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("roleType", row.getRoleType());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("dataScope", row.getDataScope());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("description", row.getDescription());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("sortNo", row.getSortNo());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("status", row.getStatus());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("createTime", row.getCreateTime());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("updateTime", row.getUpdateTime());
+        // 返回已经完成封装的业务结果。
         return DomainRecord.of(values);
     }
 
@@ -165,12 +201,17 @@ public class PlatformRoleRepositoryImpl implements PlatformRoleRepository {
      * @return 处理后的业务结果。
      */
     private Long longValue(Object value) {
+        // 先处理空值或缺省场景，避免后续业务流程出现空指针。
         if (value == null || String.valueOf(value).trim().isEmpty()) {
+            // 返回已经完成封装的业务结果。
             return null;
         }
+        // 进入可能失败的处理区间，后续异常会统一转换为业务可理解的结果。
         try {
+            // 返回已经完成封装的业务结果。
             return Long.parseLong(String.valueOf(value).trim());
         } catch (NumberFormatException ignored) {
+            // 返回已经完成封装的业务结果。
             return null;
         }
     }

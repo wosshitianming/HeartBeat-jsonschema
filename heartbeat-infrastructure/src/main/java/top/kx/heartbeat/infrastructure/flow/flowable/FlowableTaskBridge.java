@@ -34,10 +34,15 @@ public class FlowableTaskBridge {
     public List<RecordResponse> todo(String assignee) {
         // 查询 Flowable 待办任务。
         List<Task> tasks = taskService.createTaskQuery()
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .taskAssignee(assignee)
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .active()
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .orderByTaskCreateTime()
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .desc()
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .list();
         // 创建响应列表。
         List<Map<String, Object>> result = new ArrayList<>();

@@ -61,12 +61,18 @@ public class PlatformUserRepositoryImpl implements PlatformUserRepository {
      */
     @Override
     public Optional<DomainRecord> findUserPreference(String userId, String preferenceKey) {
+        // 计算当前步骤所需的中间值，供后续业务判断使用。
         Long id = longValue(userId);
+        // 先处理空值或缺省场景，避免后续业务流程出现空指针。
         if (id == null) {
+            // 返回已经完成封装的业务结果。
             return Optional.empty();
         }
+        // 创建查询条件对象，后续通过 Criteria 精确约束查询范围。
         SysUserPreferenceDOExample example = new SysUserPreferenceDOExample();
+        // 组装查询条件，确保 Mapper 只读取当前业务需要的数据。
         example.createCriteria().andUserIdEqualTo(id).andPreferenceKeyEqualTo(preferenceKey);
+        // 返回已经完成封装的业务结果。
         return first(userPreferenceMapper.selectByExampleWithBLOBs(example)).map(this::recordPreference);
     }
 
@@ -80,25 +86,42 @@ public class PlatformUserRepositoryImpl implements PlatformUserRepository {
      */
     @Override
     public DomainRecord saveUserPreference(String userId, String preferenceKey, String preferenceValue) {
+        // 计算当前步骤所需的中间值，供后续业务判断使用。
         Long id = longValue(userId);
+        // 先处理空值或缺省场景，避免后续业务流程出现空指针。
         if (id == null) {
+            // 对非法业务状态立即失败，避免错误继续扩散。
             throw new IllegalArgumentException("Invalid user id: " + userId);
         }
+        // 创建查询条件对象，后续通过 Criteria 精确约束查询范围。
         SysUserPreferenceDOExample example = new SysUserPreferenceDOExample();
+        // 组装查询条件，确保 Mapper 只读取当前业务需要的数据。
         example.createCriteria().andUserIdEqualTo(id).andPreferenceKeyEqualTo(preferenceKey);
+        // 从仓储或 Mapper 读取业务数据，为后续处理准备上下文。
         Optional<SysUserPreferenceDO> existing = first(userPreferenceMapper.selectByExampleWithBLOBs(example));
+        // 用 Optional 表达可缺省结果，让调用方显式处理不存在场景。
         SysUserPreferenceDO row = existing.orElseGet(SysUserPreferenceDO::new);
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setTenantId(tenantId());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setUserId(id);
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setPreferenceKey(preferenceKey);
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setPreferenceValue(preferenceValue);
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setValueType("STRING");
+        // 补齐审计字段和默认值，保证新增与更新写入口径一致。
         touch(row, !existing.isPresent());
+        // 根据历史记录是否存在，选择更新或新增处理路径。
         if (existing.isPresent()) {
+            // 将当前业务变更写入持久化层，保持数据状态同步。
             userPreferenceMapper.updateByPrimaryKeySelective(row);
         } else {
+            // 将当前业务变更写入持久化层，保持数据状态同步。
             userPreferenceMapper.insertSelective(row);
         }
+        // 返回已经完成封装的业务结果。
         return recordPreference(row);
     }
 
@@ -177,21 +200,37 @@ public class PlatformUserRepositoryImpl implements PlatformUserRepository {
      * @return 处理后的业务结果。
      */
     private SysUserDO userRow(PlatformUserRequest request) {
+        // 兜底空请求对象，保证后续字段读取不需要反复判空。
         PlatformUserRequest safeRequest = request == null ? new PlatformUserRequest() : request;
+        // 创建数据库记录对象，承载即将写入的业务字段。
         SysUserDO row = new SysUserDO();
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setDeptId(longValue(safeRequest.getDeptId()));
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setUsername(safeRequest.getUsername());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setNickname(safeRequest.getNickname());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setRealName(safeRequest.getRealName());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setEmail(safeRequest.getEmail());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setPhone(safeRequest.getPhone());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setAvatarUrl(safeRequest.getAvatarUrl());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setPasswordHash(safeRequest.getPasswordHash());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setPasswordAlgo(safeRequest.getPasswordAlgo());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setPasswordUpdateTime(safeRequest.getPasswordUpdateTime());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setGender(safeRequest.getGender());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setUserType(safeRequest.getUserType());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setStatus(safeRequest.getStatus());
+        // 返回已经完成封装的业务结果。
         return row;
     }
 
@@ -202,16 +241,25 @@ public class PlatformUserRepositoryImpl implements PlatformUserRepository {
      * @param creating 是否为新增写入。
      */
     private void touch(SysUserDO row, boolean creating) {
+        // 统一生成当前时间，保证本次写入使用同一审计时间。
         Date now = new Date();
+        // 根据当前业务条件选择对应处理路径。
         if (creating) {
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             row.setTenantId(tenantId());
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             row.setCreateTime(now);
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             row.setVersion(0);
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             row.setDeleteMarker(0L);
+            // 先处理空值或缺省场景，避免后续业务流程出现空指针。
             if (row.getStatus() == null) {
+                // 设置持久化字段，保证数据库记录具备完整业务属性。
                 row.setStatus("ENABLED");
             }
         }
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setUpdateTime(now);
     }
 
@@ -222,11 +270,16 @@ public class PlatformUserRepositoryImpl implements PlatformUserRepository {
      * @param creating 是否为新增写入。
      */
     private void touch(SysUserPreferenceDO row, boolean creating) {
+        // 统一生成当前时间，保证本次写入使用同一审计时间。
         Date now = new Date();
+        // 根据当前业务条件选择对应处理路径。
         if (creating) {
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             row.setCreateTime(now);
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             row.setVersion(0);
         }
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setUpdateTime(now);
     }
 
@@ -237,30 +290,54 @@ public class PlatformUserRepositoryImpl implements PlatformUserRepository {
      * @return 处理后的业务结果。
      */
     private DomainRecord record(SysUserDO row) {
+        // 创建有序字段容器，保证响应或领域记录的字段顺序稳定。
         Map<String, Object> values = new LinkedHashMap<>();
+        // 先处理空值或缺省场景，避免后续业务流程出现空指针。
         if (row == null) {
+            // 返回已经完成封装的业务结果。
             return DomainRecord.of(values);
         }
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("id", row.getId());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("tenantId", row.getTenantId());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("deptId", row.getDeptId());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("username", row.getUsername());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("nickname", row.getNickname());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("realName", row.getRealName());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("email", row.getEmail());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("phone", row.getPhone());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("avatarUrl", row.getAvatarUrl());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("avatar", row.getAvatarUrl());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("passwordHash", row.getPasswordHash());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("passwordAlgo", row.getPasswordAlgo());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("passwordUpdateTime", row.getPasswordUpdateTime());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("gender", row.getGender());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("userType", row.getUserType());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("status", row.getStatus());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("lastLoginAt", row.getLastLoginAt());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("lastLoginIp", row.getLastLoginIp());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("createTime", row.getCreateTime());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("updateTime", row.getUpdateTime());
+        // 返回已经完成封装的业务结果。
         return DomainRecord.of(values);
     }
 
@@ -271,18 +348,30 @@ public class PlatformUserRepositoryImpl implements PlatformUserRepository {
      * @return 处理后的业务结果。
      */
     private DomainRecord recordPreference(SysUserPreferenceDO row) {
+        // 创建有序字段容器，保证响应或领域记录的字段顺序稳定。
         Map<String, Object> values = new LinkedHashMap<>();
+        // 先处理空值或缺省场景，避免后续业务流程出现空指针。
         if (row == null) {
+            // 返回已经完成封装的业务结果。
             return DomainRecord.of(values);
         }
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("id", row.getId());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("tenantId", row.getTenantId());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("userId", row.getUserId());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("preferenceKey", row.getPreferenceKey());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("preferenceValue", row.getPreferenceValue());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("valueType", row.getValueType());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("createTime", row.getCreateTime());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("updateTime", row.getUpdateTime());
+        // 返回已经完成封装的业务结果。
         return DomainRecord.of(values);
     }
 
@@ -313,12 +402,17 @@ public class PlatformUserRepositoryImpl implements PlatformUserRepository {
      * @return 处理后的业务结果。
      */
     private Long longValue(Object value) {
+        // 先处理空值或缺省场景，避免后续业务流程出现空指针。
         if (value == null || String.valueOf(value).trim().isEmpty()) {
+            // 返回已经完成封装的业务结果。
             return null;
         }
+        // 进入可能失败的处理区间，后续异常会统一转换为业务可理解的结果。
         try {
+            // 返回已经完成封装的业务结果。
             return Long.parseLong(String.valueOf(value).trim());
         } catch (NumberFormatException ignored) {
+            // 返回已经完成封装的业务结果。
             return null;
         }
     }

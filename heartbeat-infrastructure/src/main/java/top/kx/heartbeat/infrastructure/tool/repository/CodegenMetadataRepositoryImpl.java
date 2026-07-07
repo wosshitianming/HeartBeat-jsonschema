@@ -59,14 +59,19 @@ public class CodegenMetadataRepositoryImpl implements CodegenMetadataRepository 
         SysGenTableDOExample example = new SysGenTableDOExample();
         // 限定当前租户下未逻辑删除的表配置。
         example.createCriteria()
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .andTenantIdEqualTo(currentTenantId())
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .andDeleteMarkerEqualTo(0L);
         // 按主键倒序返回最新配置。
         example.setOrderByClause("id DESC");
         // 查询表配置并转换为领域模型列表。
         return tableMapper.selectByExampleWithBLOBs(example)
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .stream()
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .map(this::toDomainTable)
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .collect(Collectors.toList());
     }
 
@@ -124,7 +129,9 @@ public class CodegenMetadataRepositoryImpl implements CodegenMetadataRepository 
         SysGenColumnDOExample example = new SysGenColumnDOExample();
         // 限定当前租户下指定表配置的字段。
         example.createCriteria()
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .andTenantIdEqualTo(currentTenantId())
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .andGenTableIdEqualTo(tableId);
         // 删除旧的字段配置。
         columnMapper.deleteByExample(example);
@@ -146,7 +153,9 @@ public class CodegenMetadataRepositoryImpl implements CodegenMetadataRepository 
         SysGenTableDOExample example = new SysGenTableDOExample();
         // 限定当前租户下未逻辑删除的表配置。
         SysGenTableDOExample.Criteria criteria = example.createCriteria()
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .andTenantIdEqualTo(currentTenantId())
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .andDeleteMarkerEqualTo(0L);
         // 优先按主键定位已有表配置。
         if (table.getId() != null) {
@@ -171,16 +180,27 @@ public class CodegenMetadataRepositoryImpl implements CodegenMetadataRepository 
     private GeneratedTable toDomainTable(SysGenTableDO row) {
         // 构建领域表配置对象。
         return GeneratedTable.builder()
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .id(row.getId())
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .tenantId(row.getTenantId())
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .tableName(row.getTableName())
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .tableComment(row.getTableComment())
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .className(row.getClassName())
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .moduleName(row.getModuleName())
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .basePackage(row.getBasePackage())
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .resourceKey(row.getResourceKey())
+                // 处理 JSON 序列化或反序列化，完成对象与文本之间的转换。
                 .optionsJson(row.getOptionsJson())
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .status(row.getStatus())
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .build();
     }
 

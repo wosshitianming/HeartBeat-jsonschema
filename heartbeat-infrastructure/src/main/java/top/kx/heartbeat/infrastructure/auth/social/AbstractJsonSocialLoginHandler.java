@@ -47,16 +47,26 @@ abstract class AbstractJsonSocialLoginHandler {
     }
 
     protected Map<String, Object> postForm(String url, Map<String, String> request) {
+        // 创建当前流程需要的临时对象，承载后续处理数据。
         HttpHeaders headers = new HttpHeaders();
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        // 计算当前步骤所需的中间值，供后续业务判断使用。
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
         request.forEach(form::add);
+        // 计算当前分支的中间结果，供后续判断或组装使用。
         ResponseEntity<Map> response = restTemplate.exchange(
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 url,
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 HttpMethod.POST,
+                // 创建当前流程需要的临时对象，承载后续处理数据。
                 new HttpEntity<>(form, headers),
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 Map.class
         );
+        // 返回已经完成封装的业务结果。
         return body(response);
     }
 

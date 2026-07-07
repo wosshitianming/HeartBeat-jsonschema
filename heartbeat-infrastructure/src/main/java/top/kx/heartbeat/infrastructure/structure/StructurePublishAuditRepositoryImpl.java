@@ -40,18 +40,31 @@ public class StructurePublishAuditRepositoryImpl implements StructurePublishAudi
      */
     @Override
     public void record(long definitionId, int versionNo, long operatorId, String status, String summary) {
+        // 创建数据库记录对象，承载即将写入的业务字段。
         StructurePublishAuditDO row = new StructurePublishAuditDO();
+        // 统一生成当前时间，保证本次写入使用同一审计时间。
         Date now = new Date();
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setTenantId(currentTenantId());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setDefinitionId(definitionId);
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setVersionNo(versionNo);
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setOperatorId(operatorId);
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setStatus(status);
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setSummary(summary);
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setCreateTime(now);
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setUpdateTime(now);
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setCreateBy(String.valueOf(operatorId));
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setUpdateBy(String.valueOf(operatorId));
+        // 将当前业务变更写入持久化层，保持数据状态同步。
         publishAuditMapper.insertSelective(row);
     }
 

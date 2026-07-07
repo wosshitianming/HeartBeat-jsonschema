@@ -78,7 +78,9 @@ public class BuiltinNodeExecutors {
                 }
                 // 计算后续端口列表。
                 List<String> ports = nextPorts.length == 0
+                        // 条件成立时使用前一个分支计算出的业务值。
                         ? Collections.emptyList()
+                        // 条件不成立时使用兜底业务值。
                         : Collections.singletonList(nextPorts[0]);
                 // 返回节点执行成功结果。
                 return new NodeExecutionResult(FlowNodeRunStatus.SUCCESS.getCode(), output, ports, null);
@@ -108,9 +110,13 @@ public class BuiltinNodeExecutors {
                 boolean matched = evaluateEqualsExpression(expression, context.getInput());
                 // 返回条件判断执行结果。
                 return new NodeExecutionResult(
+                        // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                         FlowNodeRunStatus.SUCCESS.getCode(),
+                        // 创建有序字段容器，保证响应或领域记录的字段顺序稳定。
                         new LinkedHashMap<>(context.getInput()),
+                        // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                         Collections.singletonList(matched ? "true" : "false"),
+                        // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                         null
                 );
             }
@@ -140,9 +146,13 @@ public class BuiltinNodeExecutors {
                 if (!(mappingObject instanceof Map)) {
                     // 无有效映射配置时透传输入。
                     return new NodeExecutionResult(
+                            // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                             FlowNodeRunStatus.SUCCESS.getCode(),
+                            // 创建有序字段容器，保证响应或领域记录的字段顺序稳定。
                             new LinkedHashMap<>(context.getInput()),
+                            // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                             Collections.singletonList("out"),
+                            // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                             null
                     );
                 }

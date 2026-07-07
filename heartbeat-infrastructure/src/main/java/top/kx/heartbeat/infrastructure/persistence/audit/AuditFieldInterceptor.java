@@ -100,39 +100,52 @@ public class AuditFieldInterceptor implements Interceptor {
     private void fill(Object value, SqlCommandType commandType, LocalDateTime now, long userId) {
         // 空入参无需处理。
         if (value == null) {
+            // 返回已经完成封装的业务结果。
             return;
         }
         // MyBatis 多参数场景通常会包装成 Map，需要递归处理每个参数值。
         if (value instanceof Map) {
+            // 逐条遍历集合数据，完成业务结果组装或状态处理。
             for (Object item : ((Map<?, ?>) value).values()) {
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 fill(item, commandType, now, userId);
             }
+            // 返回已经完成封装的业务结果。
             return;
         }
         // 批量插入或批量更新的集合参数逐项处理。
         if (value instanceof Iterable) {
+            // 逐条遍历集合数据，完成业务结果组装或状态处理。
             for (Object item : (Iterable<?>) value) {
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 fill(item, commandType, now, userId);
             }
+            // 返回已经完成封装的业务结果。
             return;
         }
         // 数组参数逐项处理。
         if (value.getClass().isArray()) {
+            // 逐条遍历集合数据，完成业务结果组装或状态处理。
             for (int index = 0; index < Array.getLength(value); index++) {
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 fill(Array.get(value, index), commandType, now, userId);
             }
+            // 返回已经完成封装的业务结果。
             return;
         }
 
         // 使用 MyBatis MetaObject 以反射方式访问实体属性。
         MetaObject metaObject = SystemMetaObject.forObject(value);
+        // 根据当前业务条件选择对应处理路径。
         if (commandType == SqlCommandType.INSERT) {
             // 新增时只在创建字段为空时填充，避免覆盖业务显式指定的创建信息。
             setIfNull(metaObject, "createTime", auditTimeValue(metaObject, "createTime", now));
+            // 写入当前对象字段，保证后续持久化或响应组装的数据完整。
             setIfNull(metaObject, "createBy", auditUserValue(metaObject, "createBy", userId));
         }
         // 新增和更新都刷新更新时间与更新人。
         set(metaObject, "updateTime", auditTimeValue(metaObject, "updateTime", now));
+        // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
         set(metaObject, "updateBy", auditUserValue(metaObject, "updateBy", userId));
     }
 
@@ -194,13 +207,17 @@ public class AuditFieldInterceptor implements Interceptor {
     private Object auditTimeValue(MetaObject metaObject, String property, LocalDateTime now) {
         // 没有 setter 时返回空值，由调用方跳过写入。
         if (!metaObject.hasSetter(property)) {
+            // 返回已经完成封装的业务结果。
             return null;
         }
         // 兼容旧实体 Date 字段和新实体 LocalDateTime 字段。
         Class<?> propertyType = metaObject.getSetterType(property);
+        // 根据当前业务条件选择对应处理路径。
         if (propertyType == Date.class) {
+            // 返回已经完成封装的业务结果。
             return Date.from(now.atZone(ZoneId.systemDefault()).toInstant());
         }
+        // 返回已经完成封装的业务结果。
         return now;
     }
 
@@ -214,10 +231,14 @@ public class AuditFieldInterceptor implements Interceptor {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         // 未认证、匿名用户或 principal 缺失时使用系统用户。
         if (authentication == null || !authentication.isAuthenticated()
+                // 计算当前分支的中间结果，供后续判断或组装使用。
                 || authentication.getPrincipal() == null
+                // 规范化文本值，降低空字符串和空对象带来的分支复杂度。
                 || "anonymousUser".equals(String.valueOf(authentication.getPrincipal()))) {
+            // 返回已经完成封装的业务结果。
             return SYSTEM_USER_ID;
         }
+        // 进入可能失败的处理区间，后续异常会统一转换为业务可理解的结果。
         try {
             // 认证存在时使用领域端口解析当前用户标识。
             return Long.parseLong(currentUserProvider.currentUserId());

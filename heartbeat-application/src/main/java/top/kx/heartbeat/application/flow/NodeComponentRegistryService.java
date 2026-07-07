@@ -86,48 +86,69 @@ public class NodeComponentRegistryService {
         List<NodeComponentManifest> manifests = new ArrayList<>();
         // 添加手动触发组件。
         manifests.add(component("cmp-trigger-manual", "trigger.manual", "触发器", "手动触发", "手动输入 payload 发起调试流程",
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 "play", ports(noInputs(), outputs(port("out", "输出", "object"))), runtime("builtin:trigger.manual", "source"), objectSchema()));
         // 添加 Webhook 触发组件。
         manifests.add(component("cmp-trigger-webhook", "trigger.webhook", "触发器", "Webhook", "接收外部 HTTP 回调触发流程",
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 "webhook", ports(noInputs(), outputs(port("out", "请求体", "object"))), runtime("builtin:trigger.webhook", "source"), objectSchema()));
         // 添加 MySQL 查询组件。
         manifests.add(component("cmp-source-mysql-query", "source.mysql.query", "数据源", "MySQL 查询", "执行 SQL 并输出结果集",
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 "database", ports(inputs(port("in", "输入", "object")), outputs(port("out", "结果", "array"), port("error", "错误", "object"))),
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 runtime("builtin:mysql.query", "io", "batch"), schema("connectionId", "sql")));
         // 添加 Redis 读取组件。
         manifests.add(component("cmp-source-redis-get", "source.redis.get", "数据源", "Redis 读取", "读取 Redis key",
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 "redis", ports(inputs(port("in", "输入", "object")), outputs(port("out", "值", "object"), port("error", "错误", "object"))),
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 runtime("builtin:redis.get", "io"), schema("connectionId", "key")));
         // 添加 Redis 写入组件。
         manifests.add(component("cmp-sink-redis-set", "sink.redis.set", "输出", "Redis 写入", "写入 Redis key/value",
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 "redis", ports(inputs(port("in", "输入", "object")), outputs(port("out", "输出", "object"), port("error", "错误", "object"))),
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 runtime("builtin:redis.set", "io"), schema("connectionId", "key", "value")));
         // 添加 MQ 消费组件。
         manifests.add(component("cmp-source-mq-consume", "source.mq.consume", "消息", "MQ 消费", "消费消息并触发流程",
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 "mq", ports(noInputs(), outputs(port("out", "消息", "object"), port("error", "错误", "object"))),
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 runtime("builtin:mq.consume", "source", "stream"), schema("connectionId", "topic")));
         // 添加 MQ 投递组件。
         manifests.add(component("cmp-sink-mq-publish", "sink.mq.publish", "输出", "MQ 投递", "投递消息到 MQ topic",
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 "mq", ports(inputs(port("in", "输入", "object")), outputs(port("out", "输出", "object"), port("error", "错误", "object"))),
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 runtime("builtin:mq.publish", "io"), schema("connectionId", "topic")));
         // 添加 HTTP 请求组件。
         manifests.add(component("cmp-action-http-request", "action.http.request", "动作", "HTTP 请求", "调用外部或内部 HTTP API",
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 "http", ports(inputs(port("in", "输入", "object")), outputs(port("out", "响应", "object"), port("error", "错误", "object"))),
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 runtime("builtin:http.request", "io"), schema("url", "method")));
         // 添加条件判断组件。
         manifests.add(component("cmp-logic-condition", "logic.condition", "逻辑", "条件判断", "使用表达式输出 true/false 分支",
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 "condition", ports(inputs(port("in", "输入", "object")), outputs(port("true", "满足", "object"), port("false", "不满足", "object"))),
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 runtime("builtin:logic.condition", "logic"), schema("expression")));
         // 添加字段映射组件。
         manifests.add(component("cmp-transform-mapper", "transform.mapper", "转换", "字段映射", "用映射配置生成新的 payload",
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 "mapper", ports(inputs(port("in", "输入", "object")), outputs(port("out", "输出", "object"))),
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 runtime("builtin:transform.mapper", "transform"), schema("mapping")));
         // 添加系统日志组件。
         manifests.add(component("cmp-system-log", "system.log", "系统", "日志", "记录调试日志",
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 "log", ports(inputs(port("in", "输入", "object")), outputs(port("out", "输出", "object"))),
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 runtime("builtin:system.log", "system"), schema("message")));
         // 添加系统结束组件。
         manifests.add(component("cmp-system-end", "system.end", "系统", "结束", "流程结束节点",
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 "end", ports(inputs(port("in", "输入", "object")), noOutputs()), runtime("builtin:system.end", "system"), objectSchema()));
         // 返回系统内置节点组件清单。
         return manifests;
@@ -148,13 +169,21 @@ public class NodeComponentRegistryService {
      * @return 节点组件清单
      */
     private NodeComponentManifest component(String id,
+                                            // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                                             String type,
+                                            // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                                             String category,
+                                            // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                                             String name,
+                                            // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                                             String description,
+                                            // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                                             String icon,
+                                            // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                                             ComponentPorts ports,
+                                            // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                                             ComponentRuntime runtime,
+                                            // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                                             Map<String, Object> schema) {
         // 创建节点组件清单对象。
         NodeComponentManifest manifest = new NodeComponentManifest();

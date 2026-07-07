@@ -48,16 +48,27 @@ public class WorkflowTaskRepositoryImpl implements WorkflowTaskRepository {
      */
     @Override
     public List<DomainRecord> listTodoTasks(String assigneeId) {
+        // 创建查询条件对象，后续通过 Criteria 精确约束查询范围。
         WfTaskDOExample example = new WfTaskDOExample();
+        // 组装查询条件，确保 Mapper 只读取当前业务需要的数据。
         example.createCriteria()
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .andTenantIdEqualTo(tenantId())
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .andStatusEqualTo(WorkflowTaskStatus.TODO.getCode())
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .andAssigneeIdEqualTo(longValue(assigneeId, 1L));
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         example.setOrderByClause("create_time DESC");
+        // 返回已经完成封装的业务结果。
         return taskDOMapper.selectByExample(example)
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .stream()
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .map(this::toTaskMap)
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .map(DomainRecord::of)
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .collect(Collectors.toList());
     }
 
@@ -72,43 +83,73 @@ public class WorkflowTaskRepositoryImpl implements WorkflowTaskRepository {
      */
     @Override
     public DomainRecord completeTask(String taskId, String action, String operatorId, String comment) {
+        // 从仓储或 Mapper 读取业务数据，为后续处理准备上下文。
         WfTaskDO task = taskDOMapper.selectByPrimaryKey(longValue(taskId, -1L));
+        // 先处理空值或缺省场景，避免后续业务流程出现空指针。
         if (task == null || !task.getTenantId().equals(tenantId())) {
+            // 对非法业务状态立即失败，避免错误继续扩散。
             throw new IllegalArgumentException("Workflow task not found: " + taskId);
         }
+        // 比对当前业务状态，决定是否进入该处理分支。
         if (!WorkflowTaskStatus.TODO.matches(task.getStatus())) {
+            // 对非法业务状态立即失败，避免错误继续扩散。
             throw new IllegalArgumentException("Workflow task has been handled: " + taskId);
         }
 
+        // 统一生成当前时间，保证本次写入使用同一审计时间。
         Date now = new Date();
+        // 组装工作流事件状态，保证可靠事件可以被后续消费。
         WorkflowTaskAction workflowAction = WorkflowTaskAction.fromCode(action);
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         task.setStatus(workflowAction.taskStatusCode());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         task.setComment(comment);
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         task.setCompletedAt(now);
+        // 将当前业务变更写入持久化层，保持数据状态同步。
         taskDOMapper.updateByPrimaryKeySelective(task);
 
+        // 创建数据库记录对象，承载即将写入的业务字段。
         WfTaskActionDO taskAction = new WfTaskActionDO();
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         taskAction.setTenantId(task.getTenantId());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         taskAction.setTaskId(task.getId());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         taskAction.setAction(action);
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         taskAction.setOperatorId(longValue(operatorId, 1L));
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         taskAction.setComment(comment);
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         taskAction.setCreateTime(now);
+        // 将当前业务变更写入持久化层，保持数据状态同步。
         actionDOMapper.insertSelective(taskAction);
 
+        // 从仓储或 Mapper 读取业务数据，为后续处理准备上下文。
         WfProcessInstanceDO instance = instanceDOMapper.selectByPrimaryKey(task.getInstanceId());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         instance.setStatus(workflowAction.instanceStatusCode());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         instance.setEndedAt(now);
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         instance.setUpdateTime(now);
+        // 将当前业务变更写入持久化层，保持数据状态同步。
         instanceDOMapper.updateByPrimaryKeySelective(instance);
 
+        // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
         eventService.createOutbox(
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 "WORKFLOW_TASK_COMPLETED",
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 "WF_TASK",
+                // 规范化文本值，降低空字符串和空对象带来的分支复杂度。
                 String.valueOf(task.getId()),
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 "{\"taskId\":\"" + task.getId() + "\",\"action\":\"" + action + "\"}"
         );
 
+        // 返回已经完成封装的业务结果。
         return DomainRecord.of(toTaskMap(task));
     }
 
@@ -119,16 +160,27 @@ public class WorkflowTaskRepositoryImpl implements WorkflowTaskRepository {
      * @return 处理后的业务结果。
      */
     private Map<String, Object> toTaskMap(WfTaskDO entity) {
+        // 创建有序字段容器，保证响应或领域记录的字段顺序稳定。
         Map<String, Object> row = new LinkedHashMap<>();
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         row.put("id", String.valueOf(entity.getId()));
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         row.put("tenantId", String.valueOf(entity.getTenantId()));
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         row.put("instanceId", String.valueOf(entity.getInstanceId()));
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         row.put("name", entity.getName());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         row.put("assigneeId", String.valueOf(entity.getAssigneeId()));
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         row.put("status", entity.getStatus());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         row.put("comment", entity.getComment());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         row.put("createTime", String.valueOf(entity.getCreateTime()));
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         row.put("completedAt", String.valueOf(entity.getCompletedAt()));
+        // 返回已经完成封装的业务结果。
         return row;
     }
 
@@ -140,9 +192,12 @@ public class WorkflowTaskRepositoryImpl implements WorkflowTaskRepository {
      * @return 处理后的业务结果。
      */
     private long longValue(String value, long defaultValue) {
+        // 进入可能失败的处理区间，后续异常会统一转换为业务可理解的结果。
         try {
+            // 返回已经完成封装的业务结果。
             return value == null || value.trim().isEmpty() ? defaultValue : Long.parseLong(value.trim());
         } catch (NumberFormatException ignored) {
+            // 返回已经完成封装的业务结果。
             return defaultValue;
         }
     }

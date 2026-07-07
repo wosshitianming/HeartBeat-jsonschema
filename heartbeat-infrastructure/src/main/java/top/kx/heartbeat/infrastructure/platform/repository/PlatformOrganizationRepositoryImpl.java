@@ -94,9 +94,13 @@ public class PlatformOrganizationRepositoryImpl implements PlatformOrganizationR
      */
     @Override
     public List<DomainRecord> listTenants() {
+        // 返回已经完成封装的业务结果。
         return tenantMapper.selectByExample(new SysTenantDOExample())
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .stream()
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .map(this::recordTenant)
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .collect(Collectors.toList());
     }
 
@@ -107,9 +111,13 @@ public class PlatformOrganizationRepositoryImpl implements PlatformOrganizationR
      */
     @Override
     public List<DomainRecord> listPosts() {
+        // 返回已经完成封装的业务结果。
         return postMapper.selectByExample(new SysPostDOExample())
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .stream()
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .map(this::recordPost)
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .collect(Collectors.toList());
     }
 
@@ -120,19 +128,33 @@ public class PlatformOrganizationRepositoryImpl implements PlatformOrganizationR
      * @return 处理后的业务结果。
      */
     private SysDeptDO departmentRow(PlatformDepartmentRequest request) {
+        // 兜底空请求对象，保证后续字段读取不需要反复判空。
         PlatformDepartmentRequest safeRequest =
+                // 创建下游写入请求对象，集中承载本次业务处理结果。
                 request == null ? new PlatformDepartmentRequest() : request;
+        // 创建数据库记录对象，承载即将写入的业务字段。
         SysDeptDO row = new SysDeptDO();
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setParentId(longValue(safeRequest.getParentId()));
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setDeptCode(safeRequest.getDeptCode());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setDeptName(safeRequest.getDeptName());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setAncestors(safeRequest.getAncestors());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setDeptLevel(safeRequest.getDeptLevel());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setLeaderUserId(longValue(safeRequest.getLeaderUserId()));
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setPhone(safeRequest.getPhone());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setEmail(safeRequest.getEmail());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setSortNo(safeRequest.getSortNo());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setStatus(safeRequest.getStatus());
+        // 返回已经完成封装的业务结果。
         return row;
     }
 
@@ -143,16 +165,25 @@ public class PlatformOrganizationRepositoryImpl implements PlatformOrganizationR
      * @param creating 是否为新增写入。
      */
     private void touch(SysDeptDO row, boolean creating) {
+        // 统一生成当前时间，保证本次写入使用同一审计时间。
         Date now = new Date();
+        // 根据当前业务条件选择对应处理路径。
         if (creating) {
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             row.setTenantId(tenantId());
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             row.setCreateTime(now);
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             row.setVersion(0);
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             row.setDeleteMarker(0L);
+            // 先处理空值或缺省场景，避免后续业务流程出现空指针。
             if (row.getStatus() == null) {
+                // 设置持久化字段，保证数据库记录具备完整业务属性。
                 row.setStatus("ENABLED");
             }
         }
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setUpdateTime(now);
     }
 
@@ -163,26 +194,46 @@ public class PlatformOrganizationRepositoryImpl implements PlatformOrganizationR
      * @return 处理后的业务结果。
      */
     private DomainRecord record(SysDeptDO row) {
+        // 创建有序字段容器，保证响应或领域记录的字段顺序稳定。
         Map<String, Object> values = new LinkedHashMap<>();
+        // 先处理空值或缺省场景，避免后续业务流程出现空指针。
         if (row == null) {
+            // 返回已经完成封装的业务结果。
             return DomainRecord.of(values);
         }
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("id", row.getId());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("tenantId", row.getTenantId());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("parentId", row.getParentId());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("deptCode", row.getDeptCode());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("code", row.getDeptCode());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("deptName", row.getDeptName());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("name", row.getDeptName());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("ancestors", row.getAncestors());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("deptLevel", row.getDeptLevel());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("leaderUserId", row.getLeaderUserId());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("phone", row.getPhone());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("email", row.getEmail());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("sortNo", row.getSortNo());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("status", row.getStatus());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("createTime", row.getCreateTime());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("updateTime", row.getUpdateTime());
+        // 返回已经完成封装的业务结果。
         return DomainRecord.of(values);
     }
 
@@ -193,18 +244,31 @@ public class PlatformOrganizationRepositoryImpl implements PlatformOrganizationR
      * @return 处理后的业务结果。
      */
     private DomainRecord recordTenant(SysTenantDO row) {
+        // 创建有序字段容器，保证响应或领域记录的字段顺序稳定。
         Map<String, Object> values = new LinkedHashMap<>();
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("id", row.getId());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("planId", row.getPlanId());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("tenantCode", row.getTenantCode());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("tenantName", row.getTenantName());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("tenantType", row.getTenantType());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("domain", row.getDomain());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("contactName", row.getContactName());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("contactPhone", row.getContactPhone());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("contactEmail", row.getContactEmail());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("status", row.getStatus());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("createTime", row.getCreateTime());
+        // 返回已经完成封装的业务结果。
         return DomainRecord.of(values);
     }
 
@@ -215,15 +279,25 @@ public class PlatformOrganizationRepositoryImpl implements PlatformOrganizationR
      * @return 处理后的业务结果。
      */
     private DomainRecord recordPost(SysPostDO row) {
+        // 创建有序字段容器，保证响应或领域记录的字段顺序稳定。
         Map<String, Object> values = new LinkedHashMap<>();
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("id", row.getId());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("tenantId", row.getTenantId());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("postCode", row.getPostCode());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("postName", row.getPostName());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("postType", row.getPostType());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("description", row.getDescription());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("sortNo", row.getSortNo());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("status", row.getStatus());
+        // 返回已经完成封装的业务结果。
         return DomainRecord.of(values);
     }
 
@@ -244,12 +318,17 @@ public class PlatformOrganizationRepositoryImpl implements PlatformOrganizationR
      * @return 处理后的业务结果。
      */
     private Long longValue(Object value) {
+        // 先处理空值或缺省场景，避免后续业务流程出现空指针。
         if (value == null || String.valueOf(value).trim().isEmpty()) {
+            // 返回已经完成封装的业务结果。
             return null;
         }
+        // 进入可能失败的处理区间，后续异常会统一转换为业务可理解的结果。
         try {
+            // 返回已经完成封装的业务结果。
             return Long.parseLong(String.valueOf(value).trim());
         } catch (NumberFormatException ignored) {
+            // 返回已经完成封装的业务结果。
             return null;
         }
     }

@@ -30,9 +30,13 @@ public class FlowableEventBridge {
      * @param payload 恢复载荷
      */
     public void resumeMessage(String tenantId,
+                              // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                               String runId,
+                              // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                               String executionId,
+                              // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                               String messageName,
+                              // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                               Map<String, Object> payload) {
         // 创建恢复命令。
         FlowResumeCommand command = new FlowResumeCommand();

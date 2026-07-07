@@ -2,11 +2,7 @@ package top.kx.heartbeat.infrastructure.persistence.example;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -115,17 +111,26 @@ public final class ExampleQuery {
     }
 
     private static Object invoke(Object target, String methodName, Class<?>[] parameterTypes, Object[] args) {
+        // 进入可能失败的处理区间，后续异常会统一转换为业务可理解的结果。
         try {
+            // 提取请求元数据，补齐日志中的访问来源信息。
             Method method = target.getClass().getMethod(methodName, parameterTypes);
+            // 返回已经完成封装的业务结果。
             return method.invoke(target, args);
         } catch (InvocationTargetException ex) {
+            // 计算当前分支的中间结果，供后续判断或组装使用。
             Throwable targetException = ex.getTargetException();
+            // 根据当前业务条件选择对应处理路径。
             if (targetException instanceof RuntimeException) {
+                // 对非法业务状态立即失败，避免错误继续扩散。
                 throw (RuntimeException) targetException;
             }
+            // 对非法业务状态立即失败，避免错误继续扩散。
             throw new IllegalStateException("Failed to invoke Example method: " + methodName, targetException);
         } catch (ReflectiveOperationException ex) {
+            // 对非法业务状态立即失败，避免错误继续扩散。
             throw new IllegalArgumentException(
+                    // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                     "Unsupported MyBatis Generator Example type: " + target.getClass().getName(), ex);
         }
     }

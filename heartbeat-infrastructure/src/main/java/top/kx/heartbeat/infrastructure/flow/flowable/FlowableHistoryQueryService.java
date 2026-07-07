@@ -32,7 +32,9 @@ public class FlowableHistoryQueryService {
     public RecordResponse findProcessSummary(String processInstanceId) {
         // 查询历史流程实例。
         HistoricProcessInstance instance = historyService.createHistoricProcessInstanceQuery()
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .processInstanceId(processInstanceId)
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .singleResult();
         // 创建历史摘要。
         Map<String, Object> summary = new LinkedHashMap<>();

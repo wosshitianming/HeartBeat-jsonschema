@@ -106,7 +106,9 @@ public class PlatformAdministrationService {
         String resolvedUserId = resolvedUserId(userId);
         // 查询用户行数据，未查到时使用内置管理员兜底。
         Map<String, Object> user = platformUserRepository.findUserById(resolvedUserId)
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .map(DomainRecord::toMap)
+                // 用 Optional 表达可缺省结果，让调用方显式处理不存在场景。
                 .orElseGet(this::fallbackUser);
         // 移除敏感字段后构建接口返回结构。
         Map<String, Object> result = publicUser(user);
@@ -141,35 +143,48 @@ public class PlatformAdministrationService {
         String resolvedUserId = resolvedUserId(userId);
         // 查询颜色模式偏好。
         Optional<Map<String, Object>> colorPreference =
+                // 从仓储或 Mapper 读取业务数据，为后续处理准备上下文。
                 optionalMap(platformUserRepository.findUserPreference(resolvedUserId, APPEARANCE_COLOR_MODE_KEY));
         // 查询流体布局偏好。
         Optional<Map<String, Object>> fluidPreference =
+                // 从仓储或 Mapper 读取业务数据，为后续处理准备上下文。
                 optionalMap(platformUserRepository.findUserPreference(resolvedUserId, APPEARANCE_FLUID_ENABLED_KEY));
         // 查询强调色偏好。
         Optional<Map<String, Object>> accentPreference =
+                // 从仓储或 Mapper 读取业务数据，为后续处理准备上下文。
                 optionalMap(platformUserRepository.findUserPreference(resolvedUserId, APPEARANCE_ACCENT_COLOR_KEY));
         // 查询视觉风格偏好。
         Optional<Map<String, Object>> visualPreference =
+                // 从仓储或 Mapper 读取业务数据，为后续处理准备上下文。
                 optionalMap(platformUserRepository.findUserPreference(resolvedUserId, APPEARANCE_VISUAL_STYLE_KEY));
 
         // 新版偏好任意一项存在时按新版结构返回。
         if (colorPreference.isPresent() || fluidPreference.isPresent() || accentPreference.isPresent()
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 || visualPreference.isPresent()) {
             // 解析颜色模式，缺省时使用默认颜色模式。
             String colorMode = colorPreference
+                    // 使用流式转换批量映射数据，减少中间状态暴露。
                     .map(preference -> stringValue(preference.get("preferenceValue")))
+                    // 用 Optional 表达可缺省结果，让调用方显式处理不存在场景。
                     .orElse(DEFAULT_COLOR_MODE.getCode());
             // 解析流体布局开关，缺省时使用默认流体布局开关。
             boolean fluidEnabled = fluidPreference
+                    // 使用流式转换批量映射数据，减少中间状态暴露。
                     .map(preference -> Boolean.parseBoolean(stringValue(preference.get("preferenceValue"))))
+                    // 用 Optional 表达可缺省结果，让调用方显式处理不存在场景。
                     .orElse(DEFAULT_FLUID_ENABLED);
             // 解析强调色，缺省时使用默认强调色。
             String accentColor = accentPreference
+                    // 使用流式转换批量映射数据，减少中间状态暴露。
                     .map(preference -> normalizeAccentColor(stringValue(preference.get("preferenceValue"))))
+                    // 用 Optional 表达可缺省结果，让调用方显式处理不存在场景。
                     .orElse(DEFAULT_ACCENT_COLOR);
             // 解析视觉风格，缺省时使用默认视觉风格。
             String visualStyle = visualPreference
+                    // 使用流式转换批量映射数据，减少中间状态暴露。
                     .map(preference -> normalizeVisualStyle(stringValue(preference.get("preferenceValue"))))
+                    // 用 Optional 表达可缺省结果，让调用方显式处理不存在场景。
                     .orElse(DEFAULT_VISUAL_STYLE.getCode());
             // 返回新版外观偏好结构。
             return RecordResponse.from(appearanceResult(colorMode, fluidEnabled, accentColor, visualStyle));
@@ -177,14 +192,23 @@ public class PlatformAdministrationService {
 
         // 新版偏好不存在时兼容读取旧版主题偏好。
         return platformUserRepository.findUserPreference(resolvedUserId, LEGACY_APPEARANCE_THEME_KEY)
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .map(DomainRecord::toMap)
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .map(this::legacyAppearanceResult)
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .map(RecordResponse::from)
+                // 用 Optional 表达可缺省结果，让调用方显式处理不存在场景。
                 .orElseGet(() -> RecordResponse.from(appearanceResult(
+                        // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                         DEFAULT_COLOR_MODE.getCode(),
+                        // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                         DEFAULT_FLUID_ENABLED,
+                        // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                         DEFAULT_ACCENT_COLOR,
+                        // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                         DEFAULT_VISUAL_STYLE.getCode()
+                        // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 )));
     }
 
@@ -209,32 +233,44 @@ public class PlatformAdministrationService {
      */
     @Transactional
     public RecordResponse updateAppearancePreference(String userId, PlatformAppearancePreferenceRequest request) {
+        // 兜底空请求对象，保证后续字段读取不需要反复判空。
         PlatformAppearancePreferenceRequest safeRequest =
+                // 创建下游写入请求对象，集中承载本次业务处理结果。
                 request == null ? new PlatformAppearancePreferenceRequest() : request;
         // 查询当前外观偏好作为局部更新的默认值来源。
         Map<String, Object> current = appearancePreference(userId).toMap();
         // 解析颜色模式入参，未传时沿用当前值。
         String colorMode = safeRequest.getColorMode() != null
+                // 条件成立时使用前一个分支计算出的业务值。
                 ? stringValue(safeRequest.getColorMode())
+                // 条件不成立时使用兜底业务值。
                 : stringValue(current.get("colorMode"));
         // 解析流体布局入参，未传时沿用当前值。
         boolean fluidEnabled = safeRequest.getFluidEnabled() != null
+                // 条件成立时使用前一个分支计算出的业务值。
                 ? safeRequest.getFluidEnabled()
+                // 条件不成立时使用兜底业务值。
                 : Boolean.TRUE.equals(current.get("fluidEnabled"));
         // 解析强调色入参，未传时沿用当前值。
         String accentColor = safeRequest.getAccentColor() != null
+                // 条件成立时使用前一个分支计算出的业务值。
                 ? normalizeAccentColor(stringValue(safeRequest.getAccentColor()))
+                // 条件不成立时使用兜底业务值。
                 : stringValue(current.get("accentColor"));
         // 解析视觉风格入参，未传时沿用当前值。
         String visualStyle = safeRequest.getVisualStyle() != null
+                // 条件成立时使用前一个分支计算出的业务值。
                 ? normalizeVisualStyle(stringValue(safeRequest.getVisualStyle()))
+                // 条件不成立时使用兜底业务值。
                 : stringValue(current.get("visualStyle"));
 
         // 固化原始颜色模式入参，供异常消息安全引用。
         String requestedColorMode = colorMode;
         // 使用颜色模式枚举校验并规范化颜色模式编码。
         colorMode = AppearanceColorMode.fromCode(requestedColorMode)
+                // 用 Optional 表达可缺省结果，让调用方显式处理不存在场景。
                 .orElseThrow(() -> new IllegalArgumentException("不支持的颜色模式: " + requestedColorMode))
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .getCode();
 
         // 解析用户标识，空值时回落到默认管理员。
@@ -243,8 +279,11 @@ public class PlatformAdministrationService {
         platformUserRepository.saveUserPreference(resolvedUserId, APPEARANCE_COLOR_MODE_KEY, colorMode);
         // 保存流体布局偏好。
         platformUserRepository.saveUserPreference(
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 resolvedUserId,
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 APPEARANCE_FLUID_ENABLED_KEY,
+                // 规范化文本值，降低空字符串和空对象带来的分支复杂度。
                 String.valueOf(fluidEnabled)
         );
         // 保存强调色偏好。
@@ -263,6 +302,7 @@ public class PlatformAdministrationService {
      */
     @Transactional
     public LoginResponse login(PlatformLoginRequest request) {
+        // 兜底空请求对象，保证后续字段读取不需要反复判空。
         PlatformLoginRequest safeRequest = request == null ? new PlatformLoginRequest() : request;
         // 读取登录用户名。
         String username = stringValue(safeRequest.getUsername());
@@ -284,13 +324,19 @@ public class PlatformAdministrationService {
         Map<String, Object> user = publicUser(userOptional.get());
         // 创建认证会话并复制为可扩展返回结构。
         AuthTokenResponse tokens = authenticationSessionService.createSession(
+                // 规范化文本值，降低空字符串和空对象带来的分支复杂度。
                 String.valueOf(user.get("id")),
+                // 规范化文本值，降低空字符串和空对象带来的分支复杂度。
                 String.valueOf(user.get("username")),
+                // 规范化文本值，降低空字符串和空对象带来的分支复杂度。
                 String.valueOf(user.get("tenantId")));
         // 返回登录结果。
         return LoginResponse.of(
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 tokens,
+                // 将持久化结果转换为统一响应对象，保持接口返回口径一致。
                 RecordResponse.from(user),
+                // 规范化文本值，降低空字符串和空对象带来的分支复杂度。
                 platformPermissionRepository.listPermissionsByUserId(String.valueOf(user.get("id")))
         );
     }
@@ -413,8 +459,11 @@ public class PlatformAdministrationService {
         }
         // 规范化菜单标识列表，去掉空值和重复值。
         List<String> normalized = menuIds == null
+                // 条件成立时使用前一个分支计算出的业务值。
                 ? Collections.emptyList()
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 : menuIds.stream().map(this::stringValue).filter(id -> StringUtils.isNotEmpty(id)).distinct()
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .collect(java.util.stream.Collectors.toList());
         // 保存角色与菜单的授权关系。
         platformPermissionRepository.saveRoleMenus(roleId, normalized);
@@ -428,7 +477,9 @@ public class PlatformAdministrationService {
     public List<RecordResponse> listUsers() {
         // 查询用户列表后按当前用户数据权限过滤并移除敏感字段。
         return RecordResponse.fromMaps(filterUsersByDataScope(maps(platformUserRepository.listUsers()), currentUserProvider.currentUserId()).stream()
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .map(this::publicUser)
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .collect(java.util.stream.Collectors.toList()));
     }
 
@@ -869,13 +920,20 @@ public class PlatformAdministrationService {
      * @return 处理后的业务结果。
      */
     private PlatformUserRequest prepareUserRequest(PlatformUserRequest request) {
+        // 兜底空请求对象，保证后续字段读取不需要反复判空。
         PlatformUserRequest safeRequest = request == null ? new PlatformUserRequest() : request;
+        // 计算当前步骤所需的中间值，供后续业务判断使用。
         String password = stringValue(safeRequest.getPassword());
+        // 根据当前业务条件选择对应处理路径。
         if (StringUtils.isNotBlank(password)) {
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             safeRequest.setPasswordHash(passwordEncoder.encode(password));
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             safeRequest.setPasswordAlgo("BCrypt");
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             safeRequest.setPasswordUpdateTime(new Date());
         }
+        // 返回已经完成封装的业务结果。
         return safeRequest;
     }
 
@@ -924,10 +982,15 @@ public class PlatformAdministrationService {
      * @return 处理后的业务结果。
      */
     private Map<String, Object> appearanceResult(
+            // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
             String colorMode,
+            // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
             boolean fluidEnabled,
+            // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
             String accentColor,
+            // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
             String visualStyle
+            // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
     ) {
         // 创建外观偏好返回结构。
         Map<String, Object> result = new LinkedHashMap<>();
@@ -1024,8 +1087,11 @@ public class PlatformAdministrationService {
      * @return 处理后的业务结果。
      */
     private List<Map<String, Object>> filterUsersByDataScope(
+            // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
             List<Map<String, Object>> users,
+            // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
             String currentUserId
+            // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
     ) {
         // 解析当前用户标识。
         String userId = resolvedUserId(currentUserId);
@@ -1040,13 +1106,17 @@ public class PlatformAdministrationService {
         if (DataScope.SELF.matches(scope)) {
             // 过滤出当前用户记录。
             return users.stream()
+                    // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                     .filter(user -> userId.equals(stringValue(user.get("id"))))
+                    // 使用流式转换批量映射数据，减少中间状态暴露。
                     .collect(java.util.stream.Collectors.toList());
         }
 
         // 查询当前用户资料。
         Map<String, Object> currentUser = platformUserRepository.findUserById(userId)
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .map(DomainRecord::toMap)
+                // 用 Optional 表达可缺省结果，让调用方显式处理不存在场景。
                 .orElse(Collections.emptyMap());
         // 读取当前用户部门标识。
         String currentDeptId = stringValue(currentUser.get("deptId"));
@@ -1070,7 +1140,9 @@ public class PlatformAdministrationService {
         }
         // 按允许部门集合过滤用户列表。
         return users.stream()
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .filter(user -> allowedDeptIds.contains(stringValue(user.get("deptId"))))
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .collect(java.util.stream.Collectors.toList());
     }
 

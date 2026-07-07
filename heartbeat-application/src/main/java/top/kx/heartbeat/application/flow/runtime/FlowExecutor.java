@@ -199,6 +199,7 @@ public class FlowExecutor {
     private Map<String, NodeComponentManifest> manifestsByNodeId(FlowDefinition flow, List<NodeComponentManifest> manifests) {
         // 按组件类型与版本构建组件清单索引。
         Map<String, NodeComponentManifest> byKey = manifests.stream()
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .collect(Collectors.toMap(item -> FlowDslValidator.manifestKey(item.getType(), item.getVersion()), item -> item));
         // 创建节点标识与组件清单映射。
         Map<String, NodeComponentManifest> result = new HashMap<>();

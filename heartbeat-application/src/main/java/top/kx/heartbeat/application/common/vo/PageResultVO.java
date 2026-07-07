@@ -29,11 +29,17 @@ public class PageResultVO<T> implements Serializable {
     private List<T> records;
 
     public static <T> PageResultVO<T> of(int pageNum, int pageSize, long total, List<T> records) {
+        // 创建当前流程需要的临时对象，承载后续处理数据。
         PageResultVO<T> vo = new PageResultVO<>();
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         vo.setPageNum(pageNum);
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         vo.setPageSize(pageSize);
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         vo.setTotal(total);
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         vo.setRecords(records == null ? Collections.emptyList() : records);
+        // 返回已经完成封装的业务结果。
         return vo;
     }
 }

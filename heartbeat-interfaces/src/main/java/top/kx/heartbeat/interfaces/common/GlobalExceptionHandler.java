@@ -131,6 +131,7 @@ public class GlobalExceptionHandler {
         }
         // 判断结构资源不存在错误码。
         if (StructureErrorCode.STRUCTURE_NOT_FOUND.equals(code)
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 || StructureErrorCode.STRUCTURE_VERSION_NOT_FOUND.equals(code)) {
             // 结构资源不存在映射为 404。
             return HttpStatus.NOT_FOUND;

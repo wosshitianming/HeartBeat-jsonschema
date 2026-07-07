@@ -49,13 +49,19 @@ public class FlowableDeploymentService {
         String tenantId = tenantResolver.resolveTenantId(version);
         // 部署 BPMN 资源。
         Deployment deployment = repositoryService.createDeployment()
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .tenantId(tenantId)
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .name(compileResult.getProcessName())
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .addString(compileResult.getResourceName(), compileResult.getBpmnXml())
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .deploy();
         // 查询本次部署产生的流程定义。
         ProcessDefinition definition = repositoryService.createProcessDefinitionQuery()
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .deploymentId(deployment.getId())
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .singleResult();
         // 创建部署结果。
         FlowDeploymentResult result = new FlowDeploymentResult();

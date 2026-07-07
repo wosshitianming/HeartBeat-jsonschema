@@ -40,33 +40,50 @@ public abstract class FlowConvert {
      * 领域模型 → MBG 生成 DO（FlowDefinition）
      */
     @Mapping(target = "dslJson", source = ".")
+    // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
     public abstract HbFlowDefinitionDO toGenDO(FlowDefinition definition);
 
     /**
      * MBG 生成 DO → 领域模型（FlowVersion）
      */
     @Mapping(target = "flowDsl", source = "dslJson")
+    // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
     public abstract FlowVersion toDomain(HbFlowVersionDOWithBLOBs row);
 
     /**
      * MBG 生成 DO → 领域模型（FlowVersion，DSL 字段由调用方补全）
      */
     public FlowVersion toDomainFromBase(HbFlowVersionDO row) {
+        // 先处理空值或缺省场景，避免后续业务流程出现空指针。
         if (row == null) {
+            // 返回已经完成封装的业务结果。
             return null;
         }
+        // 创建当前流程需要的临时对象，承载后续处理数据。
         HbFlowVersionDOWithBLOBs blobs = new HbFlowVersionDOWithBLOBs();
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         blobs.setId(row.getId());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         blobs.setTenantId(row.getTenantId());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         blobs.setFlowId(row.getFlowId());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         blobs.setVersionNo(row.getVersionNo());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         blobs.setStatus(row.getStatus());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         blobs.setPublishedBy(row.getPublishedBy());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         blobs.setPublishedAt(row.getPublishedAt());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         blobs.setCreateTime(row.getCreateTime());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         blobs.setUpdateTime(row.getUpdateTime());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         blobs.setCreateBy(row.getCreateBy());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         blobs.setUpdateBy(row.getUpdateBy());
+        // 返回已经完成封装的业务结果。
         return toDomain(blobs);
     }
 
@@ -85,20 +102,28 @@ public abstract class FlowConvert {
     }
 
     protected FlowDefinition readDefinition(String json) {
+        // 校验关键文本参数，防止无效输入继续向后流转。
         if (StringUtils.isBlank(json)) {
+            // 返回已经完成封装的业务结果。
             return new FlowDefinition();
         }
+        // 进入可能失败的处理区间，后续异常会统一转换为业务可理解的结果。
         try {
+            // 返回已经完成封装的业务结果。
             return objectMapper.readValue(json, FlowDefinition.class);
         } catch (JsonProcessingException ex) {
+            // 对非法业务状态立即失败，避免错误继续扩散。
             throw new IllegalStateException("Flow DSL 解析失败", ex);
         }
     }
 
     protected String writeDefinition(FlowDefinition definition) {
+        // 进入可能失败的处理区间，后续异常会统一转换为业务可理解的结果。
         try {
+            // 返回已经完成封装的业务结果。
             return objectMapper.writeValueAsString(definition);
         } catch (JsonProcessingException ex) {
+            // 对非法业务状态立即失败，避免错误继续扩散。
             throw new IllegalArgumentException("Flow DSL 序列化失败", ex);
         }
     }

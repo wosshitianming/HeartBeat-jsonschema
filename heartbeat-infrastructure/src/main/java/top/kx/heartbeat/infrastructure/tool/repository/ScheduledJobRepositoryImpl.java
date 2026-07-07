@@ -62,8 +62,11 @@ public class ScheduledJobRepositoryImpl implements ScheduledJobRepository {
         example.setOrderByClause("id DESC");
         // 查询任务配置并转换为领域模型列表。
         return jobMapper.selectByExample(example)
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .stream()
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .map(this::toDomainJob)
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .collect(Collectors.toList());
     }
 
@@ -152,16 +155,27 @@ public class ScheduledJobRepositoryImpl implements ScheduledJobRepository {
     private ScheduledJob toDomainJob(SysJobDO row) {
         // 构建领域定时任务对象。
         return ScheduledJob.builder()
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .id(row.getId())
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .tenantId(row.getTenantId())
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .jobCode(row.getJobCode())
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .jobName(row.getJobName())
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .jobGroup(row.getJobGroup())
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .invokeTarget(row.getInvokeTarget())
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .cronExpression(row.getCronExpression())
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .misfirePolicy(row.getMisfirePolicy())
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .concurrent(Boolean.TRUE.equals(row.getConcurrent()))
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .status(row.getStatus())
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .build();
     }
 

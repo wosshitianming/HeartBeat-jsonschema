@@ -40,17 +40,27 @@ public class ReportQueryRepositoryImpl implements ReportQueryRepository {
      */
     @Override
     public List<DomainRecord> query(String sql, Map<String, Object> params, int limit) {
+        // 计算当前步骤所需的中间值，供后续业务判断使用。
         List<Map<String, Object>> rows = queryMapper.executeReportQuery(sql, params, limit);
 
+        // 创建数据库记录对象，承载即将写入的业务字段。
         ReportQueryLogDO log = new ReportQueryLogDO();
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         log.setTenantId(tenantId());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         log.setDatasetId(0L);
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         log.setParamsJson(jsonValue(params));
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         log.setRowCount(rows.size());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         log.setStatus("SUCCESS");
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         log.setCreateTime(new Date());
+        // 将当前业务变更写入持久化层，保持数据状态同步。
         queryLogDOMapper.insertSelective(log);
 
+        // 返回已经完成封装的业务结果。
         return rows.stream().map(DomainRecord::of).collect(Collectors.toList());
     }
 
@@ -61,9 +71,12 @@ public class ReportQueryRepositoryImpl implements ReportQueryRepository {
      * @return 处理后的业务结果。
      */
     private String jsonValue(Object value) {
+        // 进入可能失败的处理区间，后续异常会统一转换为业务可理解的结果。
         try {
+            // 返回已经完成封装的业务结果。
             return objectMapper.writeValueAsString(value == null ? new LinkedHashMap<String, Object>() : value);
         } catch (Exception ex) {
+            // 对非法业务状态立即失败，避免错误继续扩散。
             throw new IllegalArgumentException("JSON serialize failed", ex);
         }
     }

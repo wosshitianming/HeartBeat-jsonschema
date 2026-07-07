@@ -20,9 +20,12 @@ public class HeartbeatTenantFactory {
      * @return 租户标识数组
      */
     public Object[] getTenantIds() {
+        // 根据当前业务条件选择对应处理路径。
         if (TenantContext.isPlatformScope()) {
+            // 返回已经完成封装的业务结果。
             return new Object[0];
         }
+        // 返回已经完成封装的业务结果。
         return new Object[]{TenantContext.getRequiredTenantId()};
     }
 }

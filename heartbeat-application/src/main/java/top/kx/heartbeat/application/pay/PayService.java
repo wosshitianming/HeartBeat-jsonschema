@@ -132,31 +132,54 @@ public class PayService {
      */
     @Transactional
     public RecordResponse handleNotify(String orderNo, PayNotifyRequest request) {
+        // 兜底空请求对象，保证后续字段读取不需要反复判空。
         PayNotifyRequest safeRequest = request == null ? new PayNotifyRequest() : request;
+        // 从仓储或 Mapper 读取业务数据，为后续处理准备上下文。
         Map<String, Object> order = payOrderRepository.getOrder(orderNo).toMap();
+        // 从仓储或 Mapper 读取业务数据，为后续处理准备上下文。
         Map<String, Object> channel = payChannelRepository.getChannel(stringValue(order.get("channelId"))).toMap();
+        // 计算当前步骤所需的中间值，供后续业务判断使用。
         String payload = stringValue(safeRequest.getPayload());
+        // 计算当前步骤所需的中间值，供后续业务判断使用。
         String secret = stringValue(channel.get("appSecret"));
+        // 计算当前步骤所需的中间值，供后续业务判断使用。
         String signature = stringValue(safeRequest.getSignature());
+        // 计算当前步骤所需的中间值，供后续业务判断使用。
         String expected = sign(payload, secret);
+        // 比较本地签名和回调签名，得到本次通知的验签结果。
         PayNotifyResult notifyResult = expected.equals(signature) ? PayNotifyResult.SUCCESS : PayNotifyResult.FAIL;
+        // 计算当前步骤所需的中间值，供后续业务判断使用。
         String successStatus = stringValue(safeRequest.getStatus(), PayOrderStatus.PAID.getCode());
+        // 计算当前步骤所需的中间值，供后续业务判断使用。
         String notifyStatus = notifyResult == PayNotifyResult.SUCCESS
+                // 条件成立时使用前一个分支计算出的业务值。
                 ? successStatus
+                // 条件不成立时使用兜底业务值。
                 : PayNotifyStatus.SIGN_FAIL.getCode();
 
+        // 创建下游写入请求对象，集中承载本次业务处理结果。
         PayNotifyLogRequest logRequest = new PayNotifyLogRequest();
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         logRequest.setOrderId(stringValue(order.get("id")));
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         logRequest.setOrderNo(stringValue(order.get("orderNo")));
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         logRequest.setProvider(stringValue(channel.get("provider")));
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         logRequest.setPayload(payload);
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         logRequest.setStatus(notifyStatus);
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         logRequest.setSignatureValid(notifyResult.getCode());
+        // 将持久化结果转换为统一响应对象，保持接口返回口径一致。
         RecordResponse log = RecordResponse.from(payNotifyLogRepository.recordNotify(logRequest));
 
+        // 根据当前业务条件选择对应处理路径。
         if (notifyResult == PayNotifyResult.SUCCESS) {
+            // 将当前业务变更写入持久化层，保持数据状态同步。
             payOrderRepository.updateOrderStatus(orderNo, successStatus);
         }
+        // 返回已经完成封装的业务结果。
         return log;
     }
 
@@ -168,16 +191,25 @@ public class PayService {
      * @return 处理后的业务结果。
      */
     public String sign(String payload, String secret) {
+        // 进入可能失败的处理区间，后续异常会统一转换为业务可理解的结果。
         try {
+            // 按签名算法处理字节数据，保证验签结果可重复计算。
             Mac mac = Mac.getInstance(SIGN_ALGORITHM);
+            // 按签名算法处理字节数据，保证验签结果可重复计算。
             mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), SIGN_ALGORITHM));
+            // 按签名算法处理字节数据，保证验签结果可重复计算。
             byte[] bytes = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
+            // 计算当前步骤所需的中间值，供后续业务判断使用。
             StringBuilder result = new StringBuilder();
+            // 逐条遍历集合数据，完成业务结果组装或状态处理。
             for (byte value : bytes) {
+                // 按签名算法处理字节数据，保证验签结果可重复计算。
                 result.append(String.format("%02x", value));
             }
+            // 返回已经完成封装的业务结果。
             return result.toString();
         } catch (Exception ex) {
+            // 对非法业务状态立即失败，避免错误继续扩散。
             throw new IllegalArgumentException("Pay signature generation failed", ex);
         }
     }
@@ -189,12 +221,17 @@ public class PayService {
      * @return 处理后的业务结果。
      */
     private String mask(String value) {
+        // 校验关键文本参数，防止无效输入继续向后流转。
         if (StringUtils.isEmpty(value)) {
+            // 返回已经完成封装的业务结果。
             return "";
         }
+        // 根据当前业务条件选择对应处理路径。
         if (value.length() <= 4) {
+            // 返回已经完成封装的业务结果。
             return "****";
         }
+        // 返回已经完成封装的业务结果。
         return value.substring(0, 2) + "****" + value.substring(value.length() - 2);
     }
 

@@ -40,9 +40,13 @@ public class PlatformConfigRepositoryImpl implements PlatformConfigRepository {
      */
     @Override
     public List<DomainRecord> listConfigurations() {
+        // 返回已经完成封装的业务结果。
         return configMapper.selectByExample(new SysConfigDOExample())
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .stream()
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .map(this::record)
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .collect(Collectors.toList());
     }
 
@@ -98,17 +102,29 @@ public class PlatformConfigRepositoryImpl implements PlatformConfigRepository {
      */
     @Override
     public List<DomainRecord> listDictTypes() {
+        // 返回已经完成封装的业务结果。
         return dictTypeMapper.selectByExample(new SysDictTypeDOExample())
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .stream()
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .map(row -> {
+                    // 创建有序字段容器，保证响应或领域记录的字段顺序稳定。
                     Map<String, Object> values = new LinkedHashMap<>();
+                    // 写入对外字段，保持调用方依赖的响应结构稳定。
                     values.put("id", row.getId());
+                    // 写入对外字段，保持调用方依赖的响应结构稳定。
                     values.put("dictCode", row.getDictCode());
+                    // 写入对外字段，保持调用方依赖的响应结构稳定。
                     values.put("dictName", row.getDictName());
+                    // 写入对外字段，保持调用方依赖的响应结构稳定。
                     values.put("description", row.getDescription());
+                    // 写入对外字段，保持调用方依赖的响应结构稳定。
                     values.put("status", row.getStatus());
+                    // 返回已经完成封装的业务结果。
                     return DomainRecord.of(values);
+                    // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 })
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .collect(Collectors.toList());
     }
 
@@ -119,18 +135,31 @@ public class PlatformConfigRepositoryImpl implements PlatformConfigRepository {
      */
     @Override
     public List<DomainRecord> listDictData() {
+        // 返回已经完成封装的业务结果。
         return dictItemMapper.selectByExample(new SysDictItemDOExample())
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .stream()
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .map(row -> {
+                    // 创建有序字段容器，保证响应或领域记录的字段顺序稳定。
                     Map<String, Object> values = new LinkedHashMap<>();
+                    // 写入对外字段，保持调用方依赖的响应结构稳定。
                     values.put("id", row.getId());
+                    // 写入对外字段，保持调用方依赖的响应结构稳定。
                     values.put("dictTypeId", row.getDictTypeId());
+                    // 写入对外字段，保持调用方依赖的响应结构稳定。
                     values.put("itemLabel", row.getItemLabel());
+                    // 写入对外字段，保持调用方依赖的响应结构稳定。
                     values.put("itemValue", row.getItemValue());
+                    // 写入对外字段，保持调用方依赖的响应结构稳定。
                     values.put("sortNo", row.getSortNo());
+                    // 写入对外字段，保持调用方依赖的响应结构稳定。
                     values.put("status", row.getStatus());
+                    // 返回已经完成封装的业务结果。
                     return DomainRecord.of(values);
+                    // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 })
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .collect(Collectors.toList());
     }
 
@@ -141,17 +170,29 @@ public class PlatformConfigRepositoryImpl implements PlatformConfigRepository {
      * @return 处理后的业务结果。
      */
     private SysConfigDO configurationRow(PlatformConfigurationRequest request) {
+        // 兜底空请求对象，保证后续字段读取不需要反复判空。
         PlatformConfigurationRequest safeRequest =
+                // 创建下游写入请求对象，集中承载本次业务处理结果。
                 request == null ? new PlatformConfigurationRequest() : request;
+        // 创建数据库记录对象，承载即将写入的业务字段。
         SysConfigDO row = new SysConfigDO();
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setConfigKey(safeRequest.getConfigKey());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setConfigName(safeRequest.getConfigName());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setConfigValue(safeRequest.getConfigValue());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setValueType(safeRequest.getValueType());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setEncrypted(safeRequest.getEncrypted());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setConfigGroup(safeRequest.getConfigGroup());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setDescription(safeRequest.getDescription());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setStatus(safeRequest.getStatus());
+        // 返回已经完成封装的业务结果。
         return row;
     }
 
@@ -162,16 +203,25 @@ public class PlatformConfigRepositoryImpl implements PlatformConfigRepository {
      * @param creating 是否为新增写入。
      */
     private void touch(SysConfigDO row, boolean creating) {
+        // 统一生成当前时间，保证本次写入使用同一审计时间。
         Date now = new Date();
+        // 根据当前业务条件选择对应处理路径。
         if (creating) {
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             row.setTenantId(tenantId());
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             row.setCreateTime(now);
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             row.setVersion(0);
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             row.setDeleteMarker(0L);
+            // 先处理空值或缺省场景，避免后续业务流程出现空指针。
             if (row.getStatus() == null) {
+                // 设置持久化字段，保证数据库记录具备完整业务属性。
                 row.setStatus("ENABLED");
             }
         }
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setUpdateTime(now);
     }
 
@@ -182,22 +232,38 @@ public class PlatformConfigRepositoryImpl implements PlatformConfigRepository {
      * @return 处理后的业务结果。
      */
     private DomainRecord record(SysConfigDO row) {
+        // 创建有序字段容器，保证响应或领域记录的字段顺序稳定。
         Map<String, Object> values = new LinkedHashMap<>();
+        // 先处理空值或缺省场景，避免后续业务流程出现空指针。
         if (row == null) {
+            // 返回已经完成封装的业务结果。
             return DomainRecord.of(values);
         }
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("id", row.getId());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("tenantId", row.getTenantId());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("configKey", row.getConfigKey());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("configName", row.getConfigName());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("configValue", row.getConfigValue());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("valueType", row.getValueType());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("encrypted", row.getEncrypted());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("configGroup", row.getConfigGroup());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("description", row.getDescription());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("status", row.getStatus());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("createTime", row.getCreateTime());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("updateTime", row.getUpdateTime());
+        // 返回已经完成封装的业务结果。
         return DomainRecord.of(values);
     }
 
@@ -218,9 +284,12 @@ public class PlatformConfigRepositoryImpl implements PlatformConfigRepository {
      * @return 处理后的业务结果。
      */
     private Integer integerValue(String value) {
+        // 进入可能失败的处理区间，后续异常会统一转换为业务可理解的结果。
         try {
+            // 返回已经完成封装的业务结果。
             return value == null || value.trim().isEmpty() ? null : Integer.parseInt(value.trim());
         } catch (NumberFormatException ignored) {
+            // 返回已经完成封装的业务结果。
             return null;
         }
     }

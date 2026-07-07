@@ -66,6 +66,7 @@ public class FlowablePayloadStore {
      * @return JSON 字符串
      */
     private String toJson(Map<String, Object> payload) {
+        // 进入可能失败的处理区间，后续异常会统一转换为业务可理解的结果。
         try {
             // 序列化 payload。
             return objectMapper.writeValueAsString(payload);

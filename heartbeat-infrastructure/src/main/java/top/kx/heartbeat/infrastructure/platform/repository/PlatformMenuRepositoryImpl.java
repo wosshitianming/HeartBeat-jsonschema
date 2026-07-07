@@ -50,17 +50,27 @@ public class PlatformMenuRepositoryImpl implements PlatformMenuRepository {
      */
     @Override
     public List<DomainRecord> listAuthorizedMenus(String userId) {
+        // 计算当前步骤所需的中间值，供后续业务判断使用。
         Set<Long> roleIds = roleIds(userId);
+        // 校验关键文本参数，防止无效输入继续向后流转。
         if (roleIds.isEmpty()) {
+            // 返回已经完成封装的业务结果。
             return Collections.emptyList();
         }
+        // 计算当前步骤所需的中间值，供后续业务判断使用。
         List<Long> menuIds = menuIdsByPermissionIds(permissionIdsByRoleIds(roleIds));
+        // 校验关键文本参数，防止无效输入继续向后流转。
         if (menuIds.isEmpty()) {
+            // 返回已经完成封装的业务结果。
             return Collections.emptyList();
         }
+        // 创建查询条件对象，后续通过 Criteria 精确约束查询范围。
         SysMenuDOExample menuExample = new SysMenuDOExample();
+        // 组装查询条件，确保 Mapper 只读取当前业务需要的数据。
         menuExample.createCriteria().andIdIn(menuIds);
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         menuExample.setOrderByClause("sort_no ASC, id ASC");
+        // 返回已经完成封装的业务结果。
         return menuMapper.selectByExample(menuExample).stream().map(this::record).collect(Collectors.toList());
     }
 
@@ -116,16 +126,26 @@ public class PlatformMenuRepositoryImpl implements PlatformMenuRepository {
      * @return 处理后的业务结果。
      */
     private Set<Long> roleIds(String userId) {
+        // 计算当前步骤所需的中间值，供后续业务判断使用。
         Long id = longValue(userId);
+        // 先处理空值或缺省场景，避免后续业务流程出现空指针。
         if (id == null) {
+            // 返回已经完成封装的业务结果。
             return Collections.emptySet();
         }
+        // 创建查询条件对象，后续通过 Criteria 精确约束查询范围。
         SysUserRoleDOExample example = new SysUserRoleDOExample();
+        // 组装查询条件，确保 Mapper 只读取当前业务需要的数据。
         example.createCriteria().andUserIdEqualTo(id);
+        // 返回已经完成封装的业务结果。
         return userRoleMapper.selectByExample(example)
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .stream()
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .map(SysUserRoleDOKey::getRoleId)
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .filter(Objects::nonNull)
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
@@ -136,16 +156,26 @@ public class PlatformMenuRepositoryImpl implements PlatformMenuRepository {
      * @return 处理后的业务结果。
      */
     private List<Long> permissionIdsByRoleIds(Set<Long> roleIds) {
+        // 先处理空值或缺省场景，避免后续业务流程出现空指针。
         if (roleIds == null || roleIds.isEmpty()) {
+            // 返回已经完成封装的业务结果。
             return Collections.emptyList();
         }
+        // 创建查询条件对象，后续通过 Criteria 精确约束查询范围。
         SysRolePermissionDOExample example = new SysRolePermissionDOExample();
+        // 创建结果集合，承接后续逐项组装的数据。
         example.createCriteria().andRoleIdIn(new ArrayList<>(roleIds));
+        // 返回已经完成封装的业务结果。
         return rolePermissionMapper.selectByExample(example)
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .stream()
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .map(SysRolePermissionDO::getPermissionId)
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .filter(Objects::nonNull)
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .distinct()
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .collect(Collectors.toList());
     }
 
@@ -156,16 +186,26 @@ public class PlatformMenuRepositoryImpl implements PlatformMenuRepository {
      * @return 处理后的业务结果。
      */
     private List<Long> menuIdsByPermissionIds(List<Long> permissionIds) {
+        // 先处理空值或缺省场景，避免后续业务流程出现空指针。
         if (permissionIds == null || permissionIds.isEmpty()) {
+            // 返回已经完成封装的业务结果。
             return Collections.emptyList();
         }
+        // 创建查询条件对象，后续通过 Criteria 精确约束查询范围。
         SysMenuPermissionDOExample example = new SysMenuPermissionDOExample();
+        // 组装查询条件，确保 Mapper 只读取当前业务需要的数据。
         example.createCriteria().andPermissionIdIn(permissionIds);
+        // 返回已经完成封装的业务结果。
         return menuPermissionMapper.selectByExample(example)
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .stream()
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .map(SysMenuPermissionDO::getMenuId)
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .filter(Objects::nonNull)
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .distinct()
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .collect(Collectors.toList());
     }
 
@@ -176,22 +216,39 @@ public class PlatformMenuRepositoryImpl implements PlatformMenuRepository {
      * @return 处理后的业务结果。
      */
     private SysMenuDO menuRow(PlatformMenuRequest request) {
+        // 兜底空请求对象，保证后续字段读取不需要反复判空。
         PlatformMenuRequest safeRequest = request == null ? new PlatformMenuRequest() : request;
+        // 创建数据库记录对象，承载即将写入的业务字段。
         SysMenuDO row = new SysMenuDO();
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setParentId(longValue(safeRequest.getParentId()));
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setMenuCode(safeRequest.getMenuCode());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setMenuName(safeRequest.getMenuName());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setMenuType(safeRequest.getMenuType());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setRoutePath(safeRequest.getRoutePath());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setComponentPath(safeRequest.getComponentPath());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setRedirectPath(safeRequest.getRedirectPath());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setIcon(safeRequest.getIcon());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setVisible(safeRequest.getVisible());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setKeepAlive(safeRequest.getKeepAlive());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setExternalLink(safeRequest.getExternalLink());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setPermissionMode(safeRequest.getPermissionMode());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setSortNo(safeRequest.getSortNo());
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setStatus(safeRequest.getStatus());
+        // 返回已经完成封装的业务结果。
         return row;
     }
 
@@ -202,16 +259,25 @@ public class PlatformMenuRepositoryImpl implements PlatformMenuRepository {
      * @param creating 是否为新增写入。
      */
     private void touch(SysMenuDO row, boolean creating) {
+        // 统一生成当前时间，保证本次写入使用同一审计时间。
         Date now = new Date();
+        // 根据当前业务条件选择对应处理路径。
         if (creating) {
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             row.setTenantId(tenantId());
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             row.setCreateTime(now);
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             row.setVersion(0);
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             row.setDeleteMarker(0L);
+            // 先处理空值或缺省场景，避免后续业务流程出现空指针。
             if (row.getStatus() == null) {
+                // 设置持久化字段，保证数据库记录具备完整业务属性。
                 row.setStatus("ENABLED");
             }
         }
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setUpdateTime(now);
     }
 
@@ -222,33 +288,60 @@ public class PlatformMenuRepositoryImpl implements PlatformMenuRepository {
      * @return 处理后的业务结果。
      */
     private DomainRecord record(SysMenuDO row) {
+        // 创建有序字段容器，保证响应或领域记录的字段顺序稳定。
         Map<String, Object> values = new LinkedHashMap<>();
+        // 先处理空值或缺省场景，避免后续业务流程出现空指针。
         if (row == null) {
+            // 返回已经完成封装的业务结果。
             return DomainRecord.of(values);
         }
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("id", row.getId());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("tenantId", row.getTenantId());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("parentId", row.getParentId());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("menuCode", row.getMenuCode());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("menuName", row.getMenuName());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("name", row.getMenuName());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("menuType", row.getMenuType());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("type", row.getMenuType());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("routePath", row.getRoutePath());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("path", row.getRoutePath());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("componentPath", row.getComponentPath());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("component", row.getComponentPath());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("redirectPath", row.getRedirectPath());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("icon", row.getIcon());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("visible", row.getVisible());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("keepAlive", row.getKeepAlive());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("externalLink", row.getExternalLink());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("permissionMode", row.getPermissionMode());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("permission", row.getPermissionMode());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("sortNo", row.getSortNo());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("status", row.getStatus());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("createTime", row.getCreateTime());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("updateTime", row.getUpdateTime());
+        // 返回已经完成封装的业务结果。
         return DomainRecord.of(values);
     }
 
@@ -269,12 +362,17 @@ public class PlatformMenuRepositoryImpl implements PlatformMenuRepository {
      * @return 处理后的业务结果。
      */
     private Long longValue(Object value) {
+        // 先处理空值或缺省场景，避免后续业务流程出现空指针。
         if (value == null || String.valueOf(value).trim().isEmpty()) {
+            // 返回已经完成封装的业务结果。
             return null;
         }
+        // 进入可能失败的处理区间，后续异常会统一转换为业务可理解的结果。
         try {
+            // 返回已经完成封装的业务结果。
             return Long.parseLong(String.valueOf(value).trim());
         } catch (NumberFormatException ignored) {
+            // 返回已经完成封装的业务结果。
             return null;
         }
     }

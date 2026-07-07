@@ -120,6 +120,7 @@ public class FlowExpressionSandbox {
      * @return 数值
      */
     private BigDecimal toDecimal(Object value) {
+        // 进入可能失败的处理区间，后续异常会统一转换为业务可理解的结果。
         try {
             // 转换为 BigDecimal。
             return new BigDecimal(trimLiteral(String.valueOf(value)));

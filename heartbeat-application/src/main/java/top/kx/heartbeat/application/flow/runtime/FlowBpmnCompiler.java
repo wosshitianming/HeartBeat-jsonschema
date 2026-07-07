@@ -14,11 +14,7 @@ import javax.annotation.Resource;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Flow DSL BPMN 编译器。
@@ -95,11 +91,17 @@ public class FlowBpmnCompiler {
         xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
         // 写入 definitions 开始标签。
         xml.append("<definitions xmlns=\"").append(BPMN_NS).append("\" ")
+                // 追加当前片段，逐步拼接最终结果。
                 .append("xmlns:bpmndi=\"").append(BPMNDI_NS).append("\" ")
+                // 追加当前片段，逐步拼接最终结果。
                 .append("xmlns:omgdi=\"").append(OMGDI_NS).append("\" ")
+                // 追加当前片段，逐步拼接最终结果。
                 .append("xmlns:omgdc=\"").append(OMGDC_NS).append("\" ")
+                // 追加当前片段，逐步拼接最终结果。
                 .append("xmlns:xsi=\"").append(XSI_NS).append("\" ")
+                // 追加当前片段，逐步拼接最终结果。
                 .append("xmlns:flowable=\"").append(FLOWABLE_NS).append("\" ")
+                // 追加当前片段，逐步拼接最终结果。
                 .append("targetNamespace=\"http://heartbeat.kx.top/flow\">\n");
         // 写入消息定义。
         appendMessages(xml, flow);
@@ -165,8 +167,11 @@ public class FlowBpmnCompiler {
      * @param mappings BPMN 映射列表
      */
     private void appendNodes(StringBuilder xml,
+                             // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                              FlowDefinition flow,
+                             // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                              Map<String, NodeComponentManifest> manifestByNodeId,
+                             // 解析流程定义 XML，提取后续页面和任务需要的结构信息。
                              List<FlowBpmnElementMapping> mappings) {
         // 遍历流程节点。
         for (FlowNode node : flow.getNodes()) {
@@ -674,6 +679,7 @@ public class FlowBpmnCompiler {
      * @return SHA-256 十六进制摘要
      */
     private String sha256(String text) {
+        // 进入可能失败的处理区间，后续异常会统一转换为业务可理解的结果。
         try {
             // 创建 SHA-256 摘要器。
             MessageDigest digest = MessageDigest.getInstance("SHA-256");

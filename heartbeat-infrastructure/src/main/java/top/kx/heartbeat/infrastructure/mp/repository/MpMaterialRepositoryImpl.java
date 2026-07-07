@@ -38,12 +38,19 @@ public class MpMaterialRepositoryImpl implements MpMaterialRepository {
      */
     @Override
     public List<DomainRecord> listMaterials(String accountId) {
+        // 创建查询条件对象，后续通过 Criteria 精确约束查询范围。
         MpMaterialDOExample example = new MpMaterialDOExample();
+        // 组装查询条件，确保 Mapper 只读取当前业务需要的数据。
         example.createCriteria().andTenantIdEqualTo(tenantId()).andAccountIdEqualTo(longValue(accountId, 0L));
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         example.setOrderByClause("create_time DESC, id DESC");
+        // 返回已经完成封装的业务结果。
         return materialDOMapper.selectByExampleWithBLOBs(example)
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .stream()
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .map(this::toMaterialRecord)
+                // 使用流式转换批量映射数据，减少中间状态暴露。
                 .collect(Collectors.toList());
     }
 
@@ -55,20 +62,34 @@ public class MpMaterialRepositoryImpl implements MpMaterialRepository {
      */
     @Override
     public DomainRecord saveMaterial(MpMaterialRequest request) {
+        // 统一生成当前时间，保证本次写入使用同一审计时间。
         Date now = new Date();
+        // 计算当前分支的中间结果，供后续判断或组装使用。
         MpMaterialDO record = findMaterialById(longValue(request.getId(), -1L));
+        // 先处理空值或缺省场景，避免后续业务流程出现空指针。
         if (record == null) {
+            // 创建数据库记录对象，承载即将写入的业务字段。
             record = new MpMaterialDO();
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             record.setTenantId(tenantId());
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             record.setCreateTime(now);
+            // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
             applyMaterial(record, request);
+            // 设置持久化字段，保证数据库记录具备完整业务属性。
             record.setUpdateTime(now);
+            // 将当前业务变更写入持久化层，保持数据状态同步。
             materialDOMapper.insertSelective(record);
+            // 返回已经完成封装的业务结果。
             return toMaterialRecord(record);
         }
+        // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
         applyMaterial(record, request);
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         record.setUpdateTime(now);
+        // 将当前业务变更写入持久化层，保持数据状态同步。
         materialDOMapper.updateByPrimaryKeySelective(record);
+        // 返回已经完成封装的业务结果。
         return toMaterialRecord(record);
     }
 
@@ -79,12 +100,19 @@ public class MpMaterialRepositoryImpl implements MpMaterialRepository {
      * @param request 公众号管理请求参数。
      */
     private void applyMaterial(MpMaterialDO record, MpMaterialRequest request) {
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         record.setAccountId(longValue(defaultText(request.getAccountId(), stringValue(record.getAccountId())), 0L));
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         record.setMaterialType(defaultText(request.getMaterialType(), defaultText(record.getMaterialType(), "text")));
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         record.setTitle(defaultText(request.getTitle(), defaultText(record.getTitle(), "Material")));
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         record.setMediaId(defaultText(request.getMediaId(), defaultText(record.getMediaId(), "")));
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         record.setUrl(defaultText(request.getUrl(), defaultText(record.getUrl(), "")));
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         record.setStatus(defaultText(request.getStatus(), defaultText(record.getStatus(), "ACTIVE")));
+        // 设置持久化字段，保证数据库记录具备完整业务属性。
         record.setPayload(request.getPayload() == null ? defaultJson(record.getPayload()) : jsonValue(request.getPayload()));
     }
 
@@ -109,18 +137,31 @@ public class MpMaterialRepositoryImpl implements MpMaterialRepository {
      * @return 处理后的业务结果。
      */
     private DomainRecord toMaterialRecord(MpMaterialDO entity) {
+        // 创建有序字段容器，保证响应或领域记录的字段顺序稳定。
         Map<String, Object> row = new LinkedHashMap<>();
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         row.put("id", stringValue(entity.getId()));
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         row.put("tenantId", stringValue(entity.getTenantId()));
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         row.put("accountId", stringValue(entity.getAccountId()));
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         row.put("materialType", entity.getMaterialType());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         row.put("title", entity.getTitle());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         row.put("mediaId", entity.getMediaId());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         row.put("url", entity.getUrl());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         row.put("status", entity.getStatus());
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         row.put("payload", readJson(entity.getPayload()));
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         row.put("createTime", stringValue(entity.getCreateTime()));
+        // 写入对外字段，保持调用方依赖的响应结构稳定。
         row.put("updateTime", stringValue(entity.getUpdateTime()));
+        // 返回已经完成封装的业务结果。
         return DomainRecord.of(row);
     }
 
@@ -131,9 +172,12 @@ public class MpMaterialRepositoryImpl implements MpMaterialRepository {
      * @return 处理后的业务结果。
      */
     private JsonNode readJson(String json) {
+        // 进入可能失败的处理区间，后续异常会统一转换为业务可理解的结果。
         try {
+            // 返回已经完成封装的业务结果。
             return objectMapper.readTree(StringUtils.isBlank(json) ? "{}" : json);
         } catch (Exception ex) {
+            // 对非法业务状态立即失败，避免错误继续扩散。
             throw new IllegalArgumentException("JSON parse failed", ex);
         }
     }
@@ -145,13 +189,19 @@ public class MpMaterialRepositoryImpl implements MpMaterialRepository {
      * @return 处理后的业务结果。
      */
     private String jsonValue(Object value) {
+        // 进入可能失败的处理区间，后续异常会统一转换为业务可理解的结果。
         try {
+            // 根据当前业务条件选择对应处理路径。
             if (value instanceof String) {
+                // 规范化文本值，降低空字符串和空对象带来的分支复杂度。
                 String text = ((String) value).trim();
+                // 返回已经完成封装的业务结果。
                 return StringUtils.isBlank(text) ? "{}" : text;
             }
+            // 返回已经完成封装的业务结果。
             return objectMapper.writeValueAsString(value == null ? new LinkedHashMap<String, Object>() : value);
         } catch (Exception ex) {
+            // 对非法业务状态立即失败，避免错误继续扩散。
             throw new IllegalArgumentException("JSON serialize failed", ex);
         }
     }
@@ -185,12 +235,17 @@ public class MpMaterialRepositoryImpl implements MpMaterialRepository {
      * @return 处理后的业务结果。
      */
     private long longValue(Object raw, long defaultValue) {
+        // 根据当前业务条件选择对应处理路径。
         if (raw instanceof Number) {
+            // 返回已经完成封装的业务结果。
             return ((Number) raw).longValue();
         }
+        // 进入可能失败的处理区间，后续异常会统一转换为业务可理解的结果。
         try {
+            // 返回已经完成封装的业务结果。
             return raw == null ? defaultValue : Long.parseLong(String.valueOf(raw).trim());
         } catch (NumberFormatException ignored) {
+            // 返回已经完成封装的业务结果。
             return defaultValue;
         }
     }

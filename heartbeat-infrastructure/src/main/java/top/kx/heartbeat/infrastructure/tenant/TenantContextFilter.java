@@ -28,7 +28,9 @@ public class TenantContextFilter extends OncePerRequestFilter {
      */
     @Override
     protected void doFilterInternal(HttpServletRequest request,
+                                    // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                                     HttpServletResponse response,
+                                    // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                                     FilterChain filterChain) throws ServletException, IOException {
         // 始终执行后续过滤器链。
         try {
