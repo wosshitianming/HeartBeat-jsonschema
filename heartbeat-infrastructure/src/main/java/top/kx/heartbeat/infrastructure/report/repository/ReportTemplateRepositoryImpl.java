@@ -1,4 +1,3 @@
-// 注释：声明当前文件所属的包路径。
 package top.kx.heartbeat.infrastructure.report.repository;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -21,229 +20,179 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * 注释：当前类用于承载对应业务逻辑。
+ * 实现公众号管理持久化端口，通过 Mapper 完成数据读写与对象转换。
  */
-// 注释：声明当前元素使用的注解配置。
 @Repository
 public class ReportTemplateRepositoryImpl implements ReportTemplateRepository {
 
-    // 注释：声明当前成员或方法。
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    // 注释：声明当前元素使用的注解配置。
     @Resource
-    // 注释：声明当前成员或方法。
     private ReportTemplateDOMapper templateDOMapper;
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 查询列表数据，保持返回结构稳定并便于前端直接消费，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @Override
     public List<DomainRecord> listTemplates() {
-        // 注释：设置或计算当前变量值。
         ReportTemplateDOExample example = new ReportTemplateDOExample();
-        // 注释：执行当前代码行。
         example.createCriteria().andTenantIdEqualTo(tenantId());
-        // 注释：执行当前代码行。
         example.setOrderByClause("create_time DESC, id DESC");
-        // 注释：返回当前处理结果。
         return templateDOMapper.selectByExampleWithBLOBs(example)
-                // 注释：继续当前链式调用。
                 .stream()
-                // 注释：继续当前链式调用。
                 .map(this::toTemplateRecord)
-                // 注释：继续当前链式调用。
                 .collect(Collectors.toList());
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 保存业务数据，按当前记录状态选择新增或更新路径，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @param request 公众号管理请求参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @Override
     public DomainRecord saveTemplate(ReportTemplateRequest request) {
-        // 注释：设置或计算当前变量值。
         Date now = new Date();
-        // 注释：设置或计算当前变量值。
         ReportTemplateDO record = findTemplateById(longValue(request.getId(), -1L));
-        // 注释：判断当前业务条件。
         if (record == null) {
-            // 注释：设置或计算当前变量值。
             record = new ReportTemplateDO();
-            // 注释：执行当前代码行。
             record.setTenantId(tenantId());
-            // 注释：执行当前代码行。
             record.setCreateTime(now);
-            // 注释：执行当前代码行。
             applyTemplate(record, request);
-            // 注释：执行当前代码行。
             record.setUpdateTime(now);
-            // 注释：执行当前代码行。
             templateDOMapper.insertSelective(record);
-            // 注释：返回当前处理结果。
             return toTemplateRecord(record);
-            // 注释：结束当前代码块。
         }
-        // 注释：执行当前代码行。
         applyTemplate(record, request);
-        // 注释：执行当前代码行。
         record.setUpdateTime(now);
-        // 注释：执行当前代码行。
         templateDOMapper.updateByPrimaryKeySelective(record);
-        // 注释：返回当前处理结果。
         return toTemplateRecord(record);
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @param record 应用层业务记录。
+     * @param request 公众号管理请求参数。
      */
     private void applyTemplate(ReportTemplateDO record, ReportTemplateRequest request) {
-        // 注释：执行当前代码行。
         record.setDatasetId(longValue(defaultText(request.getDatasetId(), String.valueOf(record.getDatasetId())), 0L));
-        // 注释：执行当前代码行。
         record.setName(defaultText(request.getName(), defaultText(record.getName(), "Template")));
-        // 注释：执行当前代码行。
         record.setTemplateKey(defaultText(request.getTemplateKey(), defaultText(record.getTemplateKey(), "")));
-        // 注释：设置或计算当前变量值。
         record.setTemplateJson(request.getTemplate() == null ? defaultJson(record.getTemplateJson()) : jsonValue(request.getTemplate()));
-        // 注释：执行当前代码行。
         record.setStatus(defaultText(request.getStatus(), defaultText(record.getStatus(), "ACTIVE")));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 查询业务数据详情，供上层用例继续编排或返回给调用方，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @param id 业务记录标识。
+     * @return 处理后的业务结果。
      */
     private ReportTemplateDO findTemplateById(long id) {
-        // 注释：判断当前业务条件。
         if (id <= 0) {
-            // 注释：返回当前处理结果。
             return null;
-            // 注释：结束当前代码块。
         }
-        // 注释：设置或计算当前变量值。
         ReportTemplateDO record = templateDOMapper.selectByPrimaryKey(id);
-        // 注释：返回当前处理结果。
         return record != null && tenantId().equals(record.getTenantId()) ? record : null;
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 转换数据结构，隔离接口层、应用层与持久化层的对象差异，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @param entity 待写入或转换的数据库记录。
+     * @return 处理后的业务结果。
      */
     private DomainRecord toTemplateRecord(ReportTemplateDO entity) {
-        // 注释：设置或计算当前变量值。
         Map<String, Object> row = new LinkedHashMap<>();
-        // 注释：执行当前代码行。
         row.put("id", String.valueOf(entity.getId()));
-        // 注释：执行当前代码行。
         row.put("tenantId", String.valueOf(entity.getTenantId()));
-        // 注释：执行当前代码行。
         row.put("datasetId", String.valueOf(entity.getDatasetId()));
-        // 注释：执行当前代码行。
         row.put("name", entity.getName());
-        // 注释：执行当前代码行。
         row.put("templateKey", entity.getTemplateKey());
-        // 注释：执行当前代码行。
         row.put("template", readJson(entity.getTemplateJson()));
-        // 注释：执行当前代码行。
         row.put("status", entity.getStatus());
-        // 注释：执行当前代码行。
         row.put("createTime", String.valueOf(entity.getCreateTime()));
-        // 注释：执行当前代码行。
         row.put("updateTime", String.valueOf(entity.getUpdateTime()));
-        // 注释：返回当前处理结果。
         return DomainRecord.of(row);
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @param json 业务处理所需参数。
+     * @return 处理后的业务结果。
      */
     private JsonNode readJson(String json) {
-        // 注释：开始执行可能抛出异常的逻辑。
         try {
-            // 注释：返回当前处理结果。
             return objectMapper.readTree(StringUtils.isBlank(json) ? "{}" : json);
-            // 注释：捕获并处理当前异常。
         } catch (Exception ex) {
-            // 注释：抛出当前业务异常。
             throw new IllegalArgumentException("JSON parse failed", ex);
-            // 注释：结束当前代码块。
         }
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @param value 待转换的原始值。
+     * @return 处理后的业务结果。
      */
     private String jsonValue(Object value) {
-        // 注释：开始执行可能抛出异常的逻辑。
         try {
-            // 注释：返回当前处理结果。
             return objectMapper.writeValueAsString(value == null ? new LinkedHashMap<String, Object>() : value);
-            // 注释：捕获并处理当前异常。
         } catch (Exception ex) {
-            // 注释：抛出当前业务异常。
             throw new IllegalArgumentException("JSON serialize failed", ex);
-            // 注释：结束当前代码块。
         }
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @param value 待转换的原始值。
+     * @return 处理后的业务结果。
      */
     private String defaultJson(String value) {
-        // 注释：返回当前处理结果。
         return StringUtils.isBlank(value) ? "{}" : value;
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @param value 待转换的原始值。
+     * @param defaultValue 空值时使用的默认值。
+     * @return 处理后的业务结果。
      */
     private String defaultText(String value, String defaultValue) {
-        // 注释：返回当前处理结果。
         return StringUtils.isBlank(value) ? defaultValue : value.trim();
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @param raw 业务处理所需参数。
+     * @param defaultValue 空值时使用的默认值。
+     * @return 处理后的业务结果。
      */
     private long longValue(Object raw, long defaultValue) {
-        // 注释：判断当前业务条件。
         if (raw instanceof Number) {
-            // 注释：返回当前处理结果。
             return ((Number) raw).longValue();
-            // 注释：结束当前代码块。
         }
-        // 注释：开始执行可能抛出异常的逻辑。
         try {
-            // 注释：返回当前处理结果。
             return raw == null ? defaultValue : Long.parseLong(String.valueOf(raw).trim());
-            // 注释：捕获并处理当前异常。
         } catch (NumberFormatException ignored) {
-            // 注释：返回当前处理结果。
             return defaultValue;
-            // 注释：结束当前代码块。
         }
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 读取当前租户上下文，保证数据写入归属正确，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @return 处理后的业务结果。
      */
     private Long tenantId() {
-        // 注释：设置或计算当前变量值。
         Long tenantId = TenantContext.getTenantId();
-        // 注释：返回当前处理结果。
         return tenantId == null ? 1L : tenantId;
-        // 注释：结束当前代码块。
     }
-// 注释：结束当前代码块。
 }

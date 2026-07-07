@@ -1,4 +1,3 @@
-// 注释：声明当前文件所属的包路径。
 package top.kx.heartbeat.application.mp;
 
 import org.springframework.stereotype.Service;
@@ -17,146 +16,138 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * 注释：当前类用于承载对应业务逻辑。
+ * 编排公众号管理应用用例，承接接口层请求并协调仓储与领域能力。
  */
-// 注释：声明当前元素使用的注解配置。
 @Service
 public class MpService {
 
-    // 注释：声明当前元素使用的注解配置。
     @Resource
-    // 注释：声明当前成员或方法。
     private MpAccountRepository accountRepository;
 
-    // 注释：声明当前元素使用的注解配置。
     @Resource
-    // 注释：声明当前成员或方法。
     private MpMenuRepository menuRepository;
 
-    // 注释：声明当前元素使用的注解配置。
     @Resource
-    // 注释：声明当前成员或方法。
     private MpMaterialRepository materialRepository;
 
-    // 注释：声明当前元素使用的注解配置。
     @Resource
-    // 注释：声明当前成员或方法。
     private MpAutoReplyRepository autoReplyRepository;
 
-    // 注释：声明当前元素使用的注解配置。
     @Resource
-    // 注释：声明当前成员或方法。
     private MpMenuSyncGateway mpMenuSyncGateway;
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 查询列表数据，保持返回结构稳定并便于前端直接消费，协调公众号管理相关仓储和领域规则。
+     *
+     * @return 处理后的业务结果。
      */
     public List<RecordResponse> listAccounts() {
-        // 注释：返回当前处理结果。
         return RecordResponse.fromMaps(maps(accountRepository.listAccounts()));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 查询业务数据详情，供上层用例继续编排或返回给调用方，协调公众号管理相关仓储和领域规则。
+     *
+     * @param id 业务记录标识。
+     * @return 处理后的业务结果。
      */
     public RecordResponse getAccount(String id) {
-        // 注释：返回当前处理结果。
         return RecordResponse.from(accountRepository.getAccount(id));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 保存业务数据，按当前记录状态选择新增或更新路径，协调公众号管理相关仓储和领域规则。
+     *
+     * @param request 公众号管理请求参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @Transactional
     public RecordResponse saveAccount(MpAccountRequest request) {
-        // 注释：返回当前处理结果。
         return RecordResponse.from(accountRepository.saveAccount(request));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 查询列表数据，保持返回结构稳定并便于前端直接消费，协调公众号管理相关仓储和领域规则。
+     *
+     * @param accountId 业务记录标识。
+     * @return 处理后的业务结果。
      */
     public List<RecordResponse> listMenus(String accountId) {
-        // 注释：返回当前处理结果。
         return RecordResponse.fromMaps(maps(menuRepository.listMenus(accountId)));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 保存业务数据，按当前记录状态选择新增或更新路径，协调公众号管理相关仓储和领域规则。
+     *
+     * @param request 公众号管理请求参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @Transactional
     public RecordResponse saveMenu(MpMenuRequest request) {
-        // 注释：返回当前处理结果。
         return RecordResponse.from(menuRepository.saveMenu(request));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，协调公众号管理相关仓储和领域规则。
+     *
+     * @param accountId 业务记录标识。
+     * @return 处理后的业务结果。
      */
     public RecordResponse syncMenu(String accountId) {
-        // 注释：设置或计算当前变量值。
         Map<String, Object> account = accountRepository.getAccount(accountId).toMap();
-        // 注释：设置或计算当前变量值。
         List<Map<String, Object>> menus = maps(menuRepository.listMenus(accountId));
-        // 注释：返回当前处理结果。
         return mpMenuSyncGateway.syncMenus(account, menus);
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 查询列表数据，保持返回结构稳定并便于前端直接消费，协调公众号管理相关仓储和领域规则。
+     *
+     * @param accountId 业务记录标识。
+     * @return 处理后的业务结果。
      */
     public List<RecordResponse> listMaterials(String accountId) {
-        // 注释：返回当前处理结果。
         return RecordResponse.fromMaps(maps(materialRepository.listMaterials(accountId)));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 保存业务数据，按当前记录状态选择新增或更新路径，协调公众号管理相关仓储和领域规则。
+     *
+     * @param request 公众号管理请求参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @Transactional
     public RecordResponse saveMaterial(MpMaterialRequest request) {
-        // 注释：返回当前处理结果。
         return RecordResponse.from(materialRepository.saveMaterial(request));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 查询列表数据，保持返回结构稳定并便于前端直接消费，协调公众号管理相关仓储和领域规则。
+     *
+     * @param accountId 业务记录标识。
+     * @return 处理后的业务结果。
      */
     public List<RecordResponse> listAutoReplies(String accountId) {
-        // 注释：返回当前处理结果。
         return RecordResponse.fromMaps(maps(autoReplyRepository.listAutoReplies(accountId)));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 保存业务数据，按当前记录状态选择新增或更新路径，协调公众号管理相关仓储和领域规则。
+     *
+     * @param request 公众号管理请求参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @Transactional
     public RecordResponse saveAutoReply(MpAutoReplyRequest request) {
-        // 注释：返回当前处理结果。
         return RecordResponse.from(autoReplyRepository.saveAutoReply(request));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 转换数据结构，隔离接口层、应用层与持久化层的对象差异，协调公众号管理相关仓储和领域规则。
+     *
+     * @param records 应用层业务记录。
+     * @return 处理后的业务结果。
      */
     private List<Map<String, Object>> maps(List<DomainRecord> records) {
-        // 注释：返回当前处理结果。
         return records.stream().map(DomainRecord::toMap).collect(Collectors.toList());
-        // 注释：结束当前代码块。
     }
-// 注释：结束当前代码块。
 }

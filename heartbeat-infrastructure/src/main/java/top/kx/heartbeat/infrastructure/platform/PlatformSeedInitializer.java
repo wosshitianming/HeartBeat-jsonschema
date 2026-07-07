@@ -1,51 +1,14 @@
 package top.kx.heartbeat.infrastructure.platform;
 
-
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import top.kx.heartbeat.domain.platform.*;
-import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysConfigDO;
-import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysConfigDOExample;
-import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysDeptDO;
-import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysDeptDOExample;
-import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysJobDO;
-import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysJobDOExample;
-import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysMenuDO;
-import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysMenuDOExample;
-import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysMenuPermissionDO;
-import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysMenuPermissionDOExample;
-import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysPermissionDO;
-import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysPermissionDOExample;
-import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysRoleDO;
-import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysRoleDOExample;
-import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysRolePermissionDO;
-import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysRolePermissionDOExample;
-import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysTenantDO;
-import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysTenantDOExample;
-import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysTenantPlanDO;
-import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysTenantPlanDOExample;
-import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysUserDO;
-import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysUserDOExample;
-import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysUserRoleDOExample;
-import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysUserRoleDOKey;
-import top.kx.heartbeat.infrastructure.persistence.entity.auth.AuthOauthClientDO;
 import top.kx.heartbeat.infrastructure.persistence.entity.auth.AuthSocialProviderDO;
 import top.kx.heartbeat.infrastructure.persistence.entity.auth.AuthSocialProviderDOExample;
+import top.kx.heartbeat.infrastructure.persistence.entity.sys.*;
 import top.kx.heartbeat.infrastructure.persistence.mapper.auth.AuthSocialProviderDOMapper;
-import top.kx.heartbeat.infrastructure.persistence.mapper.auth.AuthOauthClientDOMapper;
-import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysConfigDOMapper;
-import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysDeptDOMapper;
-import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysJobDOMapper;
-import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysMenuDOMapper;
-import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysMenuPermissionDOMapper;
-import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysPermissionDOMapper;
-import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysRoleDOMapper;
-import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysRolePermissionDOMapper;
-import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysTenantDOMapper;
-import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysTenantPlanDOMapper;
-import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysUserDOMapper;
-import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysUserRoleDOMapper;
+import top.kx.heartbeat.infrastructure.persistence.mapper.sys.*;
 import top.kx.heartbeat.infrastructure.security.SecretCryptoService;
 import top.kx.heartbeat.infrastructure.tenant.TenantContext;
 
@@ -56,28 +19,15 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-/**
- * ??????????
- * <p>
- * ??????????????
- * <ul>
- *     <li>?????Enterprise Edition??/li>
- *     <li>?????heartbeat??????/li>
- *     <li>????????admin/admin123??/li>
- *     <li>?????super_admin????/????</li>
- *     <li>?????MOCK ?????????Quartz ??</li>
- * </ul>
- * ?? {@code heartbeat.bootstrap.platform-seed-enabled} ??????
- * </p>
- *
- * @author heartbeat-team
- */
 @Component
 @ConditionalOnProperty(
         prefix = "heartbeat.bootstrap",
         name = "platform-seed-enabled",
         havingValue = "true"
 )
+/**
+ * 封装平台管理相关职责，保持模块边界内的业务语义集中。
+ */
 public class PlatformSeedInitializer {
 
     private static final long DEFAULT_TENANT_ID = 1L;
@@ -115,7 +65,17 @@ public class PlatformSeedInitializer {
     private SecretCryptoService secretCryptoService;
 
     /**
-     * ??????????????????????????
+     * 转换数据结构，隔离接口层、应用层与持久化层的对象差异。
+     *
+     * @param value 待转换的原始值。
+     * @return 处理后的业务结果。
+     */
+    private static Date toDate(LocalDateTime value) {
+        return value == null ? null : Date.from(value.atZone(java.time.ZoneId.systemDefault()).toInstant());
+    }
+
+    /**
+     * 初始化系统基础数据，保证平台启动后具备必要的默认配置。
      */
     @PostConstruct
     public void initialize() {
@@ -126,7 +86,7 @@ public class PlatformSeedInitializer {
     }
 
     /**
-     * ??????????/??/??/??/??/??/??/????
+     * 初始化系统基础数据，保证平台启动后具备必要的默认配置。
      */
     private void initializeInternal() {
         SysTenantPlanDO plan = seedPlan();
@@ -142,9 +102,9 @@ public class PlatformSeedInitializer {
     }
 
     /**
-     * ????????????????????
+     * 初始化系统基础数据，保证平台启动后具备必要的默认配置。
      *
-     * @return ??????????
+     * @return 处理后的业务结果。
      */
     private SysTenantPlanDO seedPlan() {
         SysTenantPlanDO existing = findPlan(true);
@@ -171,10 +131,10 @@ public class PlatformSeedInitializer {
     }
 
     /**
-     * ?????????code=heartbeat???????????
+     * 初始化系统基础数据，保证平台启动后具备必要的默认配置。
      *
-     * @param planId ?? ID
-     * @return ??????????
+     * @param planId 业务记录标识。
+     * @return 处理后的业务结果。
      */
     private SysTenantDO seedTenant(Long planId) {
         SysTenantDO existing = findTenant(true);
@@ -199,10 +159,10 @@ public class PlatformSeedInitializer {
     }
 
     /**
-     * ????????deptCode=platform???????????
+     * 初始化系统基础数据，保证平台启动后具备必要的默认配置。
      *
-     * @param tenantId ?? ID
-     * @return ??????????
+     * @param tenantId 业务记录标识。
+     * @return 处理后的业务结果。
      */
     private SysDeptDO seedDept(Long tenantId) {
         SysDeptDO existing = findDept(tenantId, true);
@@ -228,11 +188,11 @@ public class PlatformSeedInitializer {
     }
 
     /**
-     * ??????????admin/admin123???????????
+     * 初始化系统基础数据，保证平台启动后具备必要的默认配置。
      *
-     * @param tenantId ?? ID
-     * @param deptId   ?? ID
-     * @return ??????????
+     * @param tenantId 业务记录标识。
+     * @param deptId 业务记录标识。
+     * @return 处理后的业务结果。
      */
     private SysUserDO seedAdminUser(Long tenantId, Long deptId) {
         SysUserDO existing = findUser(tenantId, true);
@@ -260,10 +220,10 @@ public class PlatformSeedInitializer {
     }
 
     /**
-     * ???????roleCode=super_admin???????????
+     * 初始化系统基础数据，保证平台启动后具备必要的默认配置。
      *
-     * @param tenantId ?? ID
-     * @return ??????????
+     * @param tenantId 业务记录标识。
+     * @return 处理后的业务结果。
      */
     private SysRoleDO seedSuperAdminRole(Long tenantId) {
         SysRoleDO existing = findRole(tenantId, true);
@@ -289,7 +249,11 @@ public class PlatformSeedInitializer {
     }
 
     /**
-     * ??????????????????
+     * 初始化系统基础数据，保证平台启动后具备必要的默认配置。
+     *
+     * @param tenantId 业务记录标识。
+     * @param userId 业务记录标识。
+     * @param roleId 业务记录标识。
      */
     private void seedUserRole(Long tenantId, Long userId, Long roleId) {
         if (hasUserRole(tenantId, userId, roleId)) {
@@ -302,7 +266,10 @@ public class PlatformSeedInitializer {
     }
 
     /**
-     * ?? Dashboard / System ??????????????????-?????????????
+     * 初始化系统基础数据，保证平台启动后具备必要的默认配置。
+     *
+     * @param tenantId 业务记录标识。
+     * @param roleId 业务记录标识。
      */
     private void seedMenusAndPermissions(Long tenantId, Long roleId) {
         seedMenu(tenantId, 0L, "dashboard", "Dashboard", PlatformMenuType.MENU.getCode(),
@@ -345,7 +312,18 @@ public class PlatformSeedInitializer {
     }
 
     /**
-     * ??/?????????????????
+     * 初始化系统基础数据，保证平台启动后具备必要的默认配置。
+     *
+     * @param tenantId 业务记录标识。
+     * @param parentId 业务记录标识。
+     * @param code 业务处理所需参数。
+     * @param name 业务处理所需参数。
+     * @param type 业务处理所需参数。
+     * @param routePath 业务处理所需参数。
+     * @param componentPath 业务处理所需参数。
+     * @param icon 业务处理所需参数。
+     * @param sortNo 业务处理所需参数。
+     * @return 处理后的业务结果。
      */
     private SysMenuDO seedMenu(Long tenantId, Long parentId, String code, String name, String type,
                                    String routePath, String componentPath, String icon, int sortNo) {
@@ -377,7 +355,15 @@ public class PlatformSeedInitializer {
     }
 
     /**
-     * ??/?????API ??????????????
+     * 初始化系统基础数据，保证平台启动后具备必要的默认配置。
+     *
+     * @param tenantId 业务记录标识。
+     * @param code 业务处理所需参数。
+     * @param name 业务处理所需参数。
+     * @param path 业务处理所需参数。
+     * @param method 业务处理所需参数。
+     * @param sortNo 业务处理所需参数。
+     * @return 处理后的业务结果。
      */
     private SysPermissionDO seedPermission(
             Long tenantId,
@@ -412,7 +398,11 @@ public class PlatformSeedInitializer {
     }
 
     /**
-     * ????????????????????
+     * 处理当前业务用例，保持调用方不感知内部实现细节。
+     *
+     * @param menuId 业务记录标识。
+     * @param permissionId 业务记录标识。
+     * @param tenantId 业务记录标识。
      */
     private void linkMenuPermission(Long menuId, Long permissionId, Long tenantId) {
         if (menuId == null || permissionId == null) {
@@ -430,7 +420,11 @@ public class PlatformSeedInitializer {
     }
 
     /**
-     * ????????????????????
+     * 处理当前业务用例，保持调用方不感知内部实现细节。
+     *
+     * @param roleId 业务记录标识。
+     * @param permissionId 业务记录标识。
+     * @param tenantId 业务记录标识。
      */
     private void linkRolePermission(Long roleId, Long permissionId, Long tenantId) {
         if (hasRolePermission(tenantId, roleId, permissionId)) {
@@ -445,7 +439,9 @@ public class PlatformSeedInitializer {
     }
 
     /**
-     * ?????????? system.name=HeartBeat???
+     * 初始化系统基础数据，保证平台启动后具备必要的默认配置。
+     *
+     * @param tenantId 业务记录标识。
      */
     private void seedSystemConfig(Long tenantId) {
         if (hasConfig(tenantId, "system.name")) {
@@ -470,7 +466,9 @@ public class PlatformSeedInitializer {
     }
 
     /**
-     * ???????MOCK ????????????????
+     * 初始化系统基础数据，保证平台启动后具备必要的默认配置。
+     *
+     * @param tenantId 业务记录标识。
      */
     private void seedMockSocialProvider(Long tenantId) {
         if (hasSocialProvider(tenantId, "MOCK")) {
@@ -498,7 +496,9 @@ public class PlatformSeedInitializer {
     }
 
     /**
-     * ???? Quartz ???job-demo????????????
+     * 初始化系统基础数据，保证平台启动后具备必要的默认配置。
+     *
+     * @param tenantId 业务记录标识。
      */
     private void seedDemoJob(Long tenantId) {
         if (hasJob(tenantId, "job-demo")) {
@@ -523,7 +523,11 @@ public class PlatformSeedInitializer {
     }
 
     /**
-     * ????????????ID????????????
+     * 处理当前业务用例，保持调用方不感知内部实现细节。
+     *
+     * @param tenantId 业务记录标识。
+     * @param menuCode 业务处理所需参数。
+     * @return 处理后的业务结果。
      */
     private Long menuId(Long tenantId, String menuCode) {
         SysMenuDO menu = findMenu(tenantId, menuCode, true);
@@ -531,7 +535,11 @@ public class PlatformSeedInitializer {
     }
 
     /**
-     * ????????????ID??
+     * 处理当前业务用例，保持调用方不感知内部实现细节。
+     *
+     * @param tenantId 业务记录标识。
+     * @param permissionCode 业务处理所需参数。
+     * @return 处理后的业务结果。
      */
     private Long permissionId(Long tenantId, String permissionCode) {
         SysPermissionDO permission = findPermission(tenantId, permissionCode, true);
@@ -539,7 +547,10 @@ public class PlatformSeedInitializer {
     }
 
     /**
-     * ???????????????????
+     * 查询业务数据详情，供上层用例继续编排或返回给调用方。
+     *
+     * @param excludeDeleted 业务处理所需参数。
+     * @return 处理后的业务结果。
      */
     private SysTenantPlanDO findPlan(boolean excludeDeleted) {
         SysTenantPlanDOExample example = new SysTenantPlanDOExample();
@@ -551,6 +562,12 @@ public class PlatformSeedInitializer {
         return first(tenantPlanMapper.selectByExample(example));
     }
 
+    /**
+     * 查询业务数据详情，供上层用例继续编排或返回给调用方。
+     *
+     * @param excludeDeleted 业务处理所需参数。
+     * @return 处理后的业务结果。
+     */
     private SysTenantDO findTenant(boolean excludeDeleted) {
         SysTenantDOExample example = new SysTenantDOExample();
         SysTenantDOExample.Criteria criteria = example.createCriteria()
@@ -561,6 +578,13 @@ public class PlatformSeedInitializer {
         return first(tenantMapper.selectByExample(example));
     }
 
+    /**
+     * 查询业务数据详情，供上层用例继续编排或返回给调用方。
+     *
+     * @param tenantId       业务记录标识。
+     * @param excludeDeleted 业务处理所需参数。
+     * @return 处理后的业务结果。
+     */
     private SysDeptDO findDept(Long tenantId, boolean excludeDeleted) {
         SysDeptDOExample example = new SysDeptDOExample();
         SysDeptDOExample.Criteria criteria = example.createCriteria()
@@ -572,6 +596,13 @@ public class PlatformSeedInitializer {
         return first(deptMapper.selectByExample(example));
     }
 
+    /**
+     * 查询业务数据详情，供上层用例继续编排或返回给调用方。
+     *
+     * @param tenantId 业务记录标识。
+     * @param excludeDeleted 业务处理所需参数。
+     * @return 处理后的业务结果。
+     */
     private SysUserDO findUser(Long tenantId, boolean excludeDeleted) {
         SysUserDOExample example = new SysUserDOExample();
         SysUserDOExample.Criteria criteria = example.createCriteria()
@@ -583,6 +614,13 @@ public class PlatformSeedInitializer {
         return first(userMapper.selectByExample(example));
     }
 
+    /**
+     * 查询业务数据详情，供上层用例继续编排或返回给调用方。
+     *
+     * @param tenantId 业务记录标识。
+     * @param excludeDeleted 业务处理所需参数。
+     * @return 处理后的业务结果。
+     */
     private SysRoleDO findRole(Long tenantId, boolean excludeDeleted) {
         SysRoleDOExample example = new SysRoleDOExample();
         SysRoleDOExample.Criteria criteria = example.createCriteria()
@@ -594,6 +632,14 @@ public class PlatformSeedInitializer {
         return first(roleMapper.selectByExample(example));
     }
 
+    /**
+     * 查询业务数据详情，供上层用例继续编排或返回给调用方。
+     *
+     * @param tenantId 业务记录标识。
+     * @param code 业务处理所需参数。
+     * @param excludeDeleted 业务处理所需参数。
+     * @return 处理后的业务结果。
+     */
     private SysMenuDO findMenu(Long tenantId, String code, boolean excludeDeleted) {
         SysMenuDOExample example = new SysMenuDOExample();
         SysMenuDOExample.Criteria criteria = example.createCriteria()
@@ -605,6 +651,14 @@ public class PlatformSeedInitializer {
         return first(menuMapper.selectByExample(example));
     }
 
+    /**
+     * 查询业务数据详情，供上层用例继续编排或返回给调用方。
+     *
+     * @param tenantId 业务记录标识。
+     * @param code 业务处理所需参数。
+     * @param excludeDeleted 业务处理所需参数。
+     * @return 处理后的业务结果。
+     */
     private SysPermissionDO findPermission(Long tenantId, String code, boolean excludeDeleted) {
         SysPermissionDOExample example = new SysPermissionDOExample();
         SysPermissionDOExample.Criteria criteria = example.createCriteria()
@@ -616,6 +670,14 @@ public class PlatformSeedInitializer {
         return first(permissionMapper.selectByExample(example));
     }
 
+    /**
+     * 校验业务前置条件，避免非法状态继续向后流转。
+     *
+     * @param tenantId 业务记录标识。
+     * @param userId 业务记录标识。
+     * @param roleId 业务记录标识。
+     * @return 处理后的业务结果。
+     */
     private boolean hasUserRole(Long tenantId, Long userId, Long roleId) {
         SysUserRoleDOExample example = new SysUserRoleDOExample();
         example.createCriteria()
@@ -625,6 +687,14 @@ public class PlatformSeedInitializer {
         return userRoleMapper.countByExample(example) > 0;
     }
 
+    /**
+     * 校验业务前置条件，避免非法状态继续向后流转。
+     *
+     * @param tenantId 业务记录标识。
+     * @param menuId 业务记录标识。
+     * @param permissionId 业务记录标识。
+     * @return 处理后的业务结果。
+     */
     private boolean hasMenuPermission(Long tenantId, Long menuId, Long permissionId) {
         SysMenuPermissionDOExample example = new SysMenuPermissionDOExample();
         example.createCriteria()
@@ -634,6 +704,14 @@ public class PlatformSeedInitializer {
         return menuPermissionMapper.countByExample(example) > 0;
     }
 
+    /**
+     * 校验业务前置条件，避免非法状态继续向后流转。
+     *
+     * @param tenantId 业务记录标识。
+     * @param roleId 业务记录标识。
+     * @param permissionId 业务记录标识。
+     * @return 处理后的业务结果。
+     */
     private boolean hasRolePermission(Long tenantId, Long roleId, Long permissionId) {
         SysRolePermissionDOExample example = new SysRolePermissionDOExample();
         example.createCriteria()
@@ -643,6 +721,13 @@ public class PlatformSeedInitializer {
         return rolePermissionMapper.countByExample(example) > 0;
     }
 
+    /**
+     * 校验业务前置条件，避免非法状态继续向后流转。
+     *
+     * @param tenantId 业务记录标识。
+     * @param configKey 业务处理所需参数。
+     * @return 处理后的业务结果。
+     */
     private boolean hasConfig(Long tenantId, String configKey) {
         SysConfigDOExample example = new SysConfigDOExample();
         example.createCriteria()
@@ -652,6 +737,13 @@ public class PlatformSeedInitializer {
         return configMapper.countByExample(example) > 0;
     }
 
+    /**
+     * 校验业务前置条件，避免非法状态继续向后流转。
+     *
+     * @param tenantId 业务记录标识。
+     * @param providerCode 业务处理所需参数。
+     * @return 处理后的业务结果。
+     */
     private boolean hasSocialProvider(Long tenantId, String providerCode) {
         AuthSocialProviderDOExample example = new AuthSocialProviderDOExample();
         example.createCriteria()
@@ -661,6 +753,13 @@ public class PlatformSeedInitializer {
         return socialProviderMapper.countByExample(example) > 0;
     }
 
+    /**
+     * 校验业务前置条件，避免非法状态继续向后流转。
+     *
+     * @param tenantId 业务记录标识。
+     * @param jobCode 业务处理所需参数。
+     * @return 处理后的业务结果。
+     */
     private boolean hasJob(Long tenantId, String jobCode) {
         SysJobDOExample example = new SysJobDOExample();
         example.createCriteria()
@@ -670,15 +769,22 @@ public class PlatformSeedInitializer {
         return jobMapper.countByExample(example) > 0;
     }
 
+    /**
+     * 处理当前业务用例，保持调用方不感知内部实现细节。
+     *
+     * @param records 应用层业务记录。
+     * @return 处理后的业务结果。
+     */
     private <T> T first(List<T> records) {
         return records.isEmpty() ? null : records.get(0);
     }
 
+    /**
+     * 处理当前业务用例，保持调用方不感知内部实现细节。
+     *
+     * @return 处理后的业务结果。
+     */
     private LocalDateTime now() {
         return LocalDateTime.now();
-    }
-
-    private static Date toDate(LocalDateTime value) {
-        return value == null ? null : Date.from(value.atZone(java.time.ZoneId.systemDefault()).toInstant());
     }
 }

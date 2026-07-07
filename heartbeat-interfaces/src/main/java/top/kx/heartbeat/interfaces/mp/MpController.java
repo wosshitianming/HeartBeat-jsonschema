@@ -1,4 +1,3 @@
-// 注释：声明当前文件所属的包路径。
 package top.kx.heartbeat.interfaces.mp;
 
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,175 +16,156 @@ import javax.annotation.Resource;
 import java.util.List;
 
 /**
- * 注释：当前类用于承载对应业务逻辑。
+ * 提供公众号管理 HTTP 接口，负责接收请求并委托应用服务完成用例编排。
  */
-// 注释：声明当前元素使用的注解配置。
 @RestController
-// 注释：声明当前元素使用的注解配置。
 @RequestMapping("/api/v1/mp")
 public class MpController {
 
-    // 注释：声明当前元素使用的注解配置。
     @Resource
-    // 注释：声明当前成员或方法。
     private MpService mpService;
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，并统一委托公众号管理应用服务完成处理。
+     *
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @GetMapping("/accounts")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('biz:mp:list')")
     public Result<List<DynamicRecordResponse>> accounts() {
-        // 注释：返回当前处理结果。
         return listResponse(mpService.listAccounts());
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，并统一委托公众号管理应用服务完成处理。
+     *
+     * @param id 业务记录标识。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @GetMapping("/accounts/{id}")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('biz:mp:list')")
     public Result<DynamicRecordResponse> account(@PathVariable String id) {
-        // 注释：返回当前处理结果。
         return recordResponse(mpService.getAccount(id));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 保存业务数据，按当前记录状态选择新增或更新路径，并统一委托公众号管理应用服务完成处理。
+     *
+     * @param request 公众号管理请求参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @PostMapping("/accounts")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('biz:mp:edit')")
-    // 注释：声明当前元素使用的注解配置。
     @OperLog(module = "公众号", action = "保存公众号账号")
     public Result<DynamicRecordResponse> saveAccount(@RequestBody MpAccountRequest request) {
-        // 注释：返回当前处理结果。
         return recordResponse(mpService.saveAccount(request));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，并统一委托公众号管理应用服务完成处理。
+     *
+     * @param accountId 业务记录标识。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @GetMapping("/accounts/{accountId}/menus")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('biz:mp:list')")
     public Result<List<DynamicRecordResponse>> menus(@PathVariable String accountId) {
-        // 注释：返回当前处理结果。
         return listResponse(mpService.listMenus(accountId));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 保存业务数据，按当前记录状态选择新增或更新路径，并统一委托公众号管理应用服务完成处理。
+     *
+     * @param request 公众号管理请求参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @PostMapping("/menus")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('biz:mp:edit')")
-    // 注释：声明当前元素使用的注解配置。
     @OperLog(module = "公众号", action = "保存公众号菜单")
     public Result<DynamicRecordResponse> saveMenu(@RequestBody MpMenuRequest request) {
-        // 注释：返回当前处理结果。
         return recordResponse(mpService.saveMenu(request));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，并统一委托公众号管理应用服务完成处理。
+     *
+     * @param accountId 业务记录标识。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @PostMapping("/accounts/{accountId}/menus/sync")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('biz:mp:sync')")
-    // 注释：声明当前元素使用的注解配置。
     @OperLog(module = "公众号", action = "同步公众号菜单")
     public Result<DynamicRecordResponse> syncMenu(@PathVariable String accountId) {
-        // 注释：返回当前处理结果。
         return recordResponse(mpService.syncMenu(accountId));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，并统一委托公众号管理应用服务完成处理。
+     *
+     * @param accountId 业务记录标识。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @GetMapping("/accounts/{accountId}/materials")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('biz:mp:list')")
     public Result<List<DynamicRecordResponse>> materials(@PathVariable String accountId) {
-        // 注释：返回当前处理结果。
         return listResponse(mpService.listMaterials(accountId));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 保存业务数据，按当前记录状态选择新增或更新路径，并统一委托公众号管理应用服务完成处理。
+     *
+     * @param request 公众号管理请求参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @PostMapping("/materials")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('biz:mp:edit')")
-    // 注释：声明当前元素使用的注解配置。
     @OperLog(module = "公众号", action = "保存公众号素材")
     public Result<DynamicRecordResponse> saveMaterial(@RequestBody MpMaterialRequest request) {
-        // 注释：返回当前处理结果。
         return recordResponse(mpService.saveMaterial(request));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，并统一委托公众号管理应用服务完成处理。
+     *
+     * @param accountId 业务记录标识。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @GetMapping("/accounts/{accountId}/auto-replies")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('biz:mp:list')")
     public Result<List<DynamicRecordResponse>> autoReplies(@PathVariable String accountId) {
-        // 注释：返回当前处理结果。
         return listResponse(mpService.listAutoReplies(accountId));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 保存业务数据，按当前记录状态选择新增或更新路径，并统一委托公众号管理应用服务完成处理。
+     *
+     * @param request 公众号管理请求参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @PostMapping("/auto-replies")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('biz:mp:edit')")
-    // 注释：声明当前元素使用的注解配置。
     @OperLog(module = "公众号", action = "保存自动回复")
     public Result<DynamicRecordResponse> saveAutoReply(@RequestBody MpAutoReplyRequest request) {
-        // 注释：返回当前处理结果。
         return recordResponse(mpService.saveAutoReply(request));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 查询列表数据，保持返回结构稳定并便于前端直接消费，并统一委托公众号管理应用服务完成处理。
+     *
+     * @param records 应用层业务记录。
+     * @return 处理后的业务结果。
      */
     private Result<List<DynamicRecordResponse>> listResponse(List<RecordResponse> records) {
-        // 注释：返回当前处理结果。
         return Result.success(DynamicRecordResponse.fromRecordList(records));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，并统一委托公众号管理应用服务完成处理。
+     *
+     * @param record 应用层业务记录。
+     * @return 处理后的业务结果。
      */
     private Result<DynamicRecordResponse> recordResponse(RecordResponse record) {
-        // 注释：返回当前处理结果。
         return Result.success(DynamicRecordResponse.from(record));
-        // 注释：结束当前代码块。
     }
-// 注释：结束当前代码块。
 }

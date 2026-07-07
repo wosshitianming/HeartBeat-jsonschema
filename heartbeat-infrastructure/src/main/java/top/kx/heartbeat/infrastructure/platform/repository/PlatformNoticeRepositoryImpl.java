@@ -1,4 +1,3 @@
-// 注释：声明当前文件所属的包路径。
 package top.kx.heartbeat.infrastructure.platform.repository;
 
 import org.springframework.stereotype.Repository;
@@ -15,65 +14,46 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * 注释：当前类用于承载对应业务逻辑。
+ * 实现平台管理持久化端口，通过 Mapper 完成数据读写与对象转换。
  */
-// 注释：声明当前元素使用的注解配置。
 @Repository
 public class PlatformNoticeRepositoryImpl implements PlatformNoticeRepository {
 
-    // 注释：声明当前元素使用的注解配置。
     @Resource
-    // 注释：声明当前成员或方法。
     private SysNoticeDOMapper noticeMapper;
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 查询列表数据，保持返回结构稳定并便于前端直接消费，通过 Mapper 完成平台管理数据访问。
+     *
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @Override
     public List<DomainRecord> listNotices() {
-        // 注释：返回当前处理结果。
         return noticeMapper.selectByExampleWithBLOBs(new SysNoticeDOExample())
-                // 注释：继续当前链式调用。
                 .stream()
-                // 注释：继续当前链式调用。
                 .map(this::record)
-                // 注释：继续当前链式调用。
                 .collect(Collectors.toList());
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 转换数据结构，隔离接口层、应用层与持久化层的对象差异，通过 Mapper 完成平台管理数据访问。
+     *
+     * @param row 待写入或转换的数据库记录。
+     * @return 处理后的业务结果。
      */
     private DomainRecord record(SysNoticeDO row) {
-        // 注释：设置或计算当前变量值。
         Map<String, Object> values = new LinkedHashMap<>();
-        // 注释：执行当前代码行。
         values.put("id", row.getId());
-        // 注释：执行当前代码行。
         values.put("tenantId", row.getTenantId());
-        // 注释：执行当前代码行。
         values.put("noticeTitle", row.getNoticeTitle());
-        // 注释：执行当前代码行。
         values.put("noticeType", row.getNoticeType());
-        // 注释：执行当前代码行。
         values.put("publishScope", row.getPublishScope());
-        // 注释：执行当前代码行。
         values.put("publishStatus", row.getPublishStatus());
-        // 注释：执行当前代码行。
         values.put("publishedAt", row.getPublishedAt());
-        // 注释：执行当前代码行。
         values.put("expiredAt", row.getExpiredAt());
-        // 注释：执行当前代码行。
         values.put("noticeContent", row.getNoticeContent());
-        // 注释：执行当前代码行。
         values.put("createTime", row.getCreateTime());
-        // 注释：执行当前代码行。
         values.put("updateTime", row.getUpdateTime());
-        // 注释：返回当前处理结果。
         return DomainRecord.of(values);
-        // 注释：结束当前代码块。
     }
-// 注释：结束当前代码块。
 }

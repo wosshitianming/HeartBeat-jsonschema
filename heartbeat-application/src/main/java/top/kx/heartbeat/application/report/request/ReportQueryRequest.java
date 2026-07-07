@@ -1,16 +1,12 @@
-// 注释：声明当前文件所属的包路径。
 package top.kx.heartbeat.application.report.request;
 
 import lombok.Data;
 
 /**
- * 注释：当前类用于承载对应业务逻辑。
+ * 承载报表管理请求参数，保持接口层到应用层的数据结构清晰稳定。
  */
-// 注释：声明当前元素使用的注解配置。
 @Data
 public class ReportQueryRequest {
 
-    // 注释：声明当前成员或方法。
     private Object params;
-// 注释：结束当前代码块。
 }

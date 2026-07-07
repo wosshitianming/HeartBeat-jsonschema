@@ -1,4 +1,3 @@
-// 注释：声明当前文件所属的包路径。
 package top.kx.heartbeat.infrastructure.pay.repository;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -21,324 +20,256 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * 注释：当前类用于承载对应业务逻辑。
+ * 实现公众号管理持久化端口，通过 Mapper 完成数据读写与对象转换。
  */
-// 注释：声明当前元素使用的注解配置。
 @Repository
 public class PayChannelRepositoryImpl implements PayChannelRepository {
 
-    // 注释：声明当前成员或方法。
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    // 注释：声明当前元素使用的注解配置。
     @Resource
-    // 注释：声明当前成员或方法。
     private PayChannelDOMapper channelMapper;
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 查询列表数据，保持返回结构稳定并便于前端直接消费，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @Override
     public List<DomainRecord> listChannels() {
-        // 注释：设置或计算当前变量值。
         PayChannelDOExample example = new PayChannelDOExample();
-        // 注释：执行当前代码行。
         example.createCriteria().andTenantIdEqualTo(tenantId());
-        // 注释：执行当前代码行。
         example.setOrderByClause("sort_no ASC, id DESC");
-        // 注释：返回当前处理结果。
         return channelMapper.selectByExampleWithBLOBs(example)
-                // 注释：继续当前链式调用。
                 .stream()
-                // 注释：继续当前链式调用。
                 .map(this::record)
-                // 注释：继续当前链式调用。
                 .collect(Collectors.toList());
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 查询业务数据详情，供上层用例继续编排或返回给调用方，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @param id 业务记录标识。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @Override
     public DomainRecord getChannel(String id) {
-        // 注释：返回当前处理结果。
         return record(requireChannel(id));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 创建业务记录，并补齐持久化所需的默认数据，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @param request 公众号管理请求参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @Override
     public DomainRecord createChannel(PayChannelRequest request) {
-        // 注释：设置或计算当前变量值。
         PayChannelDO row = channelRow(request);
-        // 注释：设置或计算当前变量值。
         Date now = new Date();
-        // 注释：执行当前代码行。
         row.setTenantId(tenantId());
-        // 注释：执行当前代码行。
         row.setCreateTime(now);
-        // 注释：执行当前代码行。
         row.setUpdateTime(now);
-        // 注释：执行当前代码行。
         channelMapper.insertSelective(row);
-        // 注释：返回当前处理结果。
         return record(row);
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 更新业务记录，只处理调用方传入的可变字段，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @param id 业务记录标识。
+     * @param request 公众号管理请求参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @Override
     public DomainRecord updateChannel(String id, PayChannelRequest request) {
-        // 注释：设置或计算当前变量值。
         PayChannelDO row = requireChannel(id);
-        // 注释：执行当前代码行。
         merge(row, request);
-        // 注释：执行当前代码行。
         row.setUpdateTime(new Date());
-        // 注释：执行当前代码行。
         channelMapper.updateByPrimaryKeySelective(row);
-        // 注释：返回当前处理结果。
         return record(requireChannel(String.valueOf(row.getId())));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @param request 公众号管理请求参数。
+     * @return 处理后的业务结果。
      */
     private PayChannelDO channelRow(PayChannelRequest request) {
-        // 注释：设置或计算当前变量值。
         PayChannelDO row = new PayChannelDO();
-        // 注释：执行当前代码行。
         merge(row, request);
-        // 注释：返回当前处理结果。
         return row;
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @param row 待写入或转换的数据库记录。
+     * @param request 公众号管理请求参数。
      */
     private void merge(PayChannelDO row, PayChannelRequest request) {
-        // 注释：设置或计算当前变量值。
         PayChannelRequest safeRequest = request == null ? new PayChannelRequest() : request;
-        // 注释：执行当前代码行。
         row.setName(value(safeRequest.getName(), value(row.getName(), "支付渠道")));
-        // 注释：执行当前代码行。
         row.setProvider(value(safeRequest.getProvider(), value(row.getProvider(), "MOCK")));
-        // 注释：执行当前代码行。
         row.setAppId(value(safeRequest.getAppId(), value(row.getAppId(), "")));
-        // 注释：执行当前代码行。
         row.setAppSecret(value(safeRequest.getAppSecret(), value(row.getAppSecret(), "")));
-        // 注释：执行当前代码行。
         row.setStatus(value(safeRequest.getStatus(), value(row.getStatus(), "ACTIVE")));
-        // 注释：设置或计算当前变量值。
         row.setSortNo(safeRequest.getSortNo() == null ? intValue(row.getSortNo(), 0) : safeRequest.getSortNo());
-        // 注释：设置或计算当前变量值。
         Object config = safeRequest.getConfig() == null ? row.getConfigJson() : safeRequest.getConfig();
-        // 注释：执行当前代码行。
         row.setConfigJson(jsonValue(config));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @param id 业务记录标识。
+     * @return 处理后的业务结果。
      */
     private PayChannelDO requireChannel(String id) {
-        // 注释：设置或计算当前变量值。
         PayChannelDO row = findChannelById(longValue(id, -1L));
-        // 注释：判断当前业务条件。
         if (row == null) {
-            // 注释：抛出当前业务异常。
             throw new IllegalArgumentException("Pay channel does not exist: " + id);
-            // 注释：结束当前代码块。
         }
-        // 注释：返回当前处理结果。
         return row;
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 查询业务数据详情，供上层用例继续编排或返回给调用方，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @param id 业务记录标识。
+     * @return 处理后的业务结果。
      */
     private PayChannelDO findChannelById(Long id) {
-        // 注释：判断当前业务条件。
         if (id == null || id <= 0) {
-            // 注释：返回当前处理结果。
             return null;
-            // 注释：结束当前代码块。
         }
-        // 注释：设置或计算当前变量值。
         PayChannelDO row = channelMapper.selectByPrimaryKey(id);
-        // 注释：返回当前处理结果。
         return row != null && tenantId().equals(row.getTenantId()) ? row : null;
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 转换数据结构，隔离接口层、应用层与持久化层的对象差异，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @param row 待写入或转换的数据库记录。
+     * @return 处理后的业务结果。
      */
     private DomainRecord record(PayChannelDO row) {
-        // 注释：设置或计算当前变量值。
         Map<String, Object> values = new LinkedHashMap<>();
-        // 注释：执行当前代码行。
         values.put("id", stringValue(row.getId()));
-        // 注释：执行当前代码行。
         values.put("tenantId", stringValue(row.getTenantId()));
-        // 注释：执行当前代码行。
         values.put("name", row.getName());
-        // 注释：执行当前代码行。
         values.put("provider", row.getProvider());
-        // 注释：执行当前代码行。
         values.put("appId", row.getAppId());
-        // 注释：执行当前代码行。
         values.put("appSecret", row.getAppSecret());
-        // 注释：执行当前代码行。
         values.put("status", row.getStatus());
-        // 注释：执行当前代码行。
         values.put("sortNo", row.getSortNo());
-        // 注释：执行当前代码行。
         values.put("config", readJson(row.getConfigJson()));
-        // 注释：执行当前代码行。
         values.put("createTime", stringValue(row.getCreateTime()));
-        // 注释：执行当前代码行。
         values.put("updateTime", stringValue(row.getUpdateTime()));
-        // 注释：返回当前处理结果。
         return DomainRecord.of(values);
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @param json 业务处理所需参数。
+     * @return 处理后的业务结果。
      */
     private JsonNode readJson(String json) {
-        // 注释：开始执行可能抛出异常的逻辑。
         try {
-            // 注释：返回当前处理结果。
             return objectMapper.readTree(StringUtils.isBlank(json) ? "{}" : json);
-            // 注释：捕获并处理当前异常。
         } catch (Exception ex) {
-            // 注释：抛出当前业务异常。
             throw new IllegalArgumentException("JSON parse failed", ex);
-            // 注释：结束当前代码块。
         }
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @param value 待转换的原始值。
+     * @return 处理后的业务结果。
      */
     private String jsonValue(Object value) {
-        // 注释：开始执行可能抛出异常的逻辑。
         try {
-            // 注释：判断当前业务条件。
             if (value == null) {
-                // 注释：返回当前处理结果。
                 return "{}";
-                // 注释：结束当前代码块。
             }
-            // 注释：判断当前业务条件。
             if (value instanceof String) {
-                // 注释：设置或计算当前变量值。
                 String text = ((String) value).trim();
-                // 注释：返回当前处理结果。
                 return StringUtils.isBlank(text) ? "{}" : text;
-                // 注释：结束当前代码块。
             }
-            // 注释：返回当前处理结果。
             return objectMapper.writeValueAsString(value);
-            // 注释：捕获并处理当前异常。
         } catch (Exception ex) {
-            // 注释：抛出当前业务异常。
             throw new IllegalArgumentException("JSON serialize failed", ex);
-            // 注释：结束当前代码块。
         }
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @param raw 业务处理所需参数。
+     * @param defaultValue 空值时使用的默认值。
+     * @return 处理后的业务结果。
      */
     private String value(Object raw, String defaultValue) {
-        // 注释：设置或计算当前变量值。
         String text = stringValue(raw);
-        // 注释：返回当前处理结果。
         return StringUtils.isBlank(text) ? defaultValue : text;
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @param raw 业务处理所需参数。
+     * @param defaultValue 空值时使用的默认值。
+     * @return 处理后的业务结果。
      */
     private int intValue(Object raw, int defaultValue) {
-        // 注释：判断当前业务条件。
         if (raw instanceof Number) {
-            // 注释：返回当前处理结果。
             return ((Number) raw).intValue();
-            // 注释：结束当前代码块。
         }
-        // 注释：开始执行可能抛出异常的逻辑。
         try {
-            // 注释：返回当前处理结果。
             return raw == null ? defaultValue : Integer.parseInt(String.valueOf(raw).trim());
-            // 注释：捕获并处理当前异常。
         } catch (NumberFormatException ignored) {
-            // 注释：返回当前处理结果。
             return defaultValue;
-            // 注释：结束当前代码块。
         }
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @param raw 业务处理所需参数。
+     * @param defaultValue 空值时使用的默认值。
+     * @return 处理后的业务结果。
      */
     private long longValue(Object raw, long defaultValue) {
-        // 注释：判断当前业务条件。
         if (raw instanceof Number) {
-            // 注释：返回当前处理结果。
             return ((Number) raw).longValue();
-            // 注释：结束当前代码块。
         }
-        // 注释：开始执行可能抛出异常的逻辑。
         try {
-            // 注释：返回当前处理结果。
             return raw == null ? defaultValue : Long.parseLong(String.valueOf(raw).trim());
-            // 注释：捕获并处理当前异常。
         } catch (NumberFormatException ignored) {
-            // 注释：返回当前处理结果。
             return defaultValue;
-            // 注释：结束当前代码块。
         }
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 统一处理字符串兜底，避免空值在业务流程中扩散，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @param value 待转换的原始值。
+     * @return 处理后的业务结果。
      */
     private String stringValue(Object value) {
-        // 注释：返回当前处理结果。
         return value == null ? "" : String.valueOf(value).trim();
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 读取当前租户上下文，保证数据写入归属正确，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @return 处理后的业务结果。
      */
     private Long tenantId() {
-        // 注释：设置或计算当前变量值。
         Long tenantId = TenantContext.getTenantId();
-        // 注释：返回当前处理结果。
         return tenantId == null ? 1L : tenantId;
-        // 注释：结束当前代码块。
     }
-// 注释：结束当前代码块。
 }

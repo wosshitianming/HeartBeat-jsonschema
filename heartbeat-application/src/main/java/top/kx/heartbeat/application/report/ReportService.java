@@ -1,4 +1,3 @@
-// 注释：声明当前文件所属的包路径。
 package top.kx.heartbeat.application.report;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -21,196 +20,172 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * 注释：当前类用于承载对应业务逻辑。
+ * 编排报表管理应用用例，承接接口层请求并协调仓储与领域能力。
  */
-// 注释：声明当前元素使用的注解配置。
 @Service
 public class ReportService {
 
-    // 注释：声明当前成员或方法。
     private static final int DEFAULT_LIMIT = 500;
-    // 注释：声明当前成员或方法。
     private static final int MAX_LIMIT = 5000;
-    // 注释：声明当前成员或方法。
     private static final String READONLY_SQL_PREFIX = "select";
 
-    // 注释：声明当前元素使用的注解配置。
     @Resource
-    // 注释：声明当前成员或方法。
     private ReportDatasetRepository datasetRepository;
 
-    // 注释：声明当前元素使用的注解配置。
     @Resource
-    // 注释：声明当前成员或方法。
     private ReportTemplateRepository templateRepository;
 
-    // 注释：声明当前元素使用的注解配置。
     @Resource
-    // 注释：声明当前成员或方法。
     private ReportQueryRepository queryRepository;
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 查询列表数据，保持返回结构稳定并便于前端直接消费，协调报表管理相关仓储和领域规则。
+     *
+     * @return 处理后的业务结果。
      */
     public List<RecordResponse> listDatasets() {
-        // 注释：返回当前处理结果。
         return RecordResponse.fromMaps(maps(datasetRepository.listDatasets()));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 保存业务数据，按当前记录状态选择新增或更新路径，协调报表管理相关仓储和领域规则。
+     *
+     * @param request 报表管理请求参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @Transactional
     public RecordResponse saveDataset(ReportDatasetRequest request) {
-        // 注释：执行当前代码行。
         assertReadonlySql(request.getQuerySql());
-        // 注释：返回当前处理结果。
         return RecordResponse.from(datasetRepository.saveDataset(request));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 查询列表数据，保持返回结构稳定并便于前端直接消费，协调报表管理相关仓储和领域规则。
+     *
+     * @return 处理后的业务结果。
      */
     public List<RecordResponse> listTemplates() {
-        // 注释：返回当前处理结果。
         return RecordResponse.fromMaps(maps(templateRepository.listTemplates()));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 保存业务数据，按当前记录状态选择新增或更新路径，协调报表管理相关仓储和领域规则。
+     *
+     * @param request 报表管理请求参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @Transactional
     public RecordResponse saveTemplate(ReportTemplateRequest request) {
-        // 注释：返回当前处理结果。
         return RecordResponse.from(templateRepository.saveTemplate(request));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 查询业务数据详情，供上层用例继续编排或返回给调用方，协调报表管理相关仓储和领域规则。
+     *
+     * @param datasetId 业务记录标识。
+     * @param params 业务处理所需参数。
+     * @param limit 业务处理所需参数。
+     * @return 处理后的业务结果。
      */
     public List<RecordResponse> query(String datasetId, Map<String, Object> params, Integer limit) {
-        // 注释：返回当前处理结果。
         return RecordResponse.fromMaps(queryRows(datasetId, params, limit));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，协调报表管理相关仓储和领域规则。
+     *
+     * @param datasetId 业务记录标识。
+     * @param params 业务处理所需参数。
+     * @param limit 业务处理所需参数。
+     * @return 处理后的业务结果。
      */
     public byte[] exportCsv(String datasetId, Map<String, Object> params, Integer limit) {
-        // 注释：设置或计算当前变量值。
         List<Map<String, Object>> rows = queryRows(datasetId, params, limit);
-        // 注释：设置或计算当前变量值。
         StringBuilder csv = new StringBuilder();
-        // 注释：判断当前业务条件。
         if (CollectionUtils.isNotEmpty(rows)) {
-            // 注释：设置或计算当前变量值。
             List<String> headers = new ArrayList<>(rows.get(0).keySet());
-            // 注释：执行当前代码行。
             csv.append(joinCsv(headers)).append('\n');
-            // 注释：遍历当前数据集合。
             for (Map<String, Object> row : rows) {
-                // 注释：设置或计算当前变量值。
                 List<String> values = new ArrayList<>();
-                // 注释：遍历当前数据集合。
                 for (String header : headers) {
-                    // 注释：设置或计算当前变量值。
                     values.add(row.get(header) == null ? "" : String.valueOf(row.get(header)));
-                    // 注释：结束当前代码块。
                 }
-                // 注释：执行当前代码行。
                 csv.append(joinCsv(values)).append('\n');
-                // 注释：结束当前代码块。
             }
-            // 注释：结束当前代码块。
         }
-        // 注释：返回当前处理结果。
         return csv.toString().getBytes(StandardCharsets.UTF_8);
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 查询业务数据详情，供上层用例继续编排或返回给调用方，协调报表管理相关仓储和领域规则。
+     *
+     * @param datasetId 业务记录标识。
+     * @param params 业务处理所需参数。
+     * @param limit 业务处理所需参数。
+     * @return 处理后的业务结果。
      */
     private List<Map<String, Object>> queryRows(String datasetId, Map<String, Object> params, Integer limit) {
-        // 注释：设置或计算当前变量值。
         Map<String, Object> dataset = datasetRepository.getDataset(datasetId).toMap();
-        // 注释：设置或计算当前变量值。
         String sql = stringValue(dataset.get("querySql"));
-        // 注释：执行当前代码行。
         assertReadonlySql(sql);
-        // 注释：设置或计算当前变量值。
         Map<String, Object> safeParams = params == null ? Collections.emptyMap() : params;
-        // 注释：返回当前处理结果。
         return maps(queryRepository.query(sql, safeParams, normalizeLimit(limit)));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，协调报表管理相关仓储和领域规则。
+     *
+     * @param sql 业务处理所需参数。
      */
     private void assertReadonlySql(String sql) {
-        // 注释：设置或计算当前变量值。
         String normalized = sql == null ? "" : sql.trim().toLowerCase(java.util.Locale.ROOT);
-        // 注释：判断当前业务条件。
         if (!normalized.startsWith(READONLY_SQL_PREFIX) || normalized.contains(";")) {
-            // 注释：抛出当前业务异常。
             throw new IllegalArgumentException("Report dataset only supports single SELECT SQL");
-            // 注释：结束当前代码块。
         }
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，协调报表管理相关仓储和领域规则。
+     *
+     * @param limit 业务处理所需参数。
+     * @return 处理后的业务结果。
      */
     private int normalizeLimit(Integer limit) {
-        // 注释：判断当前业务条件。
         if (limit == null || limit <= 0) {
-            // 注释：返回当前处理结果。
             return DEFAULT_LIMIT;
-            // 注释：结束当前代码块。
         }
-        // 注释：返回当前处理结果。
         return Math.min(limit, MAX_LIMIT);
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，协调报表管理相关仓储和领域规则。
+     *
+     * @param values 业务处理所需参数。
+     * @return 处理后的业务结果。
      */
     private String joinCsv(List<String> values) {
-        // 注释：返回当前处理结果。
         return values.stream()
-                // 注释：继续当前链式调用。
                 .map(value -> "\"" + value.replace("\"", "\"\"") + "\"")
-                // 注释：继续当前链式调用。
                 .collect(Collectors.joining(","));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 统一处理字符串兜底，避免空值在业务流程中扩散，协调报表管理相关仓储和领域规则。
+     *
+     * @param value 待转换的原始值。
+     * @return 处理后的业务结果。
      */
     private String stringValue(Object value) {
-        // 注释：返回当前处理结果。
         return value == null ? "" : String.valueOf(value).trim();
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 转换数据结构，隔离接口层、应用层与持久化层的对象差异，协调报表管理相关仓储和领域规则。
+     *
+     * @param records 应用层业务记录。
+     * @return 处理后的业务结果。
      */
     private List<Map<String, Object>> maps(List<DomainRecord> records) {
-        // 注释：返回当前处理结果。
         return records.stream().map(DomainRecord::toMap).collect(Collectors.toList());
-        // 注释：结束当前代码块。
     }
-// 注释：结束当前代码块。
 }

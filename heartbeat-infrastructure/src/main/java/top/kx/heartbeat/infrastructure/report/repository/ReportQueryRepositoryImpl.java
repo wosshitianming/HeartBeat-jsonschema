@@ -1,4 +1,3 @@
-// 注释：声明当前文件所属的包路径。
 package top.kx.heartbeat.infrastructure.report.repository;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,82 +17,64 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * 注释：当前类用于承载对应业务逻辑。
+ * 实现公众号管理持久化端口，通过 Mapper 完成数据读写与对象转换。
  */
-// 注释：声明当前元素使用的注解配置。
 @Repository
 public class ReportQueryRepositoryImpl implements ReportQueryRepository {
 
-    // 注释：声明当前成员或方法。
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    // 注释：声明当前元素使用的注解配置。
     @Resource
-    // 注释：声明当前成员或方法。
     private ReportQueryMapper queryMapper;
 
-    // 注释：声明当前元素使用的注解配置。
     @Resource
-    // 注释：声明当前成员或方法。
     private ReportQueryLogDOMapper queryLogDOMapper;
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 查询业务数据详情，供上层用例继续编排或返回给调用方，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @param sql 业务处理所需参数。
+     * @param params 业务处理所需参数。
+     * @param limit 业务处理所需参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @Override
     public List<DomainRecord> query(String sql, Map<String, Object> params, int limit) {
-        // 注释：设置或计算当前变量值。
         List<Map<String, Object>> rows = queryMapper.executeReportQuery(sql, params, limit);
 
-        // 注释：设置或计算当前变量值。
         ReportQueryLogDO log = new ReportQueryLogDO();
-        // 注释：执行当前代码行。
         log.setTenantId(tenantId());
-        // 注释：执行当前代码行。
         log.setDatasetId(0L);
-        // 注释：执行当前代码行。
         log.setParamsJson(jsonValue(params));
-        // 注释：执行当前代码行。
         log.setRowCount(rows.size());
-        // 注释：执行当前代码行。
         log.setStatus("SUCCESS");
-        // 注释：执行当前代码行。
         log.setCreateTime(new Date());
-        // 注释：执行当前代码行。
         queryLogDOMapper.insertSelective(log);
 
-        // 注释：返回当前处理结果。
         return rows.stream().map(DomainRecord::of).collect(Collectors.toList());
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @param value 待转换的原始值。
+     * @return 处理后的业务结果。
      */
     private String jsonValue(Object value) {
-        // 注释：开始执行可能抛出异常的逻辑。
         try {
-            // 注释：返回当前处理结果。
             return objectMapper.writeValueAsString(value == null ? new LinkedHashMap<String, Object>() : value);
-            // 注释：捕获并处理当前异常。
         } catch (Exception ex) {
-            // 注释：抛出当前业务异常。
             throw new IllegalArgumentException("JSON serialize failed", ex);
-            // 注释：结束当前代码块。
         }
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 读取当前租户上下文，保证数据写入归属正确，通过 Mapper 完成公众号管理数据访问。
+     *
+     * @return 处理后的业务结果。
      */
     private long tenantId() {
-        // 注释：设置或计算当前变量值。
         Long tenantId = TenantContext.getTenantId();
-        // 注释：返回当前处理结果。
         return tenantId == null ? 1L : tenantId;
-        // 注释：结束当前代码块。
     }
-// 注释：结束当前代码块。
 }

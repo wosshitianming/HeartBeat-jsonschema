@@ -1,4 +1,3 @@
-// 注释：声明当前文件所属的包路径。
 package top.kx.heartbeat.interfaces.mobile;
 
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -16,119 +15,106 @@ import javax.annotation.Resource;
 import java.util.List;
 
 /**
- * 注释：当前类用于承载对应业务逻辑。
+ * 提供移动端配置 HTTP 接口，负责接收请求并委托应用服务完成用例编排。
  */
-// 注释：声明当前元素使用的注解配置。
 @RestController
-// 注释：声明当前元素使用的注解配置。
 @RequestMapping("/api/v1/mobile")
 public class MobileController {
 
-    // 注释：声明当前元素使用的注解配置。
     @Resource
-    // 注释：声明当前成员或方法。
     private MobileService mobileService;
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，并统一委托移动端配置应用服务完成处理。
+     *
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @GetMapping("/apps")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('biz:mobile:list')")
     public Result<List<DynamicRecordResponse>> apps() {
-        // 注释：返回当前处理结果。
         return listResponse(mobileService.listApps());
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 保存业务数据，按当前记录状态选择新增或更新路径，并统一委托移动端配置应用服务完成处理。
+     *
+     * @param request 移动端配置请求参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @PostMapping("/apps")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('biz:mobile:edit')")
-    // 注释：声明当前元素使用的注解配置。
     @OperLog(module = "移动端", action = "保存移动应用")
     public Result<DynamicRecordResponse> saveApp(@RequestBody MobileAppRequest request) {
-        // 注释：返回当前处理结果。
         return recordResponse(mobileService.saveApp(request));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 查询列表数据，保持返回结构稳定并便于前端直接消费，并统一委托移动端配置应用服务完成处理。
+     *
+     * @param appId 业务记录标识。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @GetMapping("/apps/{appId}/pages")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('biz:mobile:list')")
     public Result<List<DynamicRecordResponse>> pages(@PathVariable String appId) {
-        // 注释：返回当前处理结果。
         return listResponse(mobileService.listPages(appId));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 保存业务数据，按当前记录状态选择新增或更新路径，并统一委托移动端配置应用服务完成处理。
+     *
+     * @param request 移动端配置请求参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @PostMapping("/pages")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('biz:mobile:edit')")
-    // 注释：声明当前元素使用的注解配置。
     @OperLog(module = "移动端", action = "保存移动页面")
     public Result<DynamicRecordResponse> savePage(@RequestBody MobilePageRequest request) {
-        // 注释：返回当前处理结果。
         return recordResponse(mobileService.savePage(request));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，并统一委托移动端配置应用服务完成处理。
+     *
+     * @param appId 业务记录标识。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @GetMapping("/apps/{appId}/api-routes")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('biz:mobile:list')")
     public Result<List<DynamicRecordResponse>> apiRoutes(@PathVariable String appId) {
-        // 注释：返回当前处理结果。
         return listResponse(mobileService.listApiRoutes(appId));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 保存业务数据，按当前记录状态选择新增或更新路径，并统一委托移动端配置应用服务完成处理。
+     *
+     * @param request 移动端配置请求参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @PostMapping("/api-routes")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('biz:mobile:edit')")
-    // 注释：声明当前元素使用的注解配置。
     @OperLog(module = "移动端", action = "保存移动 API 路由")
     public Result<DynamicRecordResponse> saveApiRoute(@RequestBody MobileApiRouteRequest request) {
-        // 注释：返回当前处理结果。
         return recordResponse(mobileService.saveApiRoute(request));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 查询列表数据，保持返回结构稳定并便于前端直接消费，并统一委托移动端配置应用服务完成处理。
+     *
+     * @param records 应用层业务记录。
+     * @return 处理后的业务结果。
      */
     private Result<List<DynamicRecordResponse>> listResponse(List<RecordResponse> records) {
-        // 注释：返回当前处理结果。
         return Result.success(DynamicRecordResponse.fromRecordList(records));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，并统一委托移动端配置应用服务完成处理。
+     *
+     * @param record 应用层业务记录。
+     * @return 处理后的业务结果。
      */
     private Result<DynamicRecordResponse> recordResponse(RecordResponse record) {
-        // 注释：返回当前处理结果。
         return Result.success(DynamicRecordResponse.from(record));
-        // 注释：结束当前代码块。
     }
-// 注释：结束当前代码块。
 }

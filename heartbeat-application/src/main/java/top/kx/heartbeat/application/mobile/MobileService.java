@@ -1,4 +1,3 @@
-// 注释：声明当前文件所属的包路径。
 package top.kx.heartbeat.application.mobile;
 
 import org.springframework.stereotype.Service;
@@ -17,92 +16,87 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 注释：当前类用于承载对应业务逻辑。
+ * 编排移动端配置应用用例，承接接口层请求并协调仓储与领域能力。
  */
-// 注释：声明当前元素使用的注解配置。
 @Service
 public class MobileService {
 
-    // 注释：声明当前元素使用的注解配置。
     @Resource
-    // 注释：声明当前成员或方法。
     private MobileAppRepository mobileAppRepository;
-    // 注释：声明当前元素使用的注解配置。
     @Resource
-    // 注释：声明当前成员或方法。
     private MobilePageRepository mobilePageRepository;
-    // 注释：声明当前元素使用的注解配置。
     @Resource
-    // 注释：声明当前成员或方法。
     private MobileApiRouteRepository mobileApiRouteRepository;
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 查询列表数据，保持返回结构稳定并便于前端直接消费，协调移动端配置相关仓储和领域规则。
+     *
+     * @return 处理后的业务结果。
      */
     public List<RecordResponse> listApps() {
-        // 注释：返回当前处理结果。
         return RecordResponse.fromMaps(maps(mobileAppRepository.listApps()));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 保存业务数据，按当前记录状态选择新增或更新路径，协调移动端配置相关仓储和领域规则。
+     *
+     * @param request 移动端配置请求参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @Transactional
     public RecordResponse saveApp(MobileAppRequest request) {
-        // 注释：返回当前处理结果。
         return RecordResponse.from(mobileAppRepository.saveApp(request));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 查询列表数据，保持返回结构稳定并便于前端直接消费，协调移动端配置相关仓储和领域规则。
+     *
+     * @param appId 业务记录标识。
+     * @return 处理后的业务结果。
      */
     public List<RecordResponse> listPages(String appId) {
-        // 注释：返回当前处理结果。
         return RecordResponse.fromMaps(maps(mobilePageRepository.listPages(appId)));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 保存业务数据，按当前记录状态选择新增或更新路径，协调移动端配置相关仓储和领域规则。
+     *
+     * @param request 移动端配置请求参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @Transactional
     public RecordResponse savePage(MobilePageRequest request) {
-        // 注释：返回当前处理结果。
         return RecordResponse.from(mobilePageRepository.savePage(request));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 查询列表数据，保持返回结构稳定并便于前端直接消费，协调移动端配置相关仓储和领域规则。
+     *
+     * @param appId 业务记录标识。
+     * @return 处理后的业务结果。
      */
     public List<RecordResponse> listApiRoutes(String appId) {
-        // 注释：返回当前处理结果。
         return RecordResponse.fromMaps(maps(mobileApiRouteRepository.listApiRoutes(appId)));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 保存业务数据，按当前记录状态选择新增或更新路径，协调移动端配置相关仓储和领域规则。
+     *
+     * @param request 移动端配置请求参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @Transactional
     public RecordResponse saveApiRoute(MobileApiRouteRequest request) {
-        // 注释：返回当前处理结果。
         return RecordResponse.from(mobileApiRouteRepository.saveApiRoute(request));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 转换数据结构，隔离接口层、应用层与持久化层的对象差异，协调移动端配置相关仓储和领域规则。
+     *
+     * @param records 应用层业务记录。
+     * @return 处理后的业务结果。
      */
     private List<Map<String, Object>> maps(List<DomainRecord> records) {
-        // 注释：返回当前处理结果。
         return records.stream().map(DomainRecord::toMap).collect(java.util.stream.Collectors.toList());
-        // 注释：结束当前代码块。
     }
-// 注释：结束当前代码块。
 }

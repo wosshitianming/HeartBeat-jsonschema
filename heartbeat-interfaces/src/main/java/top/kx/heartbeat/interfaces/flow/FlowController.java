@@ -1,4 +1,3 @@
-// 注释：声明当前文件所属的包路径。
 package top.kx.heartbeat.interfaces.flow;
 
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,245 +20,219 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 注释：当前类用于承载对应业务逻辑。
+ * 提供流程执行 HTTP 接口，负责接收请求并委托应用服务完成用例编排。
  */
-// 注释：声明当前元素使用的注解配置。
 @RestController
-// 注释：声明当前元素使用的注解配置。
 @RequestMapping("/api/v1/flows")
 public class FlowController {
 
-    // 注释：声明当前元素使用的注解配置。
     @Resource
-    // 注释：声明当前成员或方法。
     private FlowApplicationService flowApplicationService;
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 查询列表数据，保持返回结构稳定并便于前端直接消费，并统一委托流程执行应用服务完成处理。
+     *
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @GetMapping
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('flow:studio:list')")
     public Result<List<FlowDefinition>> list() {
-        // 注释：返回当前处理结果。
         return Result.success(flowApplicationService.list());
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 查询业务数据详情，供上层用例继续编排或返回给调用方，并统一委托流程执行应用服务完成处理。
+     *
+     * @param id 业务记录标识。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @GetMapping("/{id}")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('flow:studio:list')")
     public Result<FlowDefinition> get(@PathVariable String id) {
-        // 注释：返回当前处理结果。
         return Result.success(flowApplicationService.get(id));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 创建业务记录，并补齐持久化所需的默认数据，并统一委托流程执行应用服务完成处理。
+     *
+     * @param flow 业务处理所需参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @PostMapping
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('flow:definition:edit')")
     public Result<FlowDefinition> create(@RequestBody FlowDefinition flow) {
-        // 注释：返回当前处理结果。
         return Result.success(flowApplicationService.saveDraft(flow));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 保存业务数据，按当前记录状态选择新增或更新路径，并统一委托流程执行应用服务完成处理。
+     *
+     * @param id 业务记录标识。
+     * @param flow 业务处理所需参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @PutMapping("/{id}/draft")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('flow:definition:edit')")
     public Result<FlowDefinition> saveDraft(@PathVariable String id, @RequestBody FlowDefinition flow) {
-        // 注释：执行当前代码行。
         flow.setId(id);
-        // 注释：返回当前处理结果。
         return Result.success(flowApplicationService.saveDraft(flow));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，并统一委托流程执行应用服务完成处理。
+     *
+     * @param id 业务记录标识。
+     * @param flow 业务处理所需参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @PostMapping("/{id}/compile")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('flow:studio:list')")
     public Result<DynamicRecordResponse> compile(@PathVariable String id, @RequestBody FlowDefinition flow) {
-        // 注释：执行当前代码行。
         flow.setId(id);
-        // 注释：设置或计算当前变量值。
         RecordResponse compiled = flowApplicationService.compile(flow);
-        // 注释：返回当前处理结果。
         return Result.success(DynamicRecordResponse.from(compiled));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，并统一委托流程执行应用服务完成处理。
+     *
+     * @param id 业务记录标识。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @PostMapping("/{id}/publish")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('flow:definition:publish')")
     public Result<FlowVersion> publish(@PathVariable String id) {
-        // 注释：返回当前处理结果。
         return Result.success(flowApplicationService.publish(id));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，并统一委托流程执行应用服务完成处理。
+     *
+     * @param id 业务记录标识。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @GetMapping("/{id}/versions")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('flow:studio:list')")
     public Result<List<FlowVersion>> versions(@PathVariable String id) {
-        // 注释：返回当前处理结果。
         return Result.success(flowApplicationService.versions(id));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，并统一委托流程执行应用服务完成处理。
+     *
+     * @param id 业务记录标识。
+     * @param input 业务处理所需参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @PostMapping("/{id}/debug")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('flow:studio:list')")
     public Result<FlowDebugResult> debug(@PathVariable String id,
-                                         // 注释：声明当前元素使用的注解配置。
                                          @RequestBody(required = false) FlowInputRequest input) {
-        // 注释：返回当前处理结果。
         return Result.success(flowApplicationService.debug(id, variables(input)));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，并统一委托流程执行应用服务完成处理。
+     *
+     * @param id 业务记录标识。
+     * @param input 业务处理所需参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @PostMapping("/{id}/run")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('flow:studio:list')")
     public Result<FlowRun> run(@PathVariable String id,
-                               // 注释：声明当前元素使用的注解配置。
                                @RequestBody(required = false) FlowInputRequest input) {
-        // 注释：返回当前处理结果。
         return Result.success(flowApplicationService.run(id, variables(input)));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，并统一委托流程执行应用服务完成处理。
+     *
+     * @param id 业务记录标识。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @GetMapping("/{id}/runs")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('flow:studio:list')")
     public Result<List<FlowRun>> runs(@PathVariable String id) {
-        // 注释：返回当前处理结果。
         return Result.success(flowApplicationService.runs(id));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，并统一委托流程执行应用服务完成处理。
+     *
+     * @param runId 业务记录标识。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @GetMapping("/runs/{runId}")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('flow:studio:list')")
     public Result<FlowRun> runDetail(@PathVariable String runId) {
-        // 注释：返回当前处理结果。
         return Result.success(flowApplicationService.runDetail(runId));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，并统一委托流程执行应用服务完成处理。
+     *
+     * @param runId 业务记录标识。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @GetMapping("/runs/{runId}/events")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('flow:studio:list')")
     public Result<List<FlowRunEvent>> runEvents(@PathVariable String runId) {
-        // 注释：返回当前处理结果。
         return Result.success(flowApplicationService.runEvents(runId));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，并统一委托流程执行应用服务完成处理。
+     *
+     * @param runId 业务记录标识。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @GetMapping("/runs/{runId}/replay")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('flow:studio:list')")
     public Result<List<FlowRunEvent>> replay(@PathVariable String runId) {
-        // 注释：返回当前处理结果。
         return Result.success(flowApplicationService.replay(runId));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 推进流程状态流转，并保持业务动作语义清晰，并统一委托流程执行应用服务完成处理。
+     *
+     * @param runId 业务记录标识。
+     * @param input 业务处理所需参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @PostMapping("/runs/{runId}/cancel")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('flow:definition:publish')")
     public Result<Boolean> cancel(@PathVariable String runId,
-                                  // 注释：声明当前元素使用的注解配置。
                                   @RequestBody(required = false) FlowCancelRequest input) {
-        // 注释：设置或计算当前变量值。
         String reason = input == null || input.getReason() == null || input.getReason().trim().isEmpty()
-                // 注释：执行当前代码行。
                 ? "用户取消流程运行"
-                // 注释：执行当前代码行。
                 : input.getReason().trim();
-        // 注释：执行当前代码行。
         flowApplicationService.cancel(runId, reason);
-        // 注释：返回当前处理结果。
         return Result.success(Boolean.TRUE);
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，并统一委托流程执行应用服务完成处理。
+     *
+     * @param id 业务记录标识。
+     * @param versionNo 业务处理所需参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @PutMapping("/{id}/active-version/{versionNo}")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('flow:definition:publish')")
     public Result<FlowDefinition> activate(@PathVariable String id, @PathVariable int versionNo) {
-        // 注释：返回当前处理结果。
         return Result.success(flowApplicationService.activate(id, versionNo));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，并统一委托流程执行应用服务完成处理。
+     *
+     * @param input 业务处理所需参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @SuppressWarnings("unchecked")
     private Map<String, Object> variables(FlowInputRequest input) {
-        // 注释：设置或计算当前变量值。
         Object variables = input == null ? null : input.getVariables();
-        // 注释：返回当前处理结果。
         return variables instanceof Map ? (Map<String, Object>) variables : Collections.emptyMap();
-        // 注释：结束当前代码块。
     }
-// 注释：结束当前代码块。
 }

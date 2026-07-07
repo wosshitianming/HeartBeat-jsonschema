@@ -1,4 +1,3 @@
-// 注释：声明当前文件所属的包路径。
 package top.kx.heartbeat.interfaces.report;
 
 import org.springframework.http.HttpHeaders;
@@ -21,150 +20,130 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 注释：当前类用于承载对应业务逻辑。
+ * 提供报表管理 HTTP 接口，负责接收请求并委托应用服务完成用例编排。
  */
-// 注释：声明当前元素使用的注解配置。
 @RestController
-// 注释：声明当前元素使用的注解配置。
 @RequestMapping("/api/v1/report")
 public class ReportController {
 
-    // 注释：声明当前元素使用的注解配置。
     @Resource
-    // 注释：声明当前成员或方法。
     private ReportService reportService;
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，并统一委托报表管理应用服务完成处理。
+     *
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @GetMapping("/datasets")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('biz:report:list')")
     public Result<List<DynamicRecordResponse>> datasets() {
-        // 注释：返回当前处理结果。
         return listResponse(reportService.listDatasets());
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 保存业务数据，按当前记录状态选择新增或更新路径，并统一委托报表管理应用服务完成处理。
+     *
+     * @param request 报表管理请求参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @PostMapping("/datasets")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('biz:report:edit')")
-    // 注释：声明当前元素使用的注解配置。
     @OperLog(module = "报表", action = "保存数据集")
     public Result<DynamicRecordResponse> saveDataset(@RequestBody ReportDatasetRequest request) {
-        // 注释：返回当前处理结果。
         return recordResponse(reportService.saveDataset(request));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，并统一委托报表管理应用服务完成处理。
+     *
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @GetMapping("/templates")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('biz:report:list')")
     public Result<List<DynamicRecordResponse>> templates() {
-        // 注释：返回当前处理结果。
         return listResponse(reportService.listTemplates());
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 保存业务数据，按当前记录状态选择新增或更新路径，并统一委托报表管理应用服务完成处理。
+     *
+     * @param request 报表管理请求参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @PostMapping("/templates")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('biz:report:edit')")
-    // 注释：声明当前元素使用的注解配置。
     @OperLog(module = "报表", action = "保存模板")
     public Result<DynamicRecordResponse> saveTemplate(@RequestBody ReportTemplateRequest request) {
-        // 注释：返回当前处理结果。
         return recordResponse(reportService.saveTemplate(request));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 查询业务数据详情，供上层用例继续编排或返回给调用方，并统一委托报表管理应用服务完成处理。
+     *
+     * @param id 业务记录标识。
+     * @param request 报表管理请求参数。
+     * @param limit 业务处理所需参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @PostMapping("/datasets/{id}/query")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('biz:report:query')")
     public Result<List<DynamicRecordResponse>> query(@PathVariable String id,
-                                                     // 注释：声明当前元素使用的注解配置。
                                                      @RequestBody(required = false) ReportQueryRequest request,
-                                                     // 注释：声明当前元素使用的注解配置。
                                                      @RequestParam(required = false) Integer limit) {
-        // 注释：返回当前处理结果。
         return listResponse(reportService.query(id, params(request), limit));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，并统一委托报表管理应用服务完成处理。
+     *
+     * @param id 业务记录标识。
+     * @param request 报表管理请求参数。
+     * @param limit 业务处理所需参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @PostMapping("/datasets/{id}/export.csv")
-    // 注释：声明当前元素使用的注解配置。
     @PreAuthorize("@permissionGuard.has('biz:report:export')")
-    // 注释：声明当前元素使用的注解配置。
     @OperLog(module = "报表", action = "导出 CSV")
     public ResponseEntity<byte[]> exportCsv(@PathVariable String id,
-                                            // 注释：声明当前元素使用的注解配置。
                                             @RequestBody(required = false) ReportQueryRequest request,
-                                            // 注释：声明当前元素使用的注解配置。
                                             @RequestParam(required = false) Integer limit) {
-        // 注释：设置或计算当前变量值。
         byte[] body = reportService.exportCsv(id, params(request), limit);
-        // 注释：设置或计算当前变量值。
         String fileName = "attachment; filename=report-" + id + ".csv";
-        // 注释：返回当前处理结果。
         return ResponseEntity.ok()
-                // 注释：继续当前链式调用。
                 .header(HttpHeaders.CONTENT_DISPOSITION, fileName)
-                // 注释：继续当前链式调用。
                 .contentType(MediaType.parseMediaType("text/csv;charset=UTF-8"))
-                // 注释：继续当前链式调用。
                 .body(body);
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，并统一委托报表管理应用服务完成处理。
+     *
+     * @param request 报表管理请求参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @SuppressWarnings("unchecked")
     private Map<String, Object> params(ReportQueryRequest request) {
-        // 注释：设置或计算当前变量值。
         Object params = request == null ? null : request.getParams();
-        // 注释：返回当前处理结果。
         return params instanceof Map ? (Map<String, Object>) params : Collections.emptyMap();
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 查询列表数据，保持返回结构稳定并便于前端直接消费，并统一委托报表管理应用服务完成处理。
+     *
+     * @param records 应用层业务记录。
+     * @return 处理后的业务结果。
      */
     private Result<List<DynamicRecordResponse>> listResponse(List<RecordResponse> records) {
-        // 注释：返回当前处理结果。
         return Result.success(DynamicRecordResponse.fromRecordList(records));
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，并统一委托报表管理应用服务完成处理。
+     *
+     * @param record 应用层业务记录。
+     * @return 处理后的业务结果。
      */
     private Result<DynamicRecordResponse> recordResponse(RecordResponse record) {
-        // 注释：返回当前处理结果。
         return Result.success(DynamicRecordResponse.from(record));
-        // 注释：结束当前代码块。
     }
-// 注释：结束当前代码块。
 }

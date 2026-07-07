@@ -1,4 +1,3 @@
-// 注释：声明当前文件所属的包路径。
 package top.kx.heartbeat.infrastructure.mobile.repository;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -21,182 +20,140 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * 注释：当前类用于承载对应业务逻辑。
+ * 实现移动端配置持久化端口，通过 Mapper 完成数据读写与对象转换。
  */
-// 注释：声明当前元素使用的注解配置。
 @Repository
 public class MobilePageRepositoryImpl implements MobilePageRepository {
 
-    // 注释：声明当前成员或方法。
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    // 注释：声明当前元素使用的注解配置。
     @Resource
-    // 注释：声明当前成员或方法。
     private MobilePageDOMapper pageDOMapper;
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 查询列表数据，保持返回结构稳定并便于前端直接消费，通过 Mapper 完成移动端配置数据访问。
+     *
+     * @param appId 业务记录标识。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @Override
     public List<DomainRecord> listPages(String appId) {
-        // 注释：设置或计算当前变量值。
         MobilePageDOExample example = new MobilePageDOExample();
-        // 注释：执行当前代码行。
         example.createCriteria().andTenantIdEqualTo(tenantId()).andAppIdEqualTo(longValue(appId, 0L));
-        // 注释：执行当前代码行。
         example.setOrderByClause("sort_no, id");
-        // 注释：返回当前处理结果。
         return pageDOMapper.selectByExampleWithBLOBs(example)
-                // 注释：继续当前链式调用。
                 .stream()
-                // 注释：继续当前链式调用。
                 .map(this::toPageRecord)
-                // 注释：继续当前链式调用。
                 .collect(Collectors.toList());
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 保存业务数据，按当前记录状态选择新增或更新路径，通过 Mapper 完成移动端配置数据访问。
+     *
+     * @param request 移动端配置请求参数。
+     * @return 处理后的业务结果。
      */
-    // 注释：声明当前元素使用的注解配置。
     @Override
     public DomainRecord savePage(MobilePageRequest request) {
-        // 注释：设置或计算当前变量值。
         Date now = new Date();
-        // 注释：设置或计算当前变量值。
         MobilePageDO record = new MobilePageDO();
-        // 注释：执行当前代码行。
         record.setTenantId(tenantId());
-        // 注释：执行当前代码行。
         record.setAppId(longValue(request.getAppId(), 0L));
-        // 注释：执行当前代码行。
         record.setName(defaultText(request.getName(), "Page"));
-        // 注释：执行当前代码行。
         record.setPageKey(defaultText(request.getPageKey(), ""));
-        // 注释：执行当前代码行。
         record.setRoutePath(defaultText(request.getRoutePath(), ""));
-        // 注释：执行当前代码行。
         record.setSchemaJson(jsonValue(request.getSchema()));
-        // 注释：设置或计算当前变量值。
         record.setSortNo(request.getSortNo() == null ? 0 : request.getSortNo());
-        // 注释：执行当前代码行。
         record.setStatus(defaultText(request.getStatus(), "DRAFT"));
-        // 注释：执行当前代码行。
         record.setCreateTime(now);
-        // 注释：执行当前代码行。
         record.setUpdateTime(now);
-        // 注释：执行当前代码行。
         pageDOMapper.insertSelective(record);
-        // 注释：返回当前处理结果。
         return toPageRecord(record);
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 转换数据结构，隔离接口层、应用层与持久化层的对象差异，通过 Mapper 完成移动端配置数据访问。
+     *
+     * @param entity 待写入或转换的数据库记录。
+     * @return 处理后的业务结果。
      */
     private DomainRecord toPageRecord(MobilePageDO entity) {
-        // 注释：设置或计算当前变量值。
         Map<String, Object> row = new LinkedHashMap<>();
-        // 注释：执行当前代码行。
         row.put("id", String.valueOf(entity.getId()));
-        // 注释：执行当前代码行。
         row.put("tenantId", String.valueOf(entity.getTenantId()));
-        // 注释：执行当前代码行。
         row.put("appId", String.valueOf(entity.getAppId()));
-        // 注释：执行当前代码行。
         row.put("name", entity.getName());
-        // 注释：执行当前代码行。
         row.put("pageKey", entity.getPageKey());
-        // 注释：执行当前代码行。
         row.put("routePath", entity.getRoutePath());
-        // 注释：执行当前代码行。
         row.put("schema", readJson(entity.getSchemaJson()));
-        // 注释：执行当前代码行。
         row.put("sortNo", entity.getSortNo());
-        // 注释：执行当前代码行。
         row.put("status", entity.getStatus());
-        // 注释：执行当前代码行。
         row.put("createTime", String.valueOf(entity.getCreateTime()));
-        // 注释：执行当前代码行。
         row.put("updateTime", String.valueOf(entity.getUpdateTime()));
-        // 注释：返回当前处理结果。
         return DomainRecord.of(row);
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，通过 Mapper 完成移动端配置数据访问。
+     *
+     * @param json 业务处理所需参数。
+     * @return 处理后的业务结果。
      */
     private JsonNode readJson(String json) {
-        // 注释：开始执行可能抛出异常的逻辑。
         try {
-            // 注释：返回当前处理结果。
             return objectMapper.readTree(StringUtils.isBlank(json) ? "{}" : json);
-            // 注释：捕获并处理当前异常。
         } catch (Exception ex) {
-            // 注释：抛出当前业务异常。
             throw new IllegalArgumentException("JSON parse failed", ex);
-            // 注释：结束当前代码块。
         }
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，通过 Mapper 完成移动端配置数据访问。
+     *
+     * @param value 待转换的原始值。
+     * @return 处理后的业务结果。
      */
     private String jsonValue(Object value) {
-        // 注释：开始执行可能抛出异常的逻辑。
         try {
-            // 注释：返回当前处理结果。
             return objectMapper.writeValueAsString(value == null ? new LinkedHashMap<String, Object>() : value);
-            // 注释：捕获并处理当前异常。
         } catch (Exception ex) {
-            // 注释：抛出当前业务异常。
             throw new IllegalArgumentException("JSON serialize failed", ex);
-            // 注释：结束当前代码块。
         }
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，通过 Mapper 完成移动端配置数据访问。
+     *
+     * @param value 待转换的原始值。
+     * @param defaultValue 空值时使用的默认值。
+     * @return 处理后的业务结果。
      */
     private String defaultText(String value, String defaultValue) {
-        // 注释：返回当前处理结果。
         return StringUtils.isBlank(value) ? defaultValue : value.trim();
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 处理当前业务用例，保持调用方不感知内部实现细节，通过 Mapper 完成移动端配置数据访问。
+     *
+     * @param value 待转换的原始值。
+     * @param defaultValue 空值时使用的默认值。
+     * @return 处理后的业务结果。
      */
     private long longValue(String value, long defaultValue) {
-        // 注释：开始执行可能抛出异常的逻辑。
         try {
-            // 注释：返回当前处理结果。
             return StringUtils.isBlank(value) ? defaultValue : Long.parseLong(value.trim());
-            // 注释：捕获并处理当前异常。
         } catch (NumberFormatException ignored) {
-            // 注释：返回当前处理结果。
             return defaultValue;
-            // 注释：结束当前代码块。
         }
-        // 注释：结束当前代码块。
     }
 
     /**
-     * 注释：当前方法用于执行对应业务处理。
+     * 读取当前租户上下文，保证数据写入归属正确，通过 Mapper 完成移动端配置数据访问。
+     *
+     * @return 处理后的业务结果。
      */
     private long tenantId() {
-        // 注释：设置或计算当前变量值。
         Long tenantId = TenantContext.getTenantId();
-        // 注释：返回当前处理结果。
         return tenantId == null ? 1L : tenantId;
-        // 注释：结束当前代码块。
     }
-// 注释：结束当前代码块。
 }
