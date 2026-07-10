@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.kx.heartbeat.application.common.response.RecordResponse;
 import top.kx.heartbeat.application.flow.runtime.*;
+import top.kx.heartbeat.domain.auth.CurrentUserProvider;
 import top.kx.heartbeat.domain.flow.model.*;
 import top.kx.heartbeat.domain.flow.repository.FlowRepository;
 import top.kx.heartbeat.domain.flow.repository.FlowRunRepository;
@@ -34,6 +35,9 @@ public class FlowApplicationService {
      */
     @Resource
     private FlowRepository flowRepository;
+
+    @Resource
+    private CurrentUserProvider currentUserProvider;
 
     /**
      * 节点组件仓储。
@@ -285,7 +289,7 @@ public class FlowApplicationService {
         // 构建流程启动命令。
         FlowStartCommand command = new FlowStartCommand();
         // 写入租户标识。
-        command.setTenantId("1");
+        command.setTenantId(currentUserProvider.currentTenantId());
         // 写入流程定义标识。
         command.setFlowId(flowId);
         // 写入 HeartBeat 运行标识。

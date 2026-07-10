@@ -936,62 +936,62 @@ public class SysUserDOExample {
         }
 
         public Criteria andPasswordUpdateTimeIsNull() {
-            addCriterion("password_update_time is null");
+            addCriterion("password_updated_at is null");
             return (Criteria) this;
         }
 
         public Criteria andPasswordUpdateTimeIsNotNull() {
-            addCriterion("password_update_time is not null");
+            addCriterion("password_updated_at is not null");
             return (Criteria) this;
         }
 
         public Criteria andPasswordUpdateTimeEqualTo(Date value) {
-            addCriterion("password_update_time =", value, "passwordUpdateTime");
+            addCriterion("password_updated_at =", value, "passwordUpdateTime");
             return (Criteria) this;
         }
 
         public Criteria andPasswordUpdateTimeNotEqualTo(Date value) {
-            addCriterion("password_update_time <>", value, "passwordUpdateTime");
+            addCriterion("password_updated_at <>", value, "passwordUpdateTime");
             return (Criteria) this;
         }
 
         public Criteria andPasswordUpdateTimeGreaterThan(Date value) {
-            addCriterion("password_update_time >", value, "passwordUpdateTime");
+            addCriterion("password_updated_at >", value, "passwordUpdateTime");
             return (Criteria) this;
         }
 
         public Criteria andPasswordUpdateTimeGreaterThanOrEqualTo(Date value) {
-            addCriterion("password_update_time >=", value, "passwordUpdateTime");
+            addCriterion("password_updated_at >=", value, "passwordUpdateTime");
             return (Criteria) this;
         }
 
         public Criteria andPasswordUpdateTimeLessThan(Date value) {
-            addCriterion("password_update_time <", value, "passwordUpdateTime");
+            addCriterion("password_updated_at <", value, "passwordUpdateTime");
             return (Criteria) this;
         }
 
         public Criteria andPasswordUpdateTimeLessThanOrEqualTo(Date value) {
-            addCriterion("password_update_time <=", value, "passwordUpdateTime");
+            addCriterion("password_updated_at <=", value, "passwordUpdateTime");
             return (Criteria) this;
         }
 
         public Criteria andPasswordUpdateTimeIn(List<Date> values) {
-            addCriterion("password_update_time in", values, "passwordUpdateTime");
+            addCriterion("password_updated_at in", values, "passwordUpdateTime");
             return (Criteria) this;
         }
 
         public Criteria andPasswordUpdateTimeNotIn(List<Date> values) {
-            addCriterion("password_update_time not in", values, "passwordUpdateTime");
+            addCriterion("password_updated_at not in", values, "passwordUpdateTime");
             return (Criteria) this;
         }
 
         public Criteria andPasswordUpdateTimeBetween(Date value1, Date value2) {
-            addCriterion("password_update_time between", value1, value2, "passwordUpdateTime");
+            addCriterion("password_updated_at between", value1, value2, "passwordUpdateTime");
             return (Criteria) this;
         }
 
         public Criteria andPasswordUpdateTimeNotBetween(Date value1, Date value2) {
-            addCriterion("password_update_time not between", value1, value2, "passwordUpdateTime");
+            addCriterion("password_updated_at not between", value1, value2, "passwordUpdateTime");
             return (Criteria) this;
         }
 

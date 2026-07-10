@@ -33,8 +33,8 @@ public interface AuthSessionRepository {
     /**
      * 轮换刷新令牌
      */
-    void rotateRefreshToken(long tenantId, String sessionId, String refreshTokenHash,
-                            LocalDateTime refreshExpireAt);
+    boolean rotateRefreshToken(long tenantId, String sessionId, String expectedRefreshTokenHash,
+                               String newRefreshTokenHash, LocalDateTime refreshExpireAt);
 
     /**
      * 更新最近访问时间

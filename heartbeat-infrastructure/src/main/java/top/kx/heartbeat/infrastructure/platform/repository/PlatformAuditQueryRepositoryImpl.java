@@ -15,6 +15,7 @@ import top.kx.heartbeat.infrastructure.persistence.mapper.auth.AuthOauthClientDO
 import top.kx.heartbeat.infrastructure.persistence.mapper.auth.AuthSessionDOMapper;
 import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysLoginLogDOMapper;
 import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysOperLogDOMapper;
+import top.kx.heartbeat.infrastructure.tenant.TenantContext;
 
 import javax.annotation.Resource;
 import java.util.LinkedHashMap;
@@ -45,6 +46,7 @@ public class PlatformAuditQueryRepositoryImpl implements PlatformAuditQueryRepos
     @Override
     public List<DomainRecord> listLoginLogs() {
         SysLoginLogDOExample example = new SysLoginLogDOExample();
+        example.createCriteria().andTenantIdEqualTo(tenantId());
         example.setOrderByClause("create_time DESC, id DESC");
         return loginLogMapper.selectByExample(example).stream().map(this::record).collect(Collectors.toList());
     }
@@ -57,6 +59,7 @@ public class PlatformAuditQueryRepositoryImpl implements PlatformAuditQueryRepos
     @Override
     public List<DomainRecord> listOperationLogs() {
         SysOperLogDOExample example = new SysOperLogDOExample();
+        example.createCriteria().andTenantIdEqualTo(tenantId());
         example.setOrderByClause("create_time DESC, id DESC");
         return operLogMapper.selectByExample(example).stream().map(this::record).collect(Collectors.toList());
     }
@@ -68,8 +71,10 @@ public class PlatformAuditQueryRepositoryImpl implements PlatformAuditQueryRepos
      */
     @Override
     public List<DomainRecord> listOnlineSessions() {
+        AuthSessionDOExample example = new AuthSessionDOExample();
+        example.createCriteria().andTenantIdEqualTo(tenantId());
         // 返回已经完成封装的业务结果。
-        return sessionMapper.selectByExample(new AuthSessionDOExample())
+        return sessionMapper.selectByExample(example)
                 // 使用流式转换批量映射数据，减少中间状态暴露。
                 .stream()
                 // 使用流式转换批量映射数据，减少中间状态暴露。
@@ -85,8 +90,12 @@ public class PlatformAuditQueryRepositoryImpl implements PlatformAuditQueryRepos
      */
     @Override
     public List<DomainRecord> listOauthClients() {
+        AuthOauthClientDOExample example = new AuthOauthClientDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andDeleteMarkerEqualTo(0L);
         // 返回已经完成封装的业务结果。
-        return oauthClientMapper.selectByExample(new AuthOauthClientDOExample())
+        return oauthClientMapper.selectByExample(example)
                 // 使用流式转换批量映射数据，减少中间状态暴露。
                 .stream()
                 // 使用流式转换批量映射数据，减少中间状态暴露。
@@ -253,5 +262,9 @@ public class PlatformAuditQueryRepositoryImpl implements PlatformAuditQueryRepos
         values.put("createTime", row.getCreateTime());
         // 返回已经完成封装的业务结果。
         return DomainRecord.of(values);
+    }
+
+    private Long tenantId() {
+        return TenantContext.getRequiredTenantId();
     }
 }

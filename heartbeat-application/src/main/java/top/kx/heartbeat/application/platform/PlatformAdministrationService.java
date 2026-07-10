@@ -5,6 +5,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.kx.heartbeat.application.auth.AuthenticationSessionService;
+import top.kx.heartbeat.application.auth.LoginAuditService;
 import top.kx.heartbeat.application.auth.response.AuthTokenResponse;
 import top.kx.heartbeat.application.common.model.DomainRecord;
 import top.kx.heartbeat.application.common.response.RecordResponse;
@@ -41,6 +42,14 @@ public class PlatformAdministrationService {
 
     private static final String APPEARANCE_VISUAL_STYLE_KEY = "appearance.visualStyle";
 
+    private static final List<String> APPEARANCE_PREFERENCE_KEYS = Collections.unmodifiableList(Arrays.asList(
+            APPEARANCE_COLOR_MODE_KEY,
+            APPEARANCE_FLUID_ENABLED_KEY,
+            APPEARANCE_ACCENT_COLOR_KEY,
+            APPEARANCE_VISUAL_STYLE_KEY,
+            LEGACY_APPEARANCE_THEME_KEY
+    ));
+
     private static final AppearanceColorMode DEFAULT_COLOR_MODE = AppearanceColorMode.DARK;
 
     private static final boolean DEFAULT_FLUID_ENABLED = true;
@@ -75,6 +84,9 @@ public class PlatformAdministrationService {
 
     @Resource
     private PlatformLoginLogRepository platformLoginLogRepository;
+
+    @Resource
+    private LoginAuditService loginAuditService;
 
     @Resource
     private AuthenticationSessionService authenticationSessionService;
@@ -141,22 +153,29 @@ public class PlatformAdministrationService {
     public RecordResponse appearancePreference(String userId) {
         // 解析用户标识，空值时回落到默认管理员。
         String resolvedUserId = resolvedUserId(userId);
+        Map<String, Map<String, Object>> preferencesByKey = platformUserRepository
+                .listUserPreferences(resolvedUserId, APPEARANCE_PREFERENCE_KEYS)
+                .stream()
+                .map(DomainRecord::toMap)
+                .filter(preference -> StringUtils.isNotBlank(stringValue(preference.get("preferenceKey"))))
+                .collect(java.util.stream.Collectors.toMap(
+                        preference -> stringValue(preference.get("preferenceKey")),
+                        preference -> preference,
+                        (left, right) -> left,
+                        LinkedHashMap::new
+                ));
         // 查询颜色模式偏好。
-        Optional<Map<String, Object>> colorPreference =
-                // 从仓储或 Mapper 读取业务数据，为后续处理准备上下文。
-                optionalMap(platformUserRepository.findUserPreference(resolvedUserId, APPEARANCE_COLOR_MODE_KEY));
+        Optional<Map<String, Object>> colorPreference = Optional.ofNullable(
+                preferencesByKey.get(APPEARANCE_COLOR_MODE_KEY));
         // 查询流体布局偏好。
-        Optional<Map<String, Object>> fluidPreference =
-                // 从仓储或 Mapper 读取业务数据，为后续处理准备上下文。
-                optionalMap(platformUserRepository.findUserPreference(resolvedUserId, APPEARANCE_FLUID_ENABLED_KEY));
+        Optional<Map<String, Object>> fluidPreference = Optional.ofNullable(
+                preferencesByKey.get(APPEARANCE_FLUID_ENABLED_KEY));
         // 查询强调色偏好。
-        Optional<Map<String, Object>> accentPreference =
-                // 从仓储或 Mapper 读取业务数据，为后续处理准备上下文。
-                optionalMap(platformUserRepository.findUserPreference(resolvedUserId, APPEARANCE_ACCENT_COLOR_KEY));
+        Optional<Map<String, Object>> accentPreference = Optional.ofNullable(
+                preferencesByKey.get(APPEARANCE_ACCENT_COLOR_KEY));
         // 查询视觉风格偏好。
-        Optional<Map<String, Object>> visualPreference =
-                // 从仓储或 Mapper 读取业务数据，为后续处理准备上下文。
-                optionalMap(platformUserRepository.findUserPreference(resolvedUserId, APPEARANCE_VISUAL_STYLE_KEY));
+        Optional<Map<String, Object>> visualPreference = Optional.ofNullable(
+                preferencesByKey.get(APPEARANCE_VISUAL_STYLE_KEY));
 
         // 新版偏好任意一项存在时按新版结构返回。
         if (colorPreference.isPresent() || fluidPreference.isPresent() || accentPreference.isPresent()
@@ -191,9 +210,7 @@ public class PlatformAdministrationService {
         }
 
         // 新版偏好不存在时兼容读取旧版主题偏好。
-        return platformUserRepository.findUserPreference(resolvedUserId, LEGACY_APPEARANCE_THEME_KEY)
-                // 使用流式转换批量映射数据，减少中间状态暴露。
-                .map(DomainRecord::toMap)
+        return Optional.ofNullable(preferencesByKey.get(LEGACY_APPEARANCE_THEME_KEY))
                 // 使用流式转换批量映射数据，减少中间状态暴露。
                 .map(this::legacyAppearanceResult)
                 // 使用流式转换批量映射数据，减少中间状态暴露。
@@ -238,7 +255,13 @@ public class PlatformAdministrationService {
                 // 创建下游写入请求对象，集中承载本次业务处理结果。
                 request == null ? new PlatformAppearancePreferenceRequest() : request;
         // 查询当前外观偏好作为局部更新的默认值来源。
-        Map<String, Object> current = appearancePreference(userId).toMap();
+        boolean partialUpdate = safeRequest.getColorMode() == null
+                || safeRequest.getFluidEnabled() == null
+                || safeRequest.getAccentColor() == null
+                || safeRequest.getVisualStyle() == null;
+        Map<String, Object> current = partialUpdate
+                ? appearancePreference(userId).toMap()
+                : Collections.emptyMap();
         // 解析颜色模式入参，未传时沿用当前值。
         String colorMode = safeRequest.getColorMode() != null
                 // 条件成立时使用前一个分支计算出的业务值。
@@ -275,21 +298,12 @@ public class PlatformAdministrationService {
 
         // 解析用户标识，空值时回落到默认管理员。
         String resolvedUserId = resolvedUserId(userId);
-        // 保存颜色模式偏好。
-        platformUserRepository.saveUserPreference(resolvedUserId, APPEARANCE_COLOR_MODE_KEY, colorMode);
-        // 保存流体布局偏好。
-        platformUserRepository.saveUserPreference(
-                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                resolvedUserId,
-                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                APPEARANCE_FLUID_ENABLED_KEY,
-                // 规范化文本值，降低空字符串和空对象带来的分支复杂度。
-                String.valueOf(fluidEnabled)
-        );
-        // 保存强调色偏好。
-        platformUserRepository.saveUserPreference(resolvedUserId, APPEARANCE_ACCENT_COLOR_KEY, accentColor);
-        // 保存视觉风格偏好。
-        platformUserRepository.saveUserPreference(resolvedUserId, APPEARANCE_VISUAL_STYLE_KEY, visualStyle);
+        Map<String, String> preferences = new LinkedHashMap<>();
+        preferences.put(APPEARANCE_COLOR_MODE_KEY, colorMode);
+        preferences.put(APPEARANCE_FLUID_ENABLED_KEY, String.valueOf(fluidEnabled));
+        preferences.put(APPEARANCE_ACCENT_COLOR_KEY, accentColor);
+        preferences.put(APPEARANCE_VISUAL_STYLE_KEY, visualStyle);
+        platformUserRepository.saveUserPreferences(resolvedUserId, preferences);
         // 返回更新后的外观偏好。
         return RecordResponse.from(appearanceResult(colorMode, fluidEnabled, accentColor, visualStyle));
     }
@@ -313,7 +327,7 @@ public class PlatformAdministrationService {
         // 用户不存在或密码不匹配时记录失败日志并中断登录。
         if (!userOptional.isPresent() || !matches(password, stringValue(userOptional.get().get("passwordHash")))) {
             // 写入失败登录日志。
-            platformLoginLogRepository.recordLogin(username, LoginResultStatus.FAIL.getCode(), "用户名或密码错误");
+            loginAuditService.record(username, LoginResultStatus.FAIL.getCode(), "用户名或密码错误");
             // 抛出用户名或密码错误异常。
             throw new IllegalArgumentException("用户名或密码错误");
         }

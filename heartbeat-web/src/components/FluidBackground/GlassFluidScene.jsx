@@ -19,12 +19,12 @@ function LiquidGlassOrb({ color, position, scale = 1, speed = 1 }) {
 
   return (
       <mesh ref={meshRef} position={position}>
-        <icosahedronGeometry args={[1.2, 64]} />
+          <icosahedronGeometry args={[1.2, 8]}/>
         <MeshTransmissionMaterial
             backside
             backsideThickness={0.35}
-            samples={10}
-            resolution={768}
+            samples={4}
+            resolution={384}
             transmission={1}
             roughness={0.04}
             thickness={1.1}
@@ -76,7 +76,7 @@ export default function GlassFluidScene({ accentColor = '#1677ff', colorScheme =
       <Canvas
           className="glass-fluid-canvas"
           camera={{ position: [0, 0, 6.2], fov: 40 }}
-          dpr={[1, 1.75]}
+          dpr={[1, 1.25]}
           gl={{ alpha: true, antialias: true, powerPreference: 'high-performance' }}
       >
         <color attach="background" args={[background]} />

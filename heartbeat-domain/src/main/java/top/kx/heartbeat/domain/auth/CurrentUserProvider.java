@@ -6,4 +6,8 @@ package top.kx.heartbeat.domain.auth;
 public interface CurrentUserProvider {
 
     String currentUserId();
+
+    default String currentTenantId() {
+        return "1";
+    }
 }

@@ -42,12 +42,12 @@
             <property name="addRemarkComments" value="true"/>
         </commentGenerator>
 
-        <!-- 数据库连接（dev profile：192.168.204.12:31103 / test_v1） -->
+        <!-- 数据库连接默认指向本机开发库，不在仓库中保存真实环境凭据。 -->
         <jdbcConnection
                 driverClass="com.mysql.cj.jdbc.Driver"
-                connectionURL="jdbc:mysql://192.168.204.12:31103/test_v1?useUnicode=true&amp;characterEncoding=UTF-8&amp;serverTimezone=Asia/Shanghai&amp;useSSL=false&amp;allowPublicKeyRetrieval=true"
-                userId="root"
-                password="Ds2Uj4g5hiU6nd0">
+                connectionURL="jdbc:mysql://127.0.0.1:3306/heartbeat_dev?useUnicode=true&amp;characterEncoding=UTF-8&amp;serverTimezone=Asia/Shanghai&amp;useSSL=false&amp;allowPublicKeyRetrieval=true"
+                userId="heartbeat"
+                password="">
             <!-- MySQL 8.x 需要加此属性 -->
             <property name="nullCatalogMeansCurrent" value="true"/>
         </jdbcConnection>

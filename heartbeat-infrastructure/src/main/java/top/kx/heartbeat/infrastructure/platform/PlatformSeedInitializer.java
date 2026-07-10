@@ -369,11 +369,18 @@ public class PlatformSeedInitializer {
             return;
         }
         // 创建当前流程需要的临时对象，承载后续处理数据。
-        SysUserRoleDOKey relation = new SysUserRoleDOKey();
+        SysUserRoleDO relation = new SysUserRoleDO();
+        Date now = new Date();
+        String operatorId = String.valueOf(userId);
+        relation.setTenantId(tenantId);
         // 设置持久化字段，保证数据库记录具备完整业务属性。
         relation.setUserId(userId);
         // 设置持久化字段，保证数据库记录具备完整业务属性。
         relation.setRoleId(roleId);
+        relation.setCreateBy(operatorId);
+        relation.setCreateTime(now);
+        relation.setUpdateTime(now);
+        relation.setUpdateBy(operatorId);
         // 将当前业务变更写入持久化层，保持数据状态同步。
         userRoleMapper.insertSelective(relation);
     }

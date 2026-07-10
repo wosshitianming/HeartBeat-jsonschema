@@ -4,6 +4,7 @@ import top.kx.heartbeat.application.common.model.DomainRecord;
 import top.kx.heartbeat.application.platform.request.PlatformUserRequest;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -21,7 +22,13 @@ public interface PlatformUserRepository {
     Optional<DomainRecord> findUserPreference(String userId, String preferenceKey);
 
 
+    List<DomainRecord> listUserPreferences(String userId, List<String> preferenceKeys);
+
+
     DomainRecord saveUserPreference(String userId, String preferenceKey, String preferenceValue);
+
+
+    void saveUserPreferences(String userId, Map<String, String> preferences);
 
 
     List<DomainRecord> listUsers();

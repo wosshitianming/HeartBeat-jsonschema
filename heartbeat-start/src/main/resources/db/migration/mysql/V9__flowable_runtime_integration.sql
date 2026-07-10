@@ -12,12 +12,7 @@ ALTER TABLE `hb_flow_version`
     ADD COLUMN `process_definition_key` VARCHAR(128) NULL COMMENT 'Flowable流程定义KEY' AFTER `process_definition_id`,
     ADD COLUMN `compile_status` VARCHAR(32) NOT NULL DEFAULT 'PENDING' COMMENT '编译状态' AFTER `process_definition_key`,
     ADD COLUMN `compile_error` TEXT NULL COMMENT '编译错误' AFTER `compile_status`,
-    ADD COLUMN `deployed_at` DATETIME(3) NULL COMMENT '部署时间' AFTER `compile_error`,
-    ADD COLUMN `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    ADD COLUMN `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON
-UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    ADD COLUMN `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
-    ADD COLUMN `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID';
+    ADD COLUMN `deployed_at` DATETIME(3) NULL COMMENT '部署时间' AFTER `compile_error`;
 
 ALTER TABLE `hb_flow_run`
     ADD COLUMN `run_no` VARCHAR(64) NULL COMMENT '运行编号' AFTER `flow_id`,
@@ -35,12 +30,7 @@ ALTER TABLE `hb_flow_run`
     ADD COLUMN `root_run_id` BIGINT UNSIGNED NULL COMMENT '根运行ID' AFTER `parent_run_id`,
     ADD COLUMN `retry_from_run_id` BIGINT UNSIGNED NULL COMMENT '复原重试来源运行ID' AFTER `root_run_id`,
     ADD COLUMN `retry_no` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '重试序号' AFTER `retry_from_run_id`,
-    ADD COLUMN `retry_reason` VARCHAR(255) NULL COMMENT '重试原因' AFTER `retry_no`,
-    ADD COLUMN `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    ADD COLUMN `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON
-UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    ADD COLUMN `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
-    ADD COLUMN `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID';
+    ADD COLUMN `retry_reason` VARCHAR(255) NULL COMMENT '重试原因' AFTER `retry_no`;
 
 CREATE UNIQUE INDEX `uk_flow_run_idempotency`
     ON `hb_flow_run` (`tenant_id`, `idempotency_scope`, `idempotency_key`);
@@ -59,12 +49,7 @@ ALTER TABLE `hb_flow_run_event`
     ADD COLUMN `input_payload_ref` BIGINT UNSIGNED NULL COMMENT '输入载荷引用' AFTER `selected_ports`,
     ADD COLUMN `output_payload_ref` BIGINT UNSIGNED NULL COMMENT '输出载荷引用' AFTER `input_payload_ref`,
     ADD COLUMN `event_summary` JSON NULL COMMENT '事件展示摘要' AFTER `output_payload_ref`,
-    ADD COLUMN `error_code` VARCHAR(64) NULL COMMENT '错误编码' AFTER `event_summary`,
-    ADD COLUMN `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    ADD COLUMN `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON
-UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    ADD COLUMN `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
-    ADD COLUMN `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID';
+    ADD COLUMN `error_code` VARCHAR(64) NULL COMMENT '错误编码' AFTER `event_summary`;
 
 CREATE UNIQUE INDEX `uk_flow_run_event_seq`
     ON `hb_flow_run_event` (`tenant_id`, `run_id`, `event_seq`);

@@ -4,10 +4,10 @@ import org.springframework.stereotype.Repository;
 import top.kx.heartbeat.application.common.model.DomainRecord;
 import top.kx.heartbeat.application.platform.port.PlatformUserRepository;
 import top.kx.heartbeat.application.platform.request.PlatformUserRequest;
-import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysUserDO;
-import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysUserDOExample;
-import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysUserPreferenceDO;
-import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysUserPreferenceDOExample;
+import top.kx.heartbeat.domain.auth.CurrentUserProvider;
+import top.kx.heartbeat.infrastructure.persistence.entity.sys.*;
+import top.kx.heartbeat.infrastructure.persistence.mapper.platform.PlatformUserPreferenceBatchMapper;
+import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysDeptDOMapper;
 import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysUserDOMapper;
 import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysUserPreferenceDOMapper;
 import top.kx.heartbeat.infrastructure.tenant.TenantContext;
@@ -25,7 +25,13 @@ public class PlatformUserRepositoryImpl implements PlatformUserRepository {
     @Resource
     private SysUserDOMapper userMapper;
     @Resource
+    private SysDeptDOMapper deptMapper;
+    @Resource
     private SysUserPreferenceDOMapper userPreferenceMapper;
+    @Resource
+    private PlatformUserPreferenceBatchMapper userPreferenceBatchMapper;
+    @Resource
+    private CurrentUserProvider currentUserProvider;
 
     /**
      * 查询业务数据详情，供上层用例继续编排或返回给调用方，通过 Mapper 完成平台管理数据访问。
@@ -35,8 +41,15 @@ public class PlatformUserRepositoryImpl implements PlatformUserRepository {
      */
     @Override
     public Optional<DomainRecord> findUserByUsername(String username) {
+        if (username == null || username.trim().isEmpty()) {
+            return Optional.empty();
+        }
         SysUserDOExample example = new SysUserDOExample();
-        example.createCriteria().andUsernameEqualTo(username);
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andUsernameEqualTo(username)
+                .andStatusEqualTo("ENABLED")
+                .andDeleteMarkerEqualTo(0L);
         return first(userMapper.selectByExample(example)).map(this::record);
     }
 
@@ -49,7 +62,15 @@ public class PlatformUserRepositoryImpl implements PlatformUserRepository {
     @Override
     public Optional<DomainRecord> findUserById(String userId) {
         Long id = longValue(userId);
-        return id == null ? Optional.empty() : Optional.ofNullable(userMapper.selectByPrimaryKey(id)).map(this::record);
+        if (id == null) {
+            return Optional.empty();
+        }
+        SysUserDOExample example = new SysUserDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andIdEqualTo(id)
+                .andDeleteMarkerEqualTo(0L);
+        return first(userMapper.selectByExample(example)).map(this::record);
     }
 
     /**
@@ -71,9 +92,39 @@ public class PlatformUserRepositoryImpl implements PlatformUserRepository {
         // 创建查询条件对象，后续通过 Criteria 精确约束查询范围。
         SysUserPreferenceDOExample example = new SysUserPreferenceDOExample();
         // 组装查询条件，确保 Mapper 只读取当前业务需要的数据。
-        example.createCriteria().andUserIdEqualTo(id).andPreferenceKeyEqualTo(preferenceKey);
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andUserIdEqualTo(id)
+                .andPreferenceKeyEqualTo(preferenceKey);
         // 返回已经完成封装的业务结果。
         return first(userPreferenceMapper.selectByExampleWithBLOBs(example)).map(this::recordPreference);
+    }
+
+    @Override
+    public List<DomainRecord> listUserPreferences(String userId, List<String> preferenceKeys) {
+        Long id = longValue(userId);
+        if (id == null || preferenceKeys == null || preferenceKeys.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<String> keys = preferenceKeys.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(key -> !key.isEmpty())
+                .distinct()
+                .collect(Collectors.toList());
+        if (keys.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        SysUserPreferenceDOExample example = new SysUserPreferenceDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andUserIdEqualTo(id)
+                .andPreferenceKeyIn(keys);
+        return userPreferenceMapper.selectByExampleWithBLOBs(example).stream()
+                .map(this::recordPreference)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -93,16 +144,21 @@ public class PlatformUserRepositoryImpl implements PlatformUserRepository {
             // 对非法业务状态立即失败，避免错误继续扩散。
             throw new IllegalArgumentException("Invalid user id: " + userId);
         }
+        Long currentTenantId = tenantId();
+        requireTenantUser(id, currentTenantId);
         // 创建查询条件对象，后续通过 Criteria 精确约束查询范围。
         SysUserPreferenceDOExample example = new SysUserPreferenceDOExample();
         // 组装查询条件，确保 Mapper 只读取当前业务需要的数据。
-        example.createCriteria().andUserIdEqualTo(id).andPreferenceKeyEqualTo(preferenceKey);
+        example.createCriteria()
+                .andTenantIdEqualTo(currentTenantId)
+                .andUserIdEqualTo(id)
+                .andPreferenceKeyEqualTo(preferenceKey);
         // 从仓储或 Mapper 读取业务数据，为后续处理准备上下文。
         Optional<SysUserPreferenceDO> existing = first(userPreferenceMapper.selectByExampleWithBLOBs(example));
         // 用 Optional 表达可缺省结果，让调用方显式处理不存在场景。
         SysUserPreferenceDO row = existing.orElseGet(SysUserPreferenceDO::new);
         // 设置持久化字段，保证数据库记录具备完整业务属性。
-        row.setTenantId(tenantId());
+        row.setTenantId(currentTenantId);
         // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setUserId(id);
         // 设置持久化字段，保证数据库记录具备完整业务属性。
@@ -125,6 +181,43 @@ public class PlatformUserRepositoryImpl implements PlatformUserRepository {
         return recordPreference(row);
     }
 
+    @Override
+    public void saveUserPreferences(String userId, Map<String, String> preferences) {
+        Long id = longValue(userId);
+        if (id == null) {
+            throw new IllegalArgumentException("Invalid user id: " + userId);
+        }
+        if (preferences == null || preferences.isEmpty()) {
+            return;
+        }
+
+        Map<String, String> values = new LinkedHashMap<>();
+        for (Map.Entry<String, String> entry : preferences.entrySet()) {
+            String key = entry.getKey() == null ? "" : entry.getKey().trim();
+            if (!key.isEmpty()) {
+                values.put(key, entry.getValue());
+            }
+        }
+        if (values.isEmpty()) {
+            return;
+        }
+
+        Long currentTenantId = tenantId();
+        requireTenantUser(id, currentTenantId);
+        List<SysUserPreferenceDO> rows = new ArrayList<>(values.size());
+        for (Map.Entry<String, String> entry : values.entrySet()) {
+            SysUserPreferenceDO row = new SysUserPreferenceDO();
+            row.setTenantId(currentTenantId);
+            row.setUserId(id);
+            row.setPreferenceKey(entry.getKey());
+            row.setPreferenceValue(entry.getValue());
+            row.setValueType("STRING");
+            touch(row, true);
+            rows.add(row);
+        }
+        userPreferenceBatchMapper.upsert(rows);
+    }
+
     /**
      * 查询列表数据，保持返回结构稳定并便于前端直接消费，通过 Mapper 完成平台管理数据访问。
      *
@@ -133,6 +226,9 @@ public class PlatformUserRepositoryImpl implements PlatformUserRepository {
     @Override
     public List<DomainRecord> listUsers() {
         SysUserDOExample example = new SysUserDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andDeleteMarkerEqualTo(0L);
         example.setOrderByClause("create_time DESC, id DESC");
         return userMapper.selectByExample(example).stream().map(this::record).collect(Collectors.toList());
     }
@@ -145,6 +241,7 @@ public class PlatformUserRepositoryImpl implements PlatformUserRepository {
      */
     @Override
     public DomainRecord createUser(PlatformUserRequest request) {
+        validateDepartmentReference(request == null ? null : request.getDeptId());
         SysUserDO row = userRow(request);
         touch(row, true);
         userMapper.insertSelective(row);
@@ -161,11 +258,22 @@ public class PlatformUserRepositoryImpl implements PlatformUserRepository {
     @Override
     public DomainRecord updateUser(String id, PlatformUserRequest request) {
         Long key = longValue(id);
+        if (key == null) {
+            throw new IllegalArgumentException("Invalid user id: " + id);
+        }
+        validateDepartmentReference(request == null ? null : request.getDeptId());
         SysUserDO row = userRow(request);
         row.setId(key);
         touch(row, false);
-        userMapper.updateByPrimaryKeySelective(row);
-        SysUserDO persisted = key == null ? null : userMapper.selectByPrimaryKey(key);
+        SysUserDOExample example = new SysUserDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andIdEqualTo(key)
+                .andDeleteMarkerEqualTo(0L);
+        if (userMapper.updateByExampleSelective(row, example) == 0) {
+            throw new IllegalArgumentException("User does not exist: " + id);
+        }
+        SysUserDO persisted = first(userMapper.selectByExample(example)).orElse(null);
         return record(persisted == null ? row : persisted);
     }
 
@@ -178,7 +286,11 @@ public class PlatformUserRepositoryImpl implements PlatformUserRepository {
     public void deleteUser(String id) {
         Long key = longValue(id);
         if (key != null) {
-            userMapper.deleteByPrimaryKey(key);
+            SysUserDOExample example = new SysUserDOExample();
+            example.createCriteria()
+                    .andTenantIdEqualTo(tenantId())
+                    .andIdEqualTo(key);
+            userMapper.deleteByExample(example);
         }
     }
 
@@ -272,15 +384,18 @@ public class PlatformUserRepositoryImpl implements PlatformUserRepository {
     private void touch(SysUserPreferenceDO row, boolean creating) {
         // 统一生成当前时间，保证本次写入使用同一审计时间。
         Date now = new Date();
+        String operatorId = currentOperatorId();
         // 根据当前业务条件选择对应处理路径。
         if (creating) {
             // 设置持久化字段，保证数据库记录具备完整业务属性。
             row.setCreateTime(now);
+            row.setCreateBy(operatorId);
             // 设置持久化字段，保证数据库记录具备完整业务属性。
             row.setVersion(0);
         }
         // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setUpdateTime(now);
+        row.setUpdateBy(operatorId);
     }
 
     /**
@@ -385,14 +500,51 @@ public class PlatformUserRepositoryImpl implements PlatformUserRepository {
         return rows == null || rows.isEmpty() ? Optional.empty() : Optional.ofNullable(rows.get(0));
     }
 
+    private void requireTenantUser(Long userId, Long currentTenantId) {
+        SysUserDOExample example = new SysUserDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(currentTenantId)
+                .andIdEqualTo(userId)
+                .andDeleteMarkerEqualTo(0L);
+        if (userMapper.countByExample(example) == 0L) {
+            throw new IllegalArgumentException("User does not belong to current tenant: " + userId);
+        }
+    }
+
+    private void validateDepartmentReference(String deptId) {
+        if (deptId == null || deptId.trim().isEmpty()) {
+            return;
+        }
+        Long key = longValue(deptId);
+        if (key == null) {
+            throw new IllegalArgumentException("Invalid department id: " + deptId);
+        }
+        SysDeptDOExample example = new SysDeptDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andIdEqualTo(key)
+                .andDeleteMarkerEqualTo(0L);
+        if (deptMapper.countByExample(example) == 0L) {
+            throw new IllegalArgumentException("Department does not belong to current tenant: " + deptId);
+        }
+    }
+
+    private String currentOperatorId() {
+        try {
+            Long userId = longValue(currentUserProvider.currentUserId());
+            return String.valueOf(userId == null ? 0L : userId);
+        } catch (RuntimeException ignored) {
+            return "0";
+        }
+    }
+
     /**
      * 读取当前租户上下文，保证数据写入归属正确，通过 Mapper 完成平台管理数据访问。
      *
      * @return 处理后的业务结果。
      */
     private Long tenantId() {
-        Long tenantId = TenantContext.getTenantId();
-        return tenantId == null ? 1L : tenantId;
+        return TenantContext.getRequiredTenantId();
     }
 
     /**

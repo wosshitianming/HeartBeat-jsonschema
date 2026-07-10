@@ -49,11 +49,32 @@ public interface TokenIssuer {
     /** Issue an OAuth state token. */
     String issueSocialState();
 
+    /**
+     * Issue a tenant-bound OAuth state token.
+     */
+    default String issueSocialState(String tenantId) {
+        return issueSocialState();
+    }
+
     /** Validate an OAuth state token. */
     boolean validateSocialState(String state);
 
+    /**
+     * Parse the tenant id bound to an OAuth state token.
+     */
+    default long parseSocialStateTenantId(String state) {
+        return 1L;
+    }
+
     /** Issue a short-lived social-account bind ticket. */
     String issueBindTicket(String provider, String openId, String nickname, String avatar);
+
+    /**
+     * Issue a tenant-bound social-account bind ticket.
+     */
+    default String issueBindTicket(String provider, String openId, String nickname, String avatar, String tenantId) {
+        return issueBindTicket(provider, openId, nickname, avatar);
+    }
 
     /** Parse a social-account bind ticket. */
     Map<String, String> parseBindTicket(String bindTicket);

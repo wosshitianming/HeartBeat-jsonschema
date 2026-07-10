@@ -12,6 +12,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import top.kx.heartbeat.application.platform.port.PlatformPermissionRepository;
 import top.kx.heartbeat.domain.auth.AuthSession;
 import top.kx.heartbeat.domain.auth.AuthSessionRepository;
+import top.kx.heartbeat.infrastructure.persistence.entity.sys.SysUserDOExample;
+import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysUserDOMapper;
 import top.kx.heartbeat.infrastructure.tenant.TenantContext;
 
 import javax.annotation.Resource;
@@ -30,12 +32,16 @@ import java.util.List;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    private static final long SESSION_TOUCH_INTERVAL_MINUTES = 5L;
+
     @Resource
     private JwtTokenService jwtTokenService;
     @Resource
     private PlatformPermissionRepository platformPermissionRepository;
     @Resource
     private AuthSessionRepository authSessionRepository;
+    @Resource
+    private SysUserDOMapper userMapper;
 
     @Value("${heartbeat.security.dev-auto-login:false}")
     private boolean devAutoLogin;
@@ -111,6 +117,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     String sessionId = jwtTokenService.parseSessionId(token);
                     // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                     requireActiveSession(tenantId, userId, sessionId);
+                    requireActiveUser(tenantId, userId);
                     // 返回已经完成封装的业务结果。
                     return new AuthenticatedSession(userId, tenantId, sessionId);
                 } catch (RuntimeException ignored) {
@@ -152,7 +159,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throw new IllegalArgumentException("Auth session is not active");
         }
         // 补齐审计字段和默认值，保证新增与更新写入口径一致。
-        authSessionRepository.touch(tenantId, sessionId, nowLdt);
+        LocalDateTime lastAccessAt = session.getLastAccessAt();
+        if (lastAccessAt == null
+                || !lastAccessAt.plusMinutes(SESSION_TOUCH_INTERVAL_MINUTES).isAfter(nowLdt)) {
+            authSessionRepository.touch(tenantId, sessionId, nowLdt);
+        }
+    }
+
+    private void requireActiveUser(long tenantId, String userId) {
+        long id = Long.parseLong(userId);
+        SysUserDOExample example = new SysUserDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId)
+                .andIdEqualTo(id)
+                .andStatusEqualTo("ENABLED")
+                .andDeleteMarkerEqualTo(0L);
+        if (userMapper.countByExample(example) != 1L) {
+            throw new IllegalArgumentException("User is not active");
+        }
     }
 
     private static final class AuthenticatedSession {

@@ -33,6 +33,9 @@ public class PlatformRoleRepositoryImpl implements PlatformRoleRepository {
     @Override
     public List<DomainRecord> listRoles() {
         SysRoleDOExample example = new SysRoleDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andDeleteMarkerEqualTo(0L);
         example.setOrderByClause("sort_no ASC, id ASC");
         return roleMapper.selectByExample(example).stream().map(this::record).collect(Collectors.toList());
     }
@@ -61,11 +64,20 @@ public class PlatformRoleRepositoryImpl implements PlatformRoleRepository {
     @Override
     public DomainRecord updateRole(String id, PlatformRoleRequest request) {
         Long key = longValue(id);
+        if (key == null) {
+            throw new IllegalArgumentException("Invalid role id: " + id);
+        }
         SysRoleDO row = roleRow(request);
         row.setId(key);
         touch(row, false);
-        roleMapper.updateByPrimaryKeySelective(row);
-        SysRoleDO persisted = key == null ? null : roleMapper.selectByPrimaryKey(key);
+        SysRoleDO persisted = null;
+        if (key != null) {
+            SysRoleDOExample example = roleById(key);
+            if (roleMapper.updateByExampleSelective(row, example) == 0) {
+                throw new IllegalArgumentException("Role does not exist: " + id);
+            }
+            persisted = first(roleMapper.selectByExample(example));
+        }
         return record(persisted == null ? row : persisted);
     }
 
@@ -78,7 +90,7 @@ public class PlatformRoleRepositoryImpl implements PlatformRoleRepository {
     public void deleteRole(String id) {
         Long key = longValue(id);
         if (key != null) {
-            roleMapper.deleteByPrimaryKey(key);
+            roleMapper.deleteByExample(roleById(key));
         }
     }
 
@@ -190,8 +202,20 @@ public class PlatformRoleRepositoryImpl implements PlatformRoleRepository {
      * @return 处理后的业务结果。
      */
     private Long tenantId() {
-        Long tenantId = TenantContext.getTenantId();
-        return tenantId == null ? 1L : tenantId;
+        return TenantContext.getRequiredTenantId();
+    }
+
+    private SysRoleDOExample roleById(Long id) {
+        SysRoleDOExample example = new SysRoleDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andIdEqualTo(id)
+                .andDeleteMarkerEqualTo(0L);
+        return example;
+    }
+
+    private <T> T first(List<T> rows) {
+        return rows == null || rows.isEmpty() ? null : rows.get(0);
     }
 
     /**

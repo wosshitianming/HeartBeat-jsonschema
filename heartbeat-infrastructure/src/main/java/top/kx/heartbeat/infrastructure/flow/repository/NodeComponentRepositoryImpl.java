@@ -8,6 +8,7 @@ import top.kx.heartbeat.infrastructure.flow.convert.NodeComponentConvert;
 import top.kx.heartbeat.infrastructure.persistence.entity.flow.HbNodeComponentDO;
 import top.kx.heartbeat.infrastructure.persistence.entity.flow.HbNodeComponentDOExample;
 import top.kx.heartbeat.infrastructure.persistence.mapper.flow.HbNodeComponentDOMapper;
+import top.kx.heartbeat.infrastructure.tenant.TenantContext;
 
 import javax.annotation.Resource;
 import java.util.Date;
@@ -22,11 +23,6 @@ import java.util.stream.Collectors;
  */
 @Repository
 public class NodeComponentRepositoryImpl implements NodeComponentRepository {
-
-    /**
-     * 默认租户标识。
-     */
-    private static final long DEFAULT_TENANT_ID = 1L;
 
     /**
      * 默认操作人标识。
@@ -55,7 +51,9 @@ public class NodeComponentRepositoryImpl implements NodeComponentRepository {
         // 创建查询条件。
         HbNodeComponentDOExample example = new HbNodeComponentDOExample();
         // 添加租户和状态条件。
-        example.createCriteria().andTenantIdEqualTo(DEFAULT_TENANT_ID).andStatusEqualTo(NodeComponentStatus.ACTIVE.getCode());
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andStatusEqualTo(NodeComponentStatus.ACTIVE.getCode());
         // 设置排序规则。
         example.setOrderByClause("sort_no ASC, id ASC");
         // 查询并转换为领域模型。
@@ -71,10 +69,14 @@ public class NodeComponentRepositoryImpl implements NodeComponentRepository {
      */
     @Override
     public Optional<NodeComponentManifest> findByTypeAndVersion(String type, String version) {
+        long tenantId = tenantId();
         // 创建查询条件。
         HbNodeComponentDOExample example = new HbNodeComponentDOExample();
         // 添加租户、类型和版本条件。
-        example.createCriteria().andTenantIdEqualTo(DEFAULT_TENANT_ID).andTypeEqualTo(type).andVersionEqualTo(version);
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId)
+                .andTypeEqualTo(type)
+                .andVersionEqualTo(version);
         // 查询节点组件。
         List<HbNodeComponentDO> rows = mapper.selectByExampleWithBLOBs(example);
         // 返回查询结果。
@@ -89,18 +91,19 @@ public class NodeComponentRepositoryImpl implements NodeComponentRepository {
      */
     @Override
     public NodeComponentManifest save(NodeComponentManifest manifest) {
+        long tenantId = tenantId();
         // 转换为持久化对象。
         HbNodeComponentDO row = convert.toEntity(manifest);
-        // 补齐租户和审计字段。
-        fillAudit(row);
         // 查询同类型同版本组件。
-        Optional<NodeComponentManifest> existing = findByTypeAndVersion(manifest.getType(), manifest.getVersion());
+        HbNodeComponentDO existing = selectByTypeAndVersion(manifest.getType(), manifest.getVersion(), tenantId);
+        // 补齐租户和审计字段。
+        fillAudit(row, existing, tenantId);
         // 判断是否需要更新已有组件。
-        if (existing.isPresent()) {
+        if (existing != null) {
             // 写入已有组件主键。
-            row.setId(parseLong(existing.get().getId()));
+            row.setId(existing.getId());
             // 更新已有组件。
-            mapper.updateByPrimaryKeySelective(row);
+            mapper.updateByExampleSelective(row, componentById(existing.getId(), tenantId));
             // 返回更新后的组件。
             return findByTypeAndVersion(manifest.getType(), manifest.getVersion()).orElse(manifest);
         }
@@ -115,34 +118,40 @@ public class NodeComponentRepositoryImpl implements NodeComponentRepository {
      *
      * @param row 节点组件持久化对象
      */
-    private void fillAudit(HbNodeComponentDO row) {
+    private void fillAudit(HbNodeComponentDO row, HbNodeComponentDO existing, long tenantId) {
         // 获取当前时间。
         Date now = new Date();
-        // 写入默认租户。
-        row.setTenantId(DEFAULT_TENANT_ID);
+        // 写入当前租户。
+        row.setTenantId(tenantId);
         // 写入创建人。
-        row.setCreateBy(DEFAULT_OPERATOR_ID);
+        row.setCreateBy(existing == null ? DEFAULT_OPERATOR_ID : existing.getCreateBy());
         // 写入更新人。
         row.setUpdateBy(DEFAULT_OPERATOR_ID);
         // 写入创建时间。
-        row.setCreateTime(now);
+        row.setCreateTime(existing == null ? now : existing.getCreateTime());
         // 写入更新时间。
         row.setUpdateTime(now);
     }
 
-    /**
-     * 解析字符串主键。
-     *
-     * @param value 字符串主键
-     * @return Long 主键
-     */
-    private Long parseLong(String value) {
-        // 判断字符串是否为空。
-        if (value == null || value.trim().isEmpty()) {
-            // 返回空主键。
-            return null;
-        }
-        // 返回 Long 主键。
-        return Long.valueOf(value);
+    private HbNodeComponentDO selectByTypeAndVersion(String type, String version, long tenantId) {
+        HbNodeComponentDOExample example = new HbNodeComponentDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId)
+                .andTypeEqualTo(type)
+                .andVersionEqualTo(version);
+        List<HbNodeComponentDO> rows = mapper.selectByExampleWithBLOBs(example);
+        return rows.isEmpty() ? null : rows.get(0);
+    }
+
+    private HbNodeComponentDOExample componentById(Long id, long tenantId) {
+        HbNodeComponentDOExample example = new HbNodeComponentDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId)
+                .andIdEqualTo(id);
+        return example;
+    }
+
+    private long tenantId() {
+        return TenantContext.getRequiredTenantId();
     }
 }

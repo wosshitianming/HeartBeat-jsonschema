@@ -17,29 +17,45 @@ import java.util.*;
 @Component
 public class StructureModelJsonCodec {
 
+    private static final int MAX_JSON_UNWRAP_DEPTH = 8;
+
     @Resource
     private ObjectMapper objectMapper;
 
     public String writeModel(StructureNode node) {
+        if (node == null) {
+            throw new IllegalArgumentException("结构模型不能为空");
+        }
         return write(nodeToJson(node));
     }
 
     public StructureNode readModel(String json) {
-        return jsonToNode(read(json));
+        JsonNode root = unwrapSerializedJson(read(json));
+        if (root.isNull() || !root.isObject()) {
+            throw new IllegalStateException("结构模型 JSON 必须是对象");
+        }
+        return jsonToNode(root);
     }
 
     public String writeArtifacts(Map<String, String> artifacts) {
         ObjectNode root = objectMapper.createObjectNode();
+        if (artifacts == null) {
+            return write(root);
+        }
         for (Map.Entry<String, String> artifact : artifacts.entrySet()) {
-            root.set(artifact.getKey(), read(artifact.getValue()));
+            root.set(artifact.getKey(), unwrapSerializedJson(read(artifact.getValue())));
         }
         return write(root);
     }
 
     public Map<String, String> readArtifacts(String json) {
         Map<String, String> artifacts = new LinkedHashMap<>();
-        read(json).fields().forEachRemaining(entry ->
-                artifacts.put(entry.getKey(), write(entry.getValue())));
+        JsonNode root = unwrapSerializedJson(read(json));
+        if (root.isNull() || !root.isObject()) {
+            throw new IllegalStateException("结构产物 JSON 必须是对象");
+        }
+        root.fields().forEachRemaining(entry ->
+                artifacts.put(entry.getKey(), normalizeArtifact(entry.getValue())));
         return artifacts;
     }
 
@@ -47,7 +63,7 @@ public class StructureModelJsonCodec {
         // 计算当前分支的中间结果，供后续判断或组装使用。
         ArrayNode array = objectMapper.createArrayNode();
         // 逐条遍历集合数据，完成业务结果组装或状态处理。
-        for (InferenceWarning warning : warnings) {
+        for (InferenceWarning warning : warnings == null ? Collections.<InferenceWarning>emptyList() : warnings) {
             // 计算当前分支的中间结果，供后续判断或组装使用。
             ObjectNode item = array.addObject();
             // 写入对外字段，保持调用方依赖的响应结构稳定。
@@ -63,14 +79,31 @@ public class StructureModelJsonCodec {
 
     public List<InferenceWarning> readWarnings(String json) {
         List<InferenceWarning> warnings = new ArrayList<>();
-        for (JsonNode item : read(json)) {
+        JsonNode root = unwrapSerializedJson(read(json));
+        if (root.isNull() || !root.isArray()) {
+            throw new IllegalStateException("结构告警 JSON 必须是数组");
+        }
+        for (JsonNode item : root) {
+            if (!item.isObject()
+                    || !item.path("code").isTextual()
+                    || !item.path("path").isTextual()
+                    || !item.path("message").isTextual()) {
+                throw new IllegalStateException("结构告警 JSON 缺少必要字段");
+            }
             warnings.add(new InferenceWarning(
-                    item.path("code").asText(),
-                    item.path("path").asText(),
-                    item.path("message").asText()
+                    item.get("code").asText(),
+                    item.get("path").asText(),
+                    item.get("message").asText()
             ));
         }
         return warnings;
+    }
+
+    public String normalizeJson(String json) {
+        if (json == null) {
+            return "null";
+        }
+        return write(unwrapSerializedJson(read(json)));
     }
 
     private ObjectNode nodeToJson(StructureNode node) {
@@ -112,8 +145,15 @@ public class StructureModelJsonCodec {
     }
 
     private StructureNode jsonToNode(JsonNode json) {
+        if (!json.isObject()
+                || !json.path("path").isTextual()
+                || !json.path("name").isTextual()
+                || !json.path("types").isArray()
+                || !json.path("properties").isObject()) {
+            throw new IllegalStateException("结构模型 JSON 缺少必要字段");
+        }
         // 创建当前流程需要的临时对象，承载后续处理数据。
-        StructureNode node = new StructureNode(json.path("path").asText(), json.path("name").asText());
+        StructureNode node = new StructureNode(json.get("path").asText(), json.get("name").asText());
         // 逐条遍历集合数据，完成业务结果组装或状态处理。
         for (JsonNode type : json.path("types")) {
             // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
@@ -137,7 +177,10 @@ public class StructureModelJsonCodec {
             node.putProperty(property.getKey(), jsonToNode(property.getValue()));
         }
         // 根据当前业务条件选择对应处理路径。
-        if (json.has("items")) {
+        if (json.hasNonNull("items")) {
+            if (!json.get("items").isObject()) {
+                throw new IllegalStateException("结构模型 items 必须是对象");
+            }
             // 设置持久化字段，保证数据库记录具备完整业务属性。
             node.setItems(jsonToNode(json.get("items")));
         }
@@ -156,13 +199,40 @@ public class StructureModelJsonCodec {
         }
     }
 
-    private JsonNode read(String value) {
-        // 进入可能失败的处理区间，后续异常会统一转换为业务可理解的结果。
+    private String normalizeArtifact(JsonNode value) {
+        return write(unwrapSerializedJson(value));
+    }
+
+    private JsonNode unwrapSerializedJson(JsonNode value) {
+        JsonNode current = value;
+        for (int depth = 0; depth < MAX_JSON_UNWRAP_DEPTH && current.isTextual(); depth++) {
+            JsonNode nested = tryRead(current.textValue());
+            if (nested == null) {
+                break;
+            }
+            current = nested;
+        }
+        return current;
+    }
+
+    private JsonNode tryRead(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
         try {
-            // 返回已经完成封装的业务结果。
             return objectMapper.readTree(value);
         } catch (JsonProcessingException ex) {
-            // 对非法业务状态立即失败，避免错误继续扩散。
+            return null;
+        }
+    }
+
+    private JsonNode read(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            throw new IllegalStateException("结构 JSON 不能为空");
+        }
+        try {
+            return objectMapper.readTree(value);
+        } catch (JsonProcessingException ex) {
             throw new IllegalStateException("结构 JSON 反序列化失败", ex);
         }
     }

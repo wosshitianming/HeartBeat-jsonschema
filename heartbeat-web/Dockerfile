@@ -3,7 +3,9 @@
 # ── Stage 1: Build frontend ───────────────────────────────────────────────────
 FROM node:20-alpine AS build
 
+ARG VITE_ENABLE_OBFUSCATION=true
 ARG VITE_DISABLE_OBFUSCATION=false
+ENV VITE_ENABLE_OBFUSCATION=${VITE_ENABLE_OBFUSCATION}
 ENV VITE_DISABLE_OBFUSCATION=${VITE_DISABLE_OBFUSCATION}
 
 WORKDIR /app

@@ -53,7 +53,6 @@ public class PlatformLoginLogRepositoryImpl implements PlatformLoginLogRepositor
      * @return 处理后的业务结果。
      */
     private Long tenantId() {
-        Long current = TenantContext.getTenantId();
-        return current == null ? 1L : current;
+        return TenantContext.getRequiredTenantId();
     }
 }

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.kx.heartbeat.infrastructure.persistence.mapper.platform.PlatformUserPreferenceBatchMapper">
+    <insert id="upsert">
+        insert into sys_user_preference (
+        tenant_id,
+        user_id,
+        preference_key,
+        preference_value,
+        value_type,
+        version,
+        create_time,
+        update_time,
+        create_by,
+        update_by
+        )
+        values
+        <foreach collection="rows" item="row" separator=",">
+            (
+            #{row.tenantId,jdbcType=BIGINT},
+            #{row.userId,jdbcType=BIGINT},
+            #{row.preferenceKey,jdbcType=VARCHAR},
+            #{row.preferenceValue,jdbcType=LONGVARCHAR},
+            #{row.valueType,jdbcType=VARCHAR},
+            #{row.version,jdbcType=INTEGER},
+            #{row.createTime,jdbcType=TIMESTAMP},
+            #{row.updateTime,jdbcType=TIMESTAMP},
+            #{row.createBy,jdbcType=VARCHAR},
+            #{row.updateBy,jdbcType=VARCHAR}
+            )
+        </foreach>
+        on duplicate key update
+        preference_value = values(preference_value),
+        value_type = values(value_type),
+        update_time = values(update_time),
+        update_by = values(update_by)
+    </insert>
+</mapper>

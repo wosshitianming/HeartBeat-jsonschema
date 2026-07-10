@@ -574,6 +574,12 @@
   margin-top: 20px;
 }
 
+.lazy-module-fallback {
+    min-height: 180px;
+    display: grid;
+    place-items: center;
+}
+
 .monitor-kv-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));

@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react'
+import {useCallback, useEffect, useRef, useState} from 'react'
 import {authApi} from '../api'
 import {
     applyAppearance,
@@ -12,65 +12,181 @@ import {
     watchSystemColorScheme
 } from './themeService'
 
+const SAVE_DEBOUNCE_MS = 180
+
 export default function useAppearanceTheme(currentUser) {
   const [appearance, setAppearance] = useState(
       () => readInitialAppearance() || { ...DEFAULT_APPEARANCE }
   )
   const [syncState, setSyncState] = useState('idle')
   const userId = currentUser?.id
+    const appearanceRef = useRef(appearance)
+    const requestIdRef = useRef(0)
+    const preferenceControllerRef = useRef(null)
+    // Debounce the first write, then serialize and coalesce changes while a PUT is in flight.
+    const saveQueueRef = useRef({
+        controller: null,
+        generation: 0,
+        inFlight: false,
+        latestVersion: 0,
+        pending: null,
+        timer: null
+    })
+
+    const resetSaveQueue = useCallback(() => {
+        const queue = saveQueueRef.current
+        if (queue.timer) clearTimeout(queue.timer)
+        queue.controller?.abort()
+        queue.controller = null
+        queue.generation += 1
+        queue.inFlight = false
+        queue.latestVersion = 0
+        queue.pending = null
+        queue.timer = null
+    }, [])
+
+    const flushPendingSave = useCallback(async function flushPendingSave() {
+        const queue = saveQueueRef.current
+        if (queue.inFlight || !queue.pending) return
+
+        const job = queue.pending
+        const generation = queue.generation
+        const controller = new AbortController()
+        queue.pending = null
+        queue.inFlight = true
+        queue.controller = controller
+
+        try {
+            const saved = await authApi.updateAppearancePreference(job.appearance, {signal: controller.signal})
+            if (controller.signal.aborted || generation !== queue.generation) return
+
+            const isLatest = job.version === queue.latestVersion && !queue.pending
+            if (isLatest) {
+                const savedAppearance = saved ? normalizeAppearance(saved) : job.appearance
+                cacheAppearance(job.userId, savedAppearance)
+                applyAppearance(savedAppearance)
+                appearanceRef.current = savedAppearance
+                setAppearance(savedAppearance)
+                setSyncState('synced')
+            }
+        } catch (error) {
+            if (error?.name === 'AbortError' || generation !== queue.generation) return
+            if (!queue.pending && job.version === queue.latestVersion) {
+                setSyncState('pending')
+            }
+        } finally {
+            if (generation !== queue.generation) return
+            queue.controller = null
+            queue.inFlight = false
+            if (queue.pending) {
+                void flushPendingSave()
+            }
+        }
+    }, [])
+
+    const scheduleAppearanceSave = useCallback((targetUserId, nextAppearance) => {
+        const queue = saveQueueRef.current
+        const version = ++queue.latestVersion
+        queue.pending = {
+            appearance: nextAppearance,
+            userId: targetUserId,
+            version
+        }
+        setSyncState('syncing')
+
+        if (queue.timer) clearTimeout(queue.timer)
+        queue.timer = null
+        if (!queue.inFlight) {
+            queue.timer = setTimeout(() => {
+                queue.timer = null
+                void flushPendingSave()
+            }, SAVE_DEBOUNCE_MS)
+        }
+    }, [flushPendingSave])
 
   useEffect(() => {
+      appearanceRef.current = appearance
     applyAppearance(appearance)
     if (appearance.colorMode !== 'system') return undefined
     return watchSystemColorScheme(() => applyAppearance(appearance))
   }, [appearance])
 
   useEffect(() => {
-    if (!userId) return undefined
+      preferenceControllerRef.current?.abort()
+      resetSaveQueue()
+      if (!userId) {
+          preferenceControllerRef.current = null
+          return undefined
+      }
 
-    let active = true
+      const controller = new AbortController()
+      const requestId = ++requestIdRef.current
+      preferenceControllerRef.current = controller
     rememberUser(userId)
     const cached = readCachedAppearance(userId)
+      appearanceRef.current = cached
     setAppearance(cached)
     applyAppearance(cached)
     setSyncState('syncing')
 
-    authApi.appearancePreference()
+      authApi.appearancePreference({signal: controller.signal})
         .then((preference) => {
-          if (!active) return
+            if (controller.signal.aborted || requestId !== requestIdRef.current) return
           const remoteAppearance = normalizeAppearance(preference)
           cacheAppearance(userId, remoteAppearance)
           applyAppearance(remoteAppearance)
+            appearanceRef.current = remoteAppearance
           setAppearance(remoteAppearance)
           setSyncState('synced')
         })
-        .catch(() => {
-          if (active) setSyncState('pending')
+          .catch((error) => {
+              if (error?.name === 'AbortError' || requestId !== requestIdRef.current) return
+              setSyncState('pending')
         })
 
     return () => {
-      active = false
+        controller.abort()
+        resetSaveQueue()
+        if (preferenceControllerRef.current === controller) {
+            preferenceControllerRef.current = null
+        }
     }
-  }, [userId])
+  }, [resetSaveQueue, userId])
 
-  async function changeAppearance(patch) {
-    const nextAppearance = normalizeAppearance({ ...appearance, ...patch })
+    const changeAppearance = useCallback(async (patch) => {
+        const nextAppearance = normalizeAppearance({...appearanceRef.current, ...patch})
+        appearanceRef.current = nextAppearance
     setAppearance(nextAppearance)
     applyAppearance(nextAppearance)
     if (userId) cacheAppearance(userId, nextAppearance)
-    setSyncState('syncing')
+        if (!userId) {
+            setSyncState('idle')
+            return nextAppearance
+        }
 
-    try {
-      const saved = await authApi.updateAppearancePreference(nextAppearance)
-      const savedAppearance = normalizeAppearance(saved)
-      if (userId) cacheAppearance(userId, savedAppearance)
-      applyAppearance(savedAppearance)
-      setAppearance(savedAppearance)
-      setSyncState('synced')
-    } catch {
-      setSyncState('pending')
-    }
-  }
+        preferenceControllerRef.current?.abort()
+        preferenceControllerRef.current = null
+        requestIdRef.current += 1
+        scheduleAppearanceSave(userId, nextAppearance)
+        return nextAppearance
+    }, [scheduleAppearanceSave, userId])
+
+    const changeColorMode = useCallback(
+        (colorMode) => changeAppearance({colorMode}),
+        [changeAppearance]
+    )
+    const changeFluidEnabled = useCallback(
+        (fluidEnabled) => changeAppearance({fluidEnabled}),
+        [changeAppearance]
+    )
+    const changeAccentColor = useCallback(
+        (accentColor) => changeAppearance({accentColor}),
+        [changeAppearance]
+    )
+    const changeVisualStyle = useCallback(
+        (visualStyle) => changeAppearance({visualStyle}),
+        [changeAppearance]
+    )
 
   return {
     appearance,
@@ -79,10 +195,11 @@ export default function useAppearanceTheme(currentUser) {
     accentColor: appearance.accentColor,
     visualStyle: appearance.visualStyle,
     colorScheme: resolvedColorScheme(appearance.colorMode),
-    changeColorMode: (colorMode) => changeAppearance({ colorMode }),
-    changeFluidEnabled: (fluidEnabled) => changeAppearance({ fluidEnabled }),
-    changeAccentColor: (accentColor) => changeAppearance({ accentColor }),
-    changeVisualStyle: (visualStyle) => changeAppearance({ visualStyle }),
+      changeAppearance,
+      changeColorMode,
+      changeFluidEnabled,
+      changeAccentColor,
+      changeVisualStyle,
     syncState
   }
 }

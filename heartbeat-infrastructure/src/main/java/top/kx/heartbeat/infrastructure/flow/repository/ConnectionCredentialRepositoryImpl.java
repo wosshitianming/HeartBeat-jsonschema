@@ -7,6 +7,7 @@ import top.kx.heartbeat.infrastructure.flow.convert.ConnectionCredentialConvert;
 import top.kx.heartbeat.infrastructure.persistence.entity.flow.HbConnectionCredentialDOExample;
 import top.kx.heartbeat.infrastructure.persistence.entity.flow.HbConnectionCredentialDOWithBLOBs;
 import top.kx.heartbeat.infrastructure.persistence.mapper.flow.HbConnectionCredentialDOMapper;
+import top.kx.heartbeat.infrastructure.tenant.TenantContext;
 
 import javax.annotation.Resource;
 import java.util.Date;
@@ -21,11 +22,6 @@ import java.util.stream.Collectors;
  */
 @Repository
 public class ConnectionCredentialRepositoryImpl implements ConnectionCredentialRepository {
-
-    /**
-     * 默认租户标识。
-     */
-    private static final long DEFAULT_TENANT_ID = 1L;
 
     /**
      * 默认操作人标识。
@@ -54,7 +50,7 @@ public class ConnectionCredentialRepositoryImpl implements ConnectionCredentialR
         // 创建查询条件。
         HbConnectionCredentialDOExample example = new HbConnectionCredentialDOExample();
         // 添加租户条件。
-        example.createCriteria().andTenantIdEqualTo(DEFAULT_TENANT_ID);
+        example.createCriteria().andTenantIdEqualTo(tenantId());
         // 设置排序规则。
         example.setOrderByClause("update_time DESC, id DESC");
         // 查询并转换为脱敏领域对象。
@@ -70,7 +66,7 @@ public class ConnectionCredentialRepositoryImpl implements ConnectionCredentialR
     @Override
     public Optional<ConnectionCredential> findById(String id) {
         // 查询持久化对象。
-        HbConnectionCredentialDOWithBLOBs row = mapper.selectByPrimaryKey(parseLong(id));
+        HbConnectionCredentialDOWithBLOBs row = selectById(parseLong(id), tenantId());
         // 返回脱敏领域对象。
         return Optional.ofNullable(row).map(convert::toMaskedDomain);
     }
@@ -83,17 +79,24 @@ public class ConnectionCredentialRepositoryImpl implements ConnectionCredentialR
      */
     @Override
     public ConnectionCredential save(ConnectionCredential credential) {
+        long tenantId = tenantId();
         // 转换为持久化对象。
         HbConnectionCredentialDOWithBLOBs row = convert.toEntity(credential);
-        // 补齐租户和审计字段。
-        fillAudit(row);
         // 判断主键是否存在。
         if (row.getId() == null) {
+            // 补齐租户和审计字段。
+            fillAudit(row, null, tenantId);
             // 插入连接凭据。
             mapper.insertSelective(row);
         } else {
+            HbConnectionCredentialDOWithBLOBs existing = selectById(row.getId(), tenantId);
+            if (existing == null) {
+                throw new IllegalStateException("连接凭据不存在或不属于当前租户: " + row.getId());
+            }
+            // 补齐租户和审计字段。
+            fillAudit(row, existing, tenantId);
             // 更新连接凭据。
-            mapper.updateByPrimaryKeySelective(row);
+            mapper.updateByExampleSelective(row, credentialById(row.getId(), tenantId));
         }
         // 返回保存后的连接凭据。
         return row.getId() == null ? credential : findById(String.valueOf(row.getId())).orElse(credential);
@@ -107,7 +110,10 @@ public class ConnectionCredentialRepositoryImpl implements ConnectionCredentialR
     @Override
     public void delete(String id) {
         // 删除连接凭据。
-        mapper.deleteByPrimaryKey(parseLong(id));
+        Long credentialId = parseLong(id);
+        if (credentialId != null) {
+            mapper.deleteByExample(credentialById(credentialId, tenantId()));
+        }
     }
 
     /**
@@ -115,19 +121,43 @@ public class ConnectionCredentialRepositoryImpl implements ConnectionCredentialR
      *
      * @param row 连接凭据持久化对象
      */
-    private void fillAudit(HbConnectionCredentialDOWithBLOBs row) {
+    private void fillAudit(HbConnectionCredentialDOWithBLOBs row,
+                           HbConnectionCredentialDOWithBLOBs existing,
+                           long tenantId) {
         // 获取当前时间。
         Date now = new Date();
-        // 写入默认租户。
-        row.setTenantId(DEFAULT_TENANT_ID);
+        // 写入当前租户。
+        row.setTenantId(tenantId);
         // 写入创建人。
-        row.setCreateBy(DEFAULT_OPERATOR_ID);
+        row.setCreateBy(existing == null ? DEFAULT_OPERATOR_ID : existing.getCreateBy());
         // 写入更新人。
         row.setUpdateBy(DEFAULT_OPERATOR_ID);
         // 写入创建时间。
-        row.setCreateTime(row.getCreateTime() == null ? now : row.getCreateTime());
+        row.setCreateTime(existing == null
+                ? (row.getCreateTime() == null ? now : row.getCreateTime())
+                : existing.getCreateTime());
         // 写入更新时间。
         row.setUpdateTime(now);
+    }
+
+    private HbConnectionCredentialDOWithBLOBs selectById(Long id, long tenantId) {
+        if (id == null) {
+            return null;
+        }
+        List<HbConnectionCredentialDOWithBLOBs> rows = mapper.selectByExampleWithBLOBs(credentialById(id, tenantId));
+        return rows.isEmpty() ? null : rows.get(0);
+    }
+
+    private HbConnectionCredentialDOExample credentialById(Long id, long tenantId) {
+        HbConnectionCredentialDOExample example = new HbConnectionCredentialDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId)
+                .andIdEqualTo(id);
+        return example;
+    }
+
+    private long tenantId() {
+        return TenantContext.getRequiredTenantId();
     }
 
     /**

@@ -35,8 +35,12 @@ public class PlatformSocialRepositoryImpl implements PlatformSocialRepository {
      */
     @Override
     public List<DomainRecord> listSocialProviders() {
+        AuthSocialProviderDOExample example = new AuthSocialProviderDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andDeleteMarkerEqualTo(0L);
         // 返回已经完成封装的业务结果。
-        return socialProviderMapper.selectByExample(new AuthSocialProviderDOExample())
+        return socialProviderMapper.selectByExample(example)
                 // 使用流式转换批量映射数据，减少中间状态暴露。
                 .stream()
                 // 使用流式转换批量映射数据，减少中间状态暴露。
@@ -69,11 +73,20 @@ public class PlatformSocialRepositoryImpl implements PlatformSocialRepository {
     @Override
     public DomainRecord updateSocialProvider(String id, PlatformSocialProviderRequest request) {
         Long key = longValue(id);
+        if (key == null) {
+            throw new IllegalArgumentException("Invalid social provider id: " + id);
+        }
         AuthSocialProviderDO row = socialProviderRow(request);
         row.setId(key);
         touch(row, false);
-        socialProviderMapper.updateByPrimaryKeySelective(row);
-        AuthSocialProviderDO persisted = key == null ? null : socialProviderMapper.selectByPrimaryKey(key);
+        AuthSocialProviderDO persisted = null;
+        if (key != null) {
+            AuthSocialProviderDOExample example = providerById(key);
+            if (socialProviderMapper.updateByExampleSelective(row, example) == 0) {
+                throw new IllegalArgumentException("Social provider does not exist: " + id);
+            }
+            persisted = first(socialProviderMapper.selectByExample(example)).orElse(null);
+        }
         return recordProvider(persisted == null ? row : persisted);
     }
 
@@ -86,7 +99,7 @@ public class PlatformSocialRepositoryImpl implements PlatformSocialRepository {
     public void deleteSocialProvider(String id) {
         Long key = longValue(id);
         if (key != null) {
-            socialProviderMapper.deleteByPrimaryKey(key);
+            socialProviderMapper.deleteByExample(providerById(key));
         }
     }
 
@@ -100,7 +113,11 @@ public class PlatformSocialRepositoryImpl implements PlatformSocialRepository {
         // 创建查询条件对象，后续通过 Criteria 精确约束查询范围。
         AuthSocialProviderDOExample example = new AuthSocialProviderDOExample();
         // 组装查询条件，确保 Mapper 只读取当前业务需要的数据。
-        example.createCriteria().andStatusEqualTo("ENABLED");
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andStatusEqualTo("ENABLED")
+                .andEnabledEqualTo(Boolean.TRUE)
+                .andDeleteMarkerEqualTo(0L);
         // 返回已经完成封装的业务结果。
         return socialProviderMapper.selectByExample(example)
                 // 使用流式转换批量映射数据，减少中间状态暴露。
@@ -120,7 +137,12 @@ public class PlatformSocialRepositoryImpl implements PlatformSocialRepository {
     @Override
     public Optional<DomainRecord> findSocialProvider(String provider) {
         AuthSocialProviderDOExample example = new AuthSocialProviderDOExample();
-        example.createCriteria().andProviderCodeEqualTo(provider);
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andProviderCodeEqualTo(provider)
+                .andStatusEqualTo("ENABLED")
+                .andEnabledEqualTo(Boolean.TRUE)
+                .andDeleteMarkerEqualTo(0L);
         return first(socialProviderMapper.selectByExample(example)).map(this::recordProvider);
     }
 
@@ -145,7 +167,10 @@ public class PlatformSocialRepositoryImpl implements PlatformSocialRepository {
         // 创建查询条件对象，后续通过 Criteria 精确约束查询范围。
         AuthSocialBindingDOExample example = new AuthSocialBindingDOExample();
         // 组装查询条件，确保 Mapper 只读取当前业务需要的数据。
-        example.createCriteria().andProviderIdEqualTo(providerId).andExternalUserIdEqualTo(openId);
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andProviderIdEqualTo(providerId)
+                .andExternalUserIdEqualTo(openId);
         // 返回已经完成封装的业务结果。
         return first(socialBindingMapper.selectByExample(example)).map(this::recordBinding);
     }
@@ -389,8 +414,16 @@ public class PlatformSocialRepositoryImpl implements PlatformSocialRepository {
      * @return 处理后的业务结果。
      */
     private Long tenantId() {
-        Long tenantId = TenantContext.getTenantId();
-        return tenantId == null ? 1L : tenantId;
+        return TenantContext.getRequiredTenantId();
+    }
+
+    private AuthSocialProviderDOExample providerById(Long id) {
+        AuthSocialProviderDOExample example = new AuthSocialProviderDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andIdEqualTo(id)
+                .andDeleteMarkerEqualTo(0L);
+        return example;
     }
 
     /**

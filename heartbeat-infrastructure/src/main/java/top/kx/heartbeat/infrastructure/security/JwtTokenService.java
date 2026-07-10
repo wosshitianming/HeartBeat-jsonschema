@@ -183,7 +183,12 @@ public class JwtTokenService implements TokenIssuer {
 
     @Override
     public String issueSocialState() {
-        return buildToken("state", "oauth", null, null, "state", 300_000L);
+        return issueSocialState("1");
+    }
+
+    @Override
+    public String issueSocialState(String tenantId) {
+        return buildToken("state", "oauth", tenantId, null, "state", 300_000L);
     }
 
     @Override
@@ -201,7 +206,25 @@ public class JwtTokenService implements TokenIssuer {
     }
 
     @Override
+    public long parseSocialStateTenantId(String state) {
+        Claims claims = parseClaims(state);
+        if (!"state".equals(claims.get(CLAIM_TOKEN_TYPE))) {
+            throw new IllegalArgumentException("State token is invalid or expired");
+        }
+        long tenantId = Long.parseLong(claimAsString(claims, CLAIM_TENANT_ID, "1"));
+        if (tenantId <= 0) {
+            throw new IllegalArgumentException("Invalid tenant id in state token");
+        }
+        return tenantId;
+    }
+
+    @Override
     public String issueBindTicket(String provider, String openId, String nickname, String avatar) {
+        return issueBindTicket(provider, openId, nickname, avatar, "1");
+    }
+
+    @Override
+    public String issueBindTicket(String provider, String openId, String nickname, String avatar, String tenantId) {
         // 返回已经完成封装的业务结果。
         return Jwts.builder()
                 // 设置持久化字段，保证数据库记录具备完整业务属性。
@@ -216,6 +239,7 @@ public class JwtTokenService implements TokenIssuer {
                 .claim("nickname", nickname)
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .claim("avatar", avatar)
+                .claim(CLAIM_TENANT_ID, tenantId)
                 // 设置持久化字段，保证数据库记录具备完整业务属性。
                 .setIssuedAt(new Date())
                 // 设置持久化字段，保证数据库记录具备完整业务属性。
@@ -245,6 +269,7 @@ public class JwtTokenService implements TokenIssuer {
         result.put("nickname", claims.get("nickname", String.class));
         // 写入对外字段，保持调用方依赖的响应结构稳定。
         result.put("avatar", claims.get("avatar", String.class));
+        result.put("tenantId", claimAsString(claims, CLAIM_TENANT_ID, "1"));
         // 返回已经完成封装的业务结果。
         return result;
     }

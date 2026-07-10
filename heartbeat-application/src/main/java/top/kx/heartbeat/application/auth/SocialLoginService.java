@@ -1,6 +1,7 @@
 package top.kx.heartbeat.application.auth;
 
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -13,6 +14,7 @@ import top.kx.heartbeat.application.platform.port.PlatformSocialRepository;
 import top.kx.heartbeat.application.platform.port.PlatformUserRepository;
 import top.kx.heartbeat.application.platform.request.PlatformSocialBindRequest;
 import top.kx.heartbeat.application.platform.request.PlatformUserRequest;
+import top.kx.heartbeat.domain.auth.CurrentUserProvider;
 import top.kx.heartbeat.domain.auth.SocialLoginHandlerRegistry;
 import top.kx.heartbeat.domain.auth.TokenIssuer;
 
@@ -33,14 +35,21 @@ public class SocialLoginService {
     private PlatformSocialRepository platformSocialRepository;
     @Resource
     private PlatformLoginLogRepository platformLoginLogRepository;
+
+    @Resource
+    private LoginAuditService loginAuditService;
     @Resource
     private TokenIssuer tokenIssuer;
+    @Resource
+    private CurrentUserProvider currentUserProvider;
     @Resource
     private SocialLoginHandlerRegistry socialLoginHandlerRegistry;
     @Resource
     private AuthenticationSessionService authenticationSessionService;
     @Resource
     private TransactionTemplate transactionTemplate;
+    @Resource
+    private PasswordEncoder passwordEncoder;
 
     /**
      * 查询列表数据，保持返回结构稳定并便于前端直接消费，协调认证登录相关仓储和领域规则。
@@ -82,7 +91,7 @@ public class SocialLoginService {
                 // 用 Optional 表达可缺省结果，让调用方显式处理不存在场景。
                 .orElseThrow(() -> new IllegalArgumentException("Social provider is not enabled: " + provider));
         // 计算当前步骤所需的中间值，供后续业务判断使用。
-        String state = tokenIssuer.issueSocialState();
+        String state = tokenIssuer.issueSocialState(currentUserProvider.currentTenantId());
         // 计算当前步骤所需的中间值，供后续业务判断使用。
         String callback = stringValue(firstValue(config, "redirectUri", "callbackUrl"));
         // 计算当前步骤所需的中间值，供后续业务判断使用。
@@ -116,6 +125,10 @@ public class SocialLoginService {
             // 对非法业务状态立即失败，避免错误继续扩散。
             throw new IllegalArgumentException("state is invalid or expired");
         }
+        long stateTenantId = tokenIssuer.parseSocialStateTenantId(state);
+        if (!String.valueOf(stateTenantId).equals(currentUserProvider.currentTenantId())) {
+            throw new IllegalArgumentException("OAuth state tenant does not match current tenant");
+        }
         // 从仓储或 Mapper 读取业务数据，为后续处理准备上下文。
         Map<String, Object> config = platformSocialRepository.findSocialProvider(provider)
                 // 使用流式转换批量映射数据，减少中间状态暴露。
@@ -142,6 +155,9 @@ public class SocialLoginService {
     public RecordResponse bindExistingAccount(String bindTicket, String username, String password) {
         // 计算当前步骤所需的中间值，供后续业务判断使用。
         Map<String, String> ticket = tokenIssuer.parseBindTicket(bindTicket);
+        if (!currentUserProvider.currentTenantId().equals(ticket.get("tenantId"))) {
+            throw new IllegalArgumentException("Bind ticket tenant does not match current tenant");
+        }
         // 从仓储或 Mapper 读取业务数据，为后续处理准备上下文。
         Map<String, Object> user = platformUserRepository.findUserByUsername(username)
                 // 使用流式转换批量映射数据，减少中间状态暴露。
@@ -151,7 +167,7 @@ public class SocialLoginService {
         // 根据当前业务条件选择对应处理路径。
         if (!matchesPassword(password, stringValue(user.get("passwordHash")))) {
             // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-            platformLoginLogRepository.recordLogin(username, "FAIL", "Social bind password error");
+            loginAuditService.record(username, "FAIL", "Social bind password error");
             // 对非法业务状态立即失败，避免错误继续扩散。
             throw new IllegalArgumentException("Password is incorrect");
         }
@@ -225,7 +241,8 @@ public class SocialLoginService {
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 profile.getOrDefault("nickname", ""),
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                profile.getOrDefault("avatar", "")
+                profile.getOrDefault("avatar", ""),
+                currentUserProvider.currentTenantId()
         );
         // 创建有序字段容器，保证响应或领域记录的字段顺序稳定。
         Map<String, Object> pending = new LinkedHashMap<>();
@@ -239,6 +256,7 @@ public class SocialLoginService {
         pending.put("nickname", profile.getOrDefault("nickname", ""));
         // 写入对外字段，保持调用方依赖的响应结构稳定。
         pending.put("avatar", profile.getOrDefault("avatar", ""));
+        pending.put("tenantId", currentUserProvider.currentTenantId());
         // 返回已经完成封装的业务结果。
         return RecordResponse.from(pending);
     }
@@ -283,6 +301,9 @@ public class SocialLoginService {
                 .map(DomainRecord::toMap)
                 // 用 Optional 表达可缺省结果，让调用方显式处理不存在场景。
                 .orElseThrow(() -> new IllegalArgumentException("User does not exist"));
+        if (!"ENABLED".equalsIgnoreCase(stringValue(user.get("status")))) {
+            throw new IllegalArgumentException("User is disabled");
+        }
         // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
         platformLoginLogRepository.recordLogin(
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
@@ -347,8 +368,13 @@ public class SocialLoginService {
      * @return 处理后的业务结果。
      */
     private boolean matchesPassword(String rawPassword, String passwordHash) {
-        return rawPassword.equals(passwordHash)
-                || rawPassword.equals("admin123") && "admin123".equals(passwordHash);
+        if (StringUtils.isBlank(rawPassword) || StringUtils.isBlank(passwordHash)) {
+            return false;
+        }
+        if (passwordHash.startsWith("$2")) {
+            return passwordEncoder.matches(rawPassword, passwordHash);
+        }
+        return rawPassword.equals(passwordHash);
     }
 
     /**

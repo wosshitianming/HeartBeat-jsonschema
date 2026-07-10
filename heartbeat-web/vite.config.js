@@ -2,7 +2,8 @@ import {defineConfig} from 'vite'
 import react from '@vitejs/plugin-react'
 import obfuscatorPlugin from 'vite-plugin-javascript-obfuscator'
 
-const enableObfuscation = process.env.VITE_DISABLE_OBFUSCATION !== 'true'
+const enableObfuscation = process.env.VITE_ENABLE_OBFUSCATION === 'true'
+    && process.env.VITE_DISABLE_OBFUSCATION !== 'true'
 
 export default defineConfig({
   plugins: [

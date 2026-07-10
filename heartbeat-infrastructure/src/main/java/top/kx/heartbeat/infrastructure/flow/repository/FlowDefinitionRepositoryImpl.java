@@ -14,6 +14,7 @@ import top.kx.heartbeat.infrastructure.persistence.entity.flow.HbFlowVersionDOEx
 import top.kx.heartbeat.infrastructure.persistence.entity.flow.HbFlowVersionDOWithBLOBs;
 import top.kx.heartbeat.infrastructure.persistence.mapper.flow.HbFlowDefinitionDOMapper;
 import top.kx.heartbeat.infrastructure.persistence.mapper.flow.HbFlowVersionDOMapper;
+import top.kx.heartbeat.infrastructure.tenant.TenantContext;
 
 import java.time.LocalDateTime;
 import java.util.Date;
@@ -57,6 +58,7 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
     public List<FlowDefinition> findAll() {
         // 创建查询条件对象，后续通过 Criteria 精确约束查询范围。
         HbFlowDefinitionDOExample example = new HbFlowDefinitionDOExample();
+        example.createCriteria().andTenantIdEqualTo(tenantId());
         // 设置持久化字段，保证数据库记录具备完整业务属性。
         example.setOrderByClause("update_time DESC");
         // 返回已经完成封装的业务结果。
@@ -74,7 +76,7 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
      */
     @Override
     public Optional<FlowDefinition> findById(String id) {
-        HbFlowDefinitionDO row = definitionDOMapper.selectByPrimaryKey(parseLong(id));
+        HbFlowDefinitionDO row = selectDefinition(parseLong(id), tenantId());
         return Optional.ofNullable(row).map(convert::toDomain);
     }
 
@@ -83,14 +85,16 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
      */
     @Override
     public FlowDefinition saveDraft(FlowDefinition definition) {
+        long tenantId = tenantId();
         // 计算当前分支的中间结果，供后续判断或组装使用。
         HbFlowDefinitionDO row = convert.toGenDO(definition);
+        row.setTenantId(tenantId);
         // 计算当前分支的中间结果，供后续判断或组装使用。
         HbFlowDefinitionDO exist = row.getId() == null ? null
                 // 从仓储或 Mapper 读取业务数据，为后续处理准备上下文。
-                : definitionDOMapper.selectByPrimaryKey(row.getId());
+                : selectDefinition(row.getId(), tenantId);
         // 先处理空值或缺省场景，避免后续业务流程出现空指针。
-        if (exist == null) {
+        if (row.getId() == null) {
             // 设置持久化字段，保证数据库记录具备完整业务属性。
             row.setCreateTime(toDate(LocalDateTime.now()));
             // 设置持久化字段，保证数据库记录具备完整业务属性。
@@ -98,15 +102,18 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
             // 将当前业务变更写入持久化层，保持数据状态同步。
             definitionDOMapper.insertSelective(row);
         } else {
+            if (exist == null) {
+                throw new IllegalStateException("流程不存在或不属于当前租户: " + row.getId());
+            }
             // 设置持久化字段，保证数据库记录具备完整业务属性。
             row.setCreateTime(exist.getCreateTime());
             // 设置持久化字段，保证数据库记录具备完整业务属性。
             row.setUpdateTime(toDate(LocalDateTime.now()));
             // 将当前业务变更写入持久化层，保持数据状态同步。
-            definitionDOMapper.updateByPrimaryKeySelective(row);
+            definitionDOMapper.updateByExampleSelective(row, definitionById(row.getId(), tenantId));
         }
         // 从仓储或 Mapper 读取业务数据，为后续处理准备上下文。
-        HbFlowDefinitionDO refreshed = definitionDOMapper.selectByPrimaryKey(row.getId());
+        HbFlowDefinitionDO refreshed = selectDefinition(row.getId(), tenantId);
         // 返回已经完成封装的业务结果。
         return convert.toDomain(refreshed);
     }
@@ -116,10 +123,13 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
      */
     @Override
     public List<FlowVersion> findVersions(String flowId) {
+        long tenantId = tenantId();
         // 创建查询条件对象，后续通过 Criteria 精确约束查询范围。
         HbFlowVersionDOExample example = new HbFlowVersionDOExample();
         // 组装查询条件，确保 Mapper 只读取当前业务需要的数据。
-        example.createCriteria().andFlowIdEqualTo(parseLong(flowId));
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId)
+                .andFlowIdEqualTo(parseLong(flowId));
         // 设置持久化字段，保证数据库记录具备完整业务属性。
         example.setOrderByClause("version_no DESC");
         // 返回已经完成封装的业务结果。
@@ -138,7 +148,10 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
     @Override
     public Optional<FlowVersion> findVersion(String flowId, int versionNo) {
         HbFlowVersionDOExample example = new HbFlowVersionDOExample();
-        example.createCriteria().andFlowIdEqualTo(parseLong(flowId)).andVersionNoEqualTo(versionNo);
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andFlowIdEqualTo(parseLong(flowId))
+                .andVersionNoEqualTo(versionNo);
         List<HbFlowVersionDOWithBLOBs> list = versionDOMapper.selectByExampleWithBLOBs(example);
         return list.isEmpty() ? Optional.empty() : Optional.of(convert.toDomain(list.get(0)));
     }
@@ -148,7 +161,13 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
      */
     @Override
     public FlowVersion saveVersion(FlowVersion version) {
+        long tenantId = tenantId();
+        Long flowId = parseLong(version.getFlowId());
+        if (selectDefinition(flowId, tenantId) == null) {
+            throw new IllegalStateException("流程不存在或不属于当前租户: " + version.getFlowId());
+        }
         HbFlowVersionDOWithBLOBs row = convert.toGenVersionDO(version);
+        row.setTenantId(tenantId);
         versionDOMapper.insertSelective(row);
         return findVersion(version.getFlowId(), version.getVersionNo()).orElse(version);
     }
@@ -158,10 +177,11 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
      */
     @Override
     public void updateVersionRuntime(FlowVersion version) {
+        long tenantId = tenantId();
         // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
         jdbcTemplate.update(
                 // 计算当前分支的中间结果，供后续判断或组装使用。
-                "UPDATE hb_flow_version SET runtime_engine = ?, bpmn_xml = ?, bpmn_sha256 = ?, deployment_id = ?, process_definition_id = ?, process_definition_key = ?, compile_status = ?, compile_error = ?, deployed_at = ?, update_time = NOW() WHERE id = ?",
+                "UPDATE hb_flow_version SET runtime_engine = ?, bpmn_xml = ?, bpmn_sha256 = ?, deployment_id = ?, process_definition_id = ?, process_definition_key = ?, compile_status = ?, compile_error = ?, deployed_at = ?, update_time = NOW() WHERE id = ? AND tenant_id = ?",
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 version.getRuntimeEngine(),
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
@@ -181,7 +201,8 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
                 // 计算当前分支的中间结果，供后续判断或组装使用。
                 version.getDeployedAt() == null ? null : Date.from(version.getDeployedAt()),
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                parseLong(version.getId())
+                parseLong(version.getId()),
+                tenantId
         );
     }
 
@@ -190,12 +211,17 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
      */
     @Override
     public void activateVersion(String flowId, int versionNo) {
+        long tenantId = tenantId();
         // 从仓储或 Mapper 读取业务数据，为后续处理准备上下文。
-        HbFlowDefinitionDO exist = definitionDOMapper.selectByPrimaryKey(parseLong(flowId));
+        Long definitionId = parseLong(flowId);
+        HbFlowDefinitionDO exist = selectDefinition(definitionId, tenantId);
         // 先处理空值或缺省场景，避免后续业务流程出现空指针。
         if (exist == null) {
             // 对非法业务状态立即失败，避免错误继续扩散。
             throw new IllegalArgumentException("流程不存在: " + flowId);
+        }
+        if (!findVersion(flowId, versionNo).isPresent()) {
+            throw new IllegalArgumentException("流程版本不存在: " + flowId + "/" + versionNo);
         }
         // 设置持久化字段，保证数据库记录具备完整业务属性。
         exist.setActiveVersionNo(versionNo);
@@ -204,7 +230,7 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
         // 设置持久化字段，保证数据库记录具备完整业务属性。
         exist.setUpdateTime(toDate(LocalDateTime.now()));
         // 将当前业务变更写入持久化层，保持数据状态同步。
-        definitionDOMapper.updateByPrimaryKeySelective(exist);
+        definitionDOMapper.updateByExampleSelective(exist, definitionById(definitionId, tenantId));
     }
 
     /**
@@ -218,10 +244,11 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
                                               String activeDeploymentId,
                                               // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                                               String activeProcessDefinitionId) {
+        long tenantId = tenantId();
         // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
         jdbcTemplate.update(
                 // 计算当前分支的中间结果，供后续判断或组装使用。
-                "UPDATE hb_flow_definition SET runtime_engine = ?, active_deployment_id = ?, active_process_definition_id = ?, update_time = NOW() WHERE id = ?",
+                "UPDATE hb_flow_definition SET runtime_engine = ?, active_deployment_id = ?, active_process_definition_id = ?, update_time = NOW() WHERE id = ? AND tenant_id = ?",
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 runtimeEngine,
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
@@ -229,7 +256,8 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 activeProcessDefinitionId,
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                parseLong(flowId)
+                parseLong(flowId),
+                tenantId
         );
     }
 
@@ -246,6 +274,7 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
         HbFlowDefinitionDOExample example = new HbFlowDefinitionDOExample();
         // 组装查询条件，确保 Mapper 只读取当前业务需要的数据。
         HbFlowDefinitionDOExample.Criteria c = example.createCriteria();
+        c.andTenantIdEqualTo(tenantId());
         // 先处理空值或缺省场景，避免后续业务流程出现空指针。
         if (nameLike != null && !nameLike.isEmpty()) {
             // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
@@ -262,7 +291,7 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
             c.andStatusEqualTo(statusEqual);
         }
         // 计算当前步骤所需的中间值，供后续业务判断使用。
-        String column = orderByColumn == null || orderByColumn.isEmpty() ? "update_time" : orderByColumn;
+        String column = resolveOrderByColumn(orderByColumn);
         // 计算当前步骤所需的中间值，供后续业务判断使用。
         String direction = "asc".equalsIgnoreCase(orderByDirection) ? "ASC" : "DESC";
         // 设置持久化字段，保证数据库记录具备完整业务属性。
@@ -290,7 +319,9 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
     @Override
     public Optional<FlowDefinition> findByCode(String code) {
         HbFlowDefinitionDOExample example = new HbFlowDefinitionDOExample();
-        example.createCriteria().andCodeEqualTo(code);
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andCodeEqualTo(code);
         List<HbFlowDefinitionDO> list = definitionDOMapper.selectByExample(example);
         return list.isEmpty() ? Optional.empty() : Optional.of(convert.toDomain(list.get(0)));
     }
@@ -300,7 +331,55 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
      */
     @Override
     public int deleteById(String id) {
-        return definitionDOMapper.deleteByPrimaryKey(parseLong(id));
+        Long definitionId = parseLong(id);
+        return definitionId == null ? 0 : definitionDOMapper.deleteByExample(definitionById(definitionId, tenantId()));
+    }
+
+    private HbFlowDefinitionDO selectDefinition(Long id, long tenantId) {
+        if (id == null) {
+            return null;
+        }
+        List<HbFlowDefinitionDO> rows = definitionDOMapper.selectByExample(definitionById(id, tenantId));
+        return rows.isEmpty() ? null : rows.get(0);
+    }
+
+    private HbFlowDefinitionDOExample definitionById(Long id, long tenantId) {
+        HbFlowDefinitionDOExample example = new HbFlowDefinitionDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId)
+                .andIdEqualTo(id);
+        return example;
+    }
+
+    private long tenantId() {
+        return TenantContext.getRequiredTenantId();
+    }
+
+    private String resolveOrderByColumn(String requestedColumn) {
+        if (requestedColumn == null) {
+            return "update_time";
+        }
+        switch (requestedColumn.trim()) {
+            case "id":
+                return "id";
+            case "name":
+                return "name";
+            case "code":
+                return "code";
+            case "status":
+                return "status";
+            case "activeVersionNo":
+            case "active_version_no":
+                return "active_version_no";
+            case "createTime":
+            case "create_time":
+                return "create_time";
+            case "updateTime":
+            case "update_time":
+                return "update_time";
+            default:
+                return "update_time";
+        }
     }
 
     /**

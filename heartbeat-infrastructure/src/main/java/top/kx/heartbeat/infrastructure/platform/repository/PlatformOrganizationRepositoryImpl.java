@@ -38,6 +38,9 @@ public class PlatformOrganizationRepositoryImpl implements PlatformOrganizationR
     @Override
     public List<DomainRecord> listDepartments() {
         SysDeptDOExample example = new SysDeptDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andDeleteMarkerEqualTo(0L);
         example.setOrderByClause("sort_no ASC, id ASC");
         return deptMapper.selectByExample(example).stream().map(this::record).collect(Collectors.toList());
     }
@@ -50,6 +53,7 @@ public class PlatformOrganizationRepositoryImpl implements PlatformOrganizationR
      */
     @Override
     public DomainRecord createDepartment(PlatformDepartmentRequest request) {
+        validateParentDepartment(request == null ? null : request.getParentId(), null);
         SysDeptDO row = departmentRow(request);
         touch(row, true);
         deptMapper.insertSelective(row);
@@ -66,11 +70,21 @@ public class PlatformOrganizationRepositoryImpl implements PlatformOrganizationR
     @Override
     public DomainRecord updateDepartment(String id, PlatformDepartmentRequest request) {
         Long key = longValue(id);
+        if (key == null) {
+            throw new IllegalArgumentException("Invalid department id: " + id);
+        }
+        validateParentDepartment(request == null ? null : request.getParentId(), key);
         SysDeptDO row = departmentRow(request);
         row.setId(key);
         touch(row, false);
-        deptMapper.updateByPrimaryKeySelective(row);
-        SysDeptDO persisted = key == null ? null : deptMapper.selectByPrimaryKey(key);
+        SysDeptDO persisted = null;
+        if (key != null) {
+            SysDeptDOExample example = departmentById(key);
+            if (deptMapper.updateByExampleSelective(row, example) == 0) {
+                throw new IllegalArgumentException("Department does not exist: " + id);
+            }
+            persisted = first(deptMapper.selectByExample(example));
+        }
         return record(persisted == null ? row : persisted);
     }
 
@@ -83,7 +97,7 @@ public class PlatformOrganizationRepositoryImpl implements PlatformOrganizationR
     public void deleteDepartment(String id) {
         Long key = longValue(id);
         if (key != null) {
-            deptMapper.deleteByPrimaryKey(key);
+            deptMapper.deleteByExample(departmentById(key));
         }
     }
 
@@ -94,8 +108,10 @@ public class PlatformOrganizationRepositoryImpl implements PlatformOrganizationR
      */
     @Override
     public List<DomainRecord> listTenants() {
+        SysTenantDOExample example = new SysTenantDOExample();
+        example.createCriteria().andDeleteMarkerEqualTo(0L);
         // 返回已经完成封装的业务结果。
-        return tenantMapper.selectByExample(new SysTenantDOExample())
+        return tenantMapper.selectByExample(example)
                 // 使用流式转换批量映射数据，减少中间状态暴露。
                 .stream()
                 // 使用流式转换批量映射数据，减少中间状态暴露。
@@ -111,8 +127,12 @@ public class PlatformOrganizationRepositoryImpl implements PlatformOrganizationR
      */
     @Override
     public List<DomainRecord> listPosts() {
+        SysPostDOExample example = new SysPostDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andDeleteMarkerEqualTo(0L);
         // 返回已经完成封装的业务结果。
-        return postMapper.selectByExample(new SysPostDOExample())
+        return postMapper.selectByExample(example)
                 // 使用流式转换批量映射数据，减少中间状态暴露。
                 .stream()
                 // 使用流式转换批量映射数据，减少中间状态暴露。
@@ -135,7 +155,7 @@ public class PlatformOrganizationRepositoryImpl implements PlatformOrganizationR
         // 创建数据库记录对象，承载即将写入的业务字段。
         SysDeptDO row = new SysDeptDO();
         // 设置持久化字段，保证数据库记录具备完整业务属性。
-        row.setParentId(longValue(safeRequest.getParentId()));
+        row.setParentId(parentIdValue(safeRequest.getParentId()));
         // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setDeptCode(safeRequest.getDeptCode());
         // 设置持久化字段，保证数据库记录具备完整业务属性。
@@ -307,8 +327,51 @@ public class PlatformOrganizationRepositoryImpl implements PlatformOrganizationR
      * @return 处理后的业务结果。
      */
     private Long tenantId() {
-        Long tenantId = TenantContext.getTenantId();
-        return tenantId == null ? 1L : tenantId;
+        return TenantContext.getRequiredTenantId();
+    }
+
+    private SysDeptDOExample departmentById(Long id) {
+        SysDeptDOExample example = new SysDeptDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andIdEqualTo(id)
+                .andDeleteMarkerEqualTo(0L);
+        return example;
+    }
+
+    private void validateParentDepartment(String parentId, Long departmentId) {
+        if (parentId == null || parentId.trim().isEmpty()) {
+            return;
+        }
+        String value = parentId.trim();
+        if ("root".equalsIgnoreCase(value) || "0".equals(value)) {
+            return;
+        }
+        Long parentKey = longValue(value);
+        if (parentKey == null || parentKey < 0L) {
+            throw new IllegalArgumentException("Invalid parent department id: " + parentId);
+        }
+        if (parentKey == 0L) {
+            return;
+        }
+        if (parentKey.equals(departmentId)) {
+            throw new IllegalArgumentException("Department cannot be its own parent: " + parentId);
+        }
+        if (deptMapper.countByExample(departmentById(parentKey)) == 0L) {
+            throw new IllegalArgumentException("Parent department does not belong to current tenant: " + parentId);
+        }
+    }
+
+    private Long parentIdValue(String parentId) {
+        if (parentId == null || parentId.trim().isEmpty()) {
+            return null;
+        }
+        String value = parentId.trim();
+        return "root".equalsIgnoreCase(value) ? 0L : longValue(value);
+    }
+
+    private <T> T first(List<T> rows) {
+        return rows == null || rows.isEmpty() ? null : rows.get(0);
     }
 
     /**

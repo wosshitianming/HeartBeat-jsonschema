@@ -5,8 +5,10 @@ CREATE TABLE IF NOT EXISTS structure_definition (
     description VARCHAR(512),
     active_version_no INT,
     status VARCHAR(16) NOT NULL DEFAULT 'DRAFT',
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL,
+    update_by BIGINT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS structure_draft (
@@ -20,7 +22,10 @@ CREATE TABLE IF NOT EXISTS structure_draft (
     warnings TEXT NOT NULL,
     validation_mode VARCHAR(16) NOT NULL,
     sample_digest VARCHAR(64) NOT NULL,
-    updated_at TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    create_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL,
+    update_by BIGINT NOT NULL,
     UNIQUE (tenant_id, definition_id)
 );
 
@@ -36,7 +41,10 @@ CREATE TABLE IF NOT EXISTS structure_version (
     warnings TEXT NOT NULL,
     validation_mode VARCHAR(16) NOT NULL,
     sample_digest VARCHAR(64) NOT NULL,
-    created_at TIMESTAMP NOT NULL,
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL,
+    update_by BIGINT NOT NULL,
     UNIQUE (tenant_id, definition_id, version_no)
 );
 
@@ -47,7 +55,10 @@ CREATE TABLE IF NOT EXISTS structure_artifact (
     version_id BIGINT NOT NULL,
     artifact_key VARCHAR(64) NOT NULL,
     artifact_json TEXT NOT NULL,
-    created_at TIMESTAMP NOT NULL,
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL,
+    update_by BIGINT NOT NULL,
     UNIQUE (tenant_id, version_id, artifact_key)
 );
 
@@ -64,10 +75,10 @@ CREATE TABLE IF NOT EXISTS sys_tenant_plan (
     sort_no INT NOT NULL DEFAULT 0,
     version INT NOT NULL DEFAULT 0,
     delete_marker BIGINT NOT NULL DEFAULT 0,
-    created_by BIGINT,
-    created_at TIMESTAMP NOT NULL,
-    updated_by BIGINT,
-    updated_at TIMESTAMP NOT NULL,
+    create_by BIGINT,
+    create_time TIMESTAMP NOT NULL,
+    update_by BIGINT,
+    update_time TIMESTAMP NOT NULL,
     UNIQUE (plan_code, delete_marker)
 );
 
@@ -85,10 +96,10 @@ CREATE TABLE IF NOT EXISTS sys_plan_feature (
     sort_no INT NOT NULL DEFAULT 0,
     version INT NOT NULL DEFAULT 0,
     delete_marker BIGINT NOT NULL DEFAULT 0,
-    created_by BIGINT,
-    created_at TIMESTAMP NOT NULL,
-    updated_by BIGINT,
-    updated_at TIMESTAMP NOT NULL,
+    create_by BIGINT,
+    create_time TIMESTAMP NOT NULL,
+    update_by BIGINT,
+    update_time TIMESTAMP NOT NULL,
     UNIQUE (plan_id, feature_code)
 );
 
@@ -109,10 +120,10 @@ CREATE TABLE IF NOT EXISTS sys_tenant (
     status VARCHAR(16) NOT NULL DEFAULT 'ENABLED',
     version INT NOT NULL DEFAULT 0,
     delete_marker BIGINT NOT NULL DEFAULT 0,
-    created_by BIGINT,
-    created_at TIMESTAMP NOT NULL,
-    updated_by BIGINT,
-    updated_at TIMESTAMP NOT NULL,
+    create_by BIGINT,
+    create_time TIMESTAMP NOT NULL,
+    update_by BIGINT,
+    update_time TIMESTAMP NOT NULL,
     UNIQUE (tenant_code, delete_marker),
     UNIQUE (domain, delete_marker)
 );
@@ -128,10 +139,10 @@ CREATE TABLE IF NOT EXISTS sys_tenant_feature (
     effective_at TIMESTAMP,
     expire_at TIMESTAMP,
     version INT NOT NULL DEFAULT 0,
-    created_by BIGINT,
-    created_at TIMESTAMP NOT NULL,
-    updated_by BIGINT,
-    updated_at TIMESTAMP NOT NULL,
+    create_by BIGINT,
+    create_time TIMESTAMP NOT NULL,
+    update_by BIGINT,
+    update_time TIMESTAMP NOT NULL,
     UNIQUE (tenant_id, feature_code)
 );
 
@@ -150,10 +161,10 @@ CREATE TABLE IF NOT EXISTS sys_dept (
     status VARCHAR(16) NOT NULL DEFAULT 'ENABLED',
     version INT NOT NULL DEFAULT 0,
     delete_marker BIGINT NOT NULL DEFAULT 0,
-    created_by BIGINT,
-    created_at TIMESTAMP NOT NULL,
-    updated_by BIGINT,
-    updated_at TIMESTAMP NOT NULL,
+    create_by BIGINT,
+    create_time TIMESTAMP NOT NULL,
+    update_by BIGINT,
+    update_time TIMESTAMP NOT NULL,
     UNIQUE (tenant_id, dept_code, delete_marker)
 );
 
@@ -168,10 +179,10 @@ CREATE TABLE IF NOT EXISTS sys_post (
     status VARCHAR(16) NOT NULL DEFAULT 'ENABLED',
     version INT NOT NULL DEFAULT 0,
     delete_marker BIGINT NOT NULL DEFAULT 0,
-    created_by BIGINT,
-    created_at TIMESTAMP NOT NULL,
-    updated_by BIGINT,
-    updated_at TIMESTAMP NOT NULL,
+    create_by BIGINT,
+    create_time TIMESTAMP NOT NULL,
+    update_by BIGINT,
+    update_time TIMESTAMP NOT NULL,
     UNIQUE (tenant_id, post_code, delete_marker)
 );
 
@@ -195,10 +206,10 @@ CREATE TABLE IF NOT EXISTS sys_user (
     last_login_ip VARCHAR(64),
     version INT NOT NULL DEFAULT 0,
     delete_marker BIGINT NOT NULL DEFAULT 0,
-    created_by BIGINT,
-    created_at TIMESTAMP NOT NULL,
-    updated_by BIGINT,
-    updated_at TIMESTAMP NOT NULL,
+    create_by BIGINT,
+    create_time TIMESTAMP NOT NULL,
+    update_by BIGINT,
+    update_time TIMESTAMP NOT NULL,
     UNIQUE (tenant_id, username, delete_marker),
     UNIQUE (tenant_id, email, delete_marker),
     UNIQUE (tenant_id, phone, delete_marker)
@@ -210,8 +221,18 @@ CREATE TABLE IF NOT EXISTS sys_user_post (
     user_id BIGINT NOT NULL,
     post_id BIGINT NOT NULL,
     primary_post BOOLEAN NOT NULL DEFAULT FALSE,
-    created_by BIGINT,
-    created_at TIMESTAMP NOT NULL,
+    create_by
+    BIGINT,
+    create_time
+    TIMESTAMP
+    NOT
+    NULL,
+    update_time
+    TIMESTAMP
+    NOT
+    NULL,
+    update_by
+    BIGINT,
     UNIQUE (tenant_id, user_id, post_id)
 );
 
@@ -227,10 +248,10 @@ CREATE TABLE IF NOT EXISTS sys_role (
     status VARCHAR(16) NOT NULL DEFAULT 'ENABLED',
     version INT NOT NULL DEFAULT 0,
     delete_marker BIGINT NOT NULL DEFAULT 0,
-    created_by BIGINT,
-    created_at TIMESTAMP NOT NULL,
-    updated_by BIGINT,
-    updated_at TIMESTAMP NOT NULL,
+    create_by BIGINT,
+    create_time TIMESTAMP NOT NULL,
+    update_by BIGINT,
+    update_time TIMESTAMP NOT NULL,
     UNIQUE (tenant_id, role_code, delete_marker)
 );
 
@@ -248,10 +269,10 @@ CREATE TABLE IF NOT EXISTS sys_permission (
     sort_no INT NOT NULL DEFAULT 0,
     version INT NOT NULL DEFAULT 0,
     delete_marker BIGINT NOT NULL DEFAULT 0,
-    created_by BIGINT,
-    created_at TIMESTAMP NOT NULL,
-    updated_by BIGINT,
-    updated_at TIMESTAMP NOT NULL,
+    create_by BIGINT,
+    create_time TIMESTAMP NOT NULL,
+    update_by BIGINT,
+    update_time TIMESTAMP NOT NULL,
     UNIQUE (tenant_id, permission_code, delete_marker)
 );
 
@@ -274,10 +295,10 @@ CREATE TABLE IF NOT EXISTS sys_menu (
     status VARCHAR(16) NOT NULL DEFAULT 'ENABLED',
     version INT NOT NULL DEFAULT 0,
     delete_marker BIGINT NOT NULL DEFAULT 0,
-    created_by BIGINT,
-    created_at TIMESTAMP NOT NULL,
-    updated_by BIGINT,
-    updated_at TIMESTAMP NOT NULL,
+    create_by BIGINT,
+    create_time TIMESTAMP NOT NULL,
+    update_by BIGINT,
+    update_time TIMESTAMP NOT NULL,
     UNIQUE (tenant_id, menu_code, delete_marker)
 );
 
@@ -286,8 +307,18 @@ CREATE TABLE IF NOT EXISTS sys_user_role (
     tenant_id BIGINT NOT NULL,
     user_id BIGINT NOT NULL,
     role_id BIGINT NOT NULL,
-    created_by BIGINT,
-    created_at TIMESTAMP NOT NULL,
+    create_by
+    BIGINT,
+    create_time
+    TIMESTAMP
+    NOT
+    NULL,
+    update_time
+    TIMESTAMP
+    NOT
+    NULL,
+    update_by
+    BIGINT,
     UNIQUE (tenant_id, user_id, role_id)
 );
 
@@ -296,8 +327,18 @@ CREATE TABLE IF NOT EXISTS sys_role_permission (
     tenant_id BIGINT NOT NULL,
     role_id BIGINT NOT NULL,
     permission_id BIGINT NOT NULL,
-    created_by BIGINT,
-    created_at TIMESTAMP NOT NULL,
+    create_by
+    BIGINT,
+    create_time
+    TIMESTAMP
+    NOT
+    NULL,
+    update_time
+    TIMESTAMP
+    NOT
+    NULL,
+    update_by
+    BIGINT,
     UNIQUE (tenant_id, role_id, permission_id)
 );
 
@@ -306,8 +347,18 @@ CREATE TABLE IF NOT EXISTS sys_menu_permission (
     tenant_id BIGINT NOT NULL,
     menu_id BIGINT NOT NULL,
     permission_id BIGINT NOT NULL,
-    created_by BIGINT,
-    created_at TIMESTAMP NOT NULL,
+    create_by
+    BIGINT,
+    create_time
+    TIMESTAMP
+    NOT
+    NULL,
+    update_time
+    TIMESTAMP
+    NOT
+    NULL,
+    update_by
+    BIGINT,
     UNIQUE (tenant_id, menu_id, permission_id)
 );
 
@@ -316,8 +367,18 @@ CREATE TABLE IF NOT EXISTS sys_role_dept (
     tenant_id BIGINT NOT NULL,
     role_id BIGINT NOT NULL,
     dept_id BIGINT NOT NULL,
-    created_by BIGINT,
-    created_at TIMESTAMP NOT NULL,
+    create_by
+    BIGINT,
+    create_time
+    TIMESTAMP
+    NOT
+    NULL,
+    update_time
+    TIMESTAMP
+    NOT
+    NULL,
+    update_by
+    BIGINT,
     UNIQUE (tenant_id, role_id, dept_id)
 );
 
@@ -331,10 +392,10 @@ CREATE TABLE IF NOT EXISTS sys_dict_type (
     sort_no INT NOT NULL DEFAULT 0,
     version INT NOT NULL DEFAULT 0,
     delete_marker BIGINT NOT NULL DEFAULT 0,
-    created_by BIGINT,
-    created_at TIMESTAMP NOT NULL,
-    updated_by BIGINT,
-    updated_at TIMESTAMP NOT NULL,
+    create_by BIGINT,
+    create_time TIMESTAMP NOT NULL,
+    update_by BIGINT,
+    update_time TIMESTAMP NOT NULL,
     UNIQUE (tenant_id, dict_code, delete_marker)
 );
 
@@ -352,10 +413,10 @@ CREATE TABLE IF NOT EXISTS sys_dict_item (
     sort_no INT NOT NULL DEFAULT 0,
     version INT NOT NULL DEFAULT 0,
     delete_marker BIGINT NOT NULL DEFAULT 0,
-    created_by BIGINT,
-    created_at TIMESTAMP NOT NULL,
-    updated_by BIGINT,
-    updated_at TIMESTAMP NOT NULL,
+    create_by BIGINT,
+    create_time TIMESTAMP NOT NULL,
+    update_by BIGINT,
+    update_time TIMESTAMP NOT NULL,
     UNIQUE (tenant_id, dict_type_id, item_value, delete_marker)
 );
 
@@ -372,10 +433,10 @@ CREATE TABLE IF NOT EXISTS sys_config (
     status VARCHAR(16) NOT NULL DEFAULT 'ENABLED',
     version INT NOT NULL DEFAULT 0,
     delete_marker BIGINT NOT NULL DEFAULT 0,
-    created_by BIGINT,
-    created_at TIMESTAMP NOT NULL,
-    updated_by BIGINT,
-    updated_at TIMESTAMP NOT NULL,
+    create_by BIGINT,
+    create_time TIMESTAMP NOT NULL,
+    update_by BIGINT,
+    update_time TIMESTAMP NOT NULL,
     UNIQUE (tenant_id, config_key, delete_marker)
 );
 
@@ -391,10 +452,10 @@ CREATE TABLE IF NOT EXISTS sys_notice (
     expired_at TIMESTAMP,
     version INT NOT NULL DEFAULT 0,
     delete_marker BIGINT NOT NULL DEFAULT 0,
-    created_by BIGINT,
-    created_at TIMESTAMP NOT NULL,
-    updated_by BIGINT,
-    updated_at TIMESTAMP NOT NULL
+    create_by BIGINT,
+    create_time TIMESTAMP NOT NULL,
+    update_by BIGINT,
+    update_time TIMESTAMP NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS sys_user_preference (
@@ -405,8 +466,16 @@ CREATE TABLE IF NOT EXISTS sys_user_preference (
     preference_value TEXT,
     value_type VARCHAR(32) NOT NULL DEFAULT 'JSON',
     version INT NOT NULL DEFAULT 0,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL,
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    create_by VARCHAR
+(
+    64
+) NOT NULL,
+    update_by VARCHAR
+(
+    64
+) NOT NULL,
     UNIQUE (tenant_id, user_id, preference_key)
 );
 
@@ -424,10 +493,10 @@ CREATE TABLE IF NOT EXISTS auth_oauth_client (
     status VARCHAR(16) NOT NULL DEFAULT 'ENABLED',
     version INT NOT NULL DEFAULT 0,
     delete_marker BIGINT NOT NULL DEFAULT 0,
-    created_by BIGINT,
-    created_at TIMESTAMP NOT NULL,
-    updated_by BIGINT,
-    updated_at TIMESTAMP NOT NULL,
+    create_by BIGINT,
+    create_time TIMESTAMP NOT NULL,
+    update_by BIGINT,
+    update_time TIMESTAMP NOT NULL,
     UNIQUE (tenant_id, client_id, delete_marker)
 );
 
@@ -436,8 +505,10 @@ CREATE TABLE IF NOT EXISTS auth_client_grant (
     tenant_id BIGINT NOT NULL,
     oauth_client_id BIGINT NOT NULL,
     grant_type VARCHAR(64) NOT NULL,
-    created_by BIGINT,
-    created_at TIMESTAMP NOT NULL,
+    create_by BIGINT,
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    update_by BIGINT,
     UNIQUE (tenant_id, oauth_client_id, grant_type)
 );
 
@@ -446,8 +517,10 @@ CREATE TABLE IF NOT EXISTS auth_client_redirect_uri (
     tenant_id BIGINT NOT NULL,
     oauth_client_id BIGINT NOT NULL,
     redirect_uri VARCHAR(512) NOT NULL,
-    created_by BIGINT,
-    created_at TIMESTAMP NOT NULL,
+    create_by BIGINT,
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    update_by BIGINT,
     UNIQUE (tenant_id, oauth_client_id, redirect_uri)
 );
 
@@ -468,10 +541,10 @@ CREATE TABLE IF NOT EXISTS auth_social_provider (
     status VARCHAR(16) NOT NULL DEFAULT 'ENABLED',
     version INT NOT NULL DEFAULT 0,
     delete_marker BIGINT NOT NULL DEFAULT 0,
-    created_by BIGINT,
-    created_at TIMESTAMP NOT NULL,
-    updated_by BIGINT,
-    updated_at TIMESTAMP NOT NULL,
+    create_by BIGINT,
+    create_time TIMESTAMP NOT NULL,
+    update_by BIGINT,
+    update_time TIMESTAMP NOT NULL,
     UNIQUE (tenant_id, provider_code, delete_marker)
 );
 
@@ -487,8 +560,10 @@ CREATE TABLE IF NOT EXISTS auth_social_binding (
     binding_status VARCHAR(16) NOT NULL DEFAULT 'BOUND',
     bound_at TIMESTAMP NOT NULL,
     last_login_at TIMESTAMP,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL,
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL,
+    update_by BIGINT NOT NULL,
     UNIQUE (tenant_id, provider_id, external_user_id),
     UNIQUE (tenant_id, provider_id, user_id)
 );
@@ -510,8 +585,10 @@ CREATE TABLE IF NOT EXISTS auth_session (
     refresh_expire_at TIMESTAMP,
     revoked_at TIMESTAMP,
     last_access_at TIMESTAMP,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL,
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL,
+    update_by BIGINT NOT NULL,
     UNIQUE (tenant_id, session_id)
 );
 
@@ -534,7 +611,11 @@ CREATE TABLE IF NOT EXISTS sys_oper_log (
     error_code VARCHAR(64),
     error_message VARCHAR(1024),
     duration_ms BIGINT,
-    operated_at TIMESTAMP NOT NULL
+    operated_at TIMESTAMP NOT NULL,
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL,
+    update_by BIGINT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS sys_login_log (
@@ -548,7 +629,11 @@ CREATE TABLE IF NOT EXISTS sys_login_log (
     user_agent VARCHAR(512),
     result_status VARCHAR(16) NOT NULL,
     failure_reason VARCHAR(512),
-    logged_at TIMESTAMP NOT NULL
+    logged_at TIMESTAMP NOT NULL,
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL,
+    update_by BIGINT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS hb_node_component (
@@ -562,8 +647,10 @@ CREATE TABLE IF NOT EXISTS hb_node_component (
     manifest_json TEXT NOT NULL,
     status VARCHAR(16) NOT NULL,
     sort_no INT NOT NULL,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL,
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL,
+    update_by BIGINT NOT NULL,
     UNIQUE (tenant_id, type, version)
 );
 
@@ -575,10 +662,23 @@ CREATE TABLE IF NOT EXISTS hb_flow_definition (
     description VARCHAR(512),
     status VARCHAR(16) NOT NULL,
     active_version_no INT,
+    runtime_engine VARCHAR
+(
+    32
+) NOT NULL DEFAULT 'FLOWABLE',
+    active_process_definition_id VARCHAR
+(
+    128
+),
+    active_deployment_id VARCHAR
+(
+    128
+),
     dsl_json TEXT,
-    created_by BIGINT,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL,
+    create_by BIGINT,
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    update_by BIGINT NOT NULL,
     UNIQUE (tenant_id, code)
 );
 
@@ -589,9 +689,41 @@ CREATE TABLE IF NOT EXISTS hb_flow_version (
     version_no INT NOT NULL,
     dsl_json TEXT NOT NULL,
     compile_report TEXT,
+    runtime_engine
+    VARCHAR
+(
+    32
+) NOT NULL DEFAULT 'FLOWABLE',
+    bpmn_xml TEXT,
+    bpmn_sha256 CHAR
+(
+    64
+),
+    deployment_id VARCHAR
+(
+    128
+),
+    process_definition_id VARCHAR
+(
+    128
+),
+    process_definition_key VARCHAR
+(
+    128
+),
+    compile_status VARCHAR
+(
+    32
+) NOT NULL DEFAULT 'PENDING',
+    compile_error TEXT,
+    deployed_at TIMESTAMP,
     status VARCHAR(16) NOT NULL,
     published_by BIGINT,
     published_at TIMESTAMP NOT NULL,
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL,
+    update_by BIGINT NOT NULL,
     UNIQUE (tenant_id, flow_id, version_no)
 );
 
@@ -603,15 +735,63 @@ CREATE TABLE IF NOT EXISTS hb_connection_credential (
     config_json TEXT NOT NULL,
     secret_json TEXT,
     status VARCHAR(16) NOT NULL,
-    created_by BIGINT,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL
+    create_by BIGINT,
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    update_by BIGINT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS hb_flow_run (
     id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
     tenant_id BIGINT NOT NULL,
     flow_id BIGINT NOT NULL,
+    run_no
+    VARCHAR
+(
+    64
+),
+    engine VARCHAR
+(
+    32
+) NOT NULL DEFAULT 'FLOWABLE',
+    engine_instance_id VARCHAR
+(
+    128
+),
+    process_definition_id VARCHAR
+(
+    128
+),
+    flow_version_id BIGINT,
+    trigger_id BIGINT,
+    trigger_key VARCHAR
+(
+    128
+),
+    idempotency_key VARCHAR
+(
+    128
+),
+    idempotency_scope VARCHAR
+(
+    32
+) NOT NULL DEFAULT 'START',
+    business_key VARCHAR
+(
+    128
+),
+    correlation_key VARCHAR
+(
+    128
+),
+    parent_run_id BIGINT,
+    root_run_id BIGINT,
+    retry_from_run_id BIGINT,
+    retry_no INT NOT NULL DEFAULT 0,
+    retry_reason VARCHAR
+(
+    255
+),
     version_no INT NOT NULL,
     trigger_type VARCHAR(64) NOT NULL,
     status VARCHAR(16) NOT NULL,
@@ -620,21 +800,80 @@ CREATE TABLE IF NOT EXISTS hb_flow_run (
     error_message TEXT,
     started_at TIMESTAMP NOT NULL,
     finished_at TIMESTAMP,
-    elapsed_ms BIGINT
+    elapsed_ms BIGINT,
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL,
+    update_by BIGINT NOT NULL,
+    UNIQUE
+(
+    tenant_id,
+    idempotency_scope,
+    idempotency_key
+)
 );
 
 CREATE TABLE IF NOT EXISTS hb_flow_run_event (
     id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
     tenant_id BIGINT NOT NULL,
     run_id BIGINT NOT NULL,
+    event_seq
+    BIGINT,
+    engine_activity_id
+    VARCHAR
+(
+    128
+),
+    execution_id VARCHAR
+(
+    128
+),
+    task_id VARCHAR
+(
+    128
+),
     node_id VARCHAR(128) NOT NULL,
+    source_node_id VARCHAR
+(
+    128
+),
+    target_node_id VARCHAR
+(
+    128
+),
+    edge_id VARCHAR
+(
+    128
+),
+    token_id VARCHAR
+(
+    128
+),
+    attempt_no INT NOT NULL DEFAULT 1,
     node_type VARCHAR(128) NOT NULL,
     event_type VARCHAR(32) NOT NULL,
     input_json TEXT,
     output_json TEXT,
+    selected_ports TEXT,
+    input_payload_ref BIGINT,
+    output_payload_ref BIGINT,
+    event_summary TEXT,
+    error_code VARCHAR
+(
+    64
+),
     error_message TEXT,
     elapsed_ms BIGINT,
-    created_at TIMESTAMP NOT NULL
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL,
+    update_by BIGINT NOT NULL,
+    UNIQUE
+(
+    tenant_id,
+    run_id,
+    event_seq
+)
 );
 
 CREATE TABLE IF NOT EXISTS flow_wait_state (
@@ -645,10 +884,289 @@ CREATE TABLE IF NOT EXISTS flow_wait_state (
     correlation_key VARCHAR(128) NOT NULL,
     status VARCHAR(16) NOT NULL,
     payload_json TEXT,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL,
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL,
+    update_by BIGINT NOT NULL,
     UNIQUE (tenant_id, correlation_key)
 );
+
+CREATE TABLE IF NOT EXISTS hb_flow_trigger
+(
+    id
+    BIGINT
+    GENERATED
+    BY
+    DEFAULT AS
+    IDENTITY
+    PRIMARY
+    KEY,
+    tenant_id
+    BIGINT
+    NOT
+    NULL,
+    flow_id
+    BIGINT
+    NOT
+    NULL,
+    flow_version_id
+    BIGINT,
+    trigger_code
+    VARCHAR
+(
+    128
+) NOT NULL,
+    trigger_type VARCHAR
+(
+    32
+) NOT NULL,
+    webhook_key VARCHAR
+(
+    128
+),
+    cron_expression VARCHAR
+(
+    128
+),
+    event_topic VARCHAR
+(
+    128
+),
+    mq_type VARCHAR
+(
+    32
+),
+    mq_topic VARCHAR
+(
+    255
+),
+    mq_tag VARCHAR
+(
+    255
+),
+    config_json TEXT,
+    status VARCHAR
+(
+    32
+) NOT NULL,
+    last_triggered_at TIMESTAMP,
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL,
+    update_by BIGINT NOT NULL,
+    UNIQUE
+(
+    tenant_id,
+    trigger_code
+),
+    UNIQUE
+(
+    tenant_id,
+    webhook_key
+)
+    );
+
+CREATE TABLE IF NOT EXISTS hb_flow_engine_mapping
+(
+    id
+    BIGINT
+    GENERATED
+    BY
+    DEFAULT AS
+    IDENTITY
+    PRIMARY
+    KEY,
+    tenant_id
+    BIGINT
+    NOT
+    NULL,
+    flow_id
+    BIGINT
+    NOT
+    NULL,
+    flow_version_id
+    BIGINT
+    NOT
+    NULL,
+    flow_node_id
+    VARCHAR
+(
+    128
+) NOT NULL,
+    bpmn_element_id VARCHAR
+(
+    128
+) NOT NULL,
+    component_type VARCHAR
+(
+    128
+) NOT NULL,
+    component_version VARCHAR
+(
+    32
+) NOT NULL,
+    executor_id VARCHAR
+(
+    128
+) NOT NULL,
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL,
+    update_by BIGINT NOT NULL,
+    UNIQUE
+(
+    tenant_id,
+    flow_version_id,
+    flow_node_id
+)
+    );
+
+CREATE TABLE IF NOT EXISTS hb_flow_wait_subscription
+(
+    id
+    BIGINT
+    GENERATED
+    BY
+    DEFAULT AS
+    IDENTITY
+    PRIMARY
+    KEY,
+    tenant_id
+    BIGINT
+    NOT
+    NULL,
+    run_id
+    BIGINT
+    NOT
+    NULL,
+    engine_instance_id
+    VARCHAR
+(
+    128
+) NOT NULL,
+    execution_id VARCHAR
+(
+    128
+) NOT NULL,
+    node_id VARCHAR
+(
+    128
+) NOT NULL,
+    wait_instance_id VARCHAR
+(
+    128
+) NOT NULL,
+    message_name VARCHAR
+(
+    128
+),
+    correlation_key VARCHAR
+(
+    128
+),
+    status VARCHAR
+(
+    32
+) NOT NULL,
+    expire_at TIMESTAMP,
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL,
+    update_by BIGINT NOT NULL,
+    UNIQUE
+(
+    tenant_id,
+    wait_instance_id
+)
+    );
+
+CREATE TABLE IF NOT EXISTS hb_flow_io_command
+(
+    id
+    BIGINT
+    GENERATED
+    BY
+    DEFAULT AS
+    IDENTITY
+    PRIMARY
+    KEY,
+    tenant_id
+    BIGINT
+    NOT
+    NULL,
+    run_id
+    BIGINT
+    NOT
+    NULL,
+    node_id
+    VARCHAR
+(
+    128
+) NOT NULL,
+    command_type VARCHAR
+(
+    64
+) NOT NULL,
+    idempotency_key VARCHAR
+(
+    128
+) NOT NULL,
+    request_json TEXT,
+    response_json TEXT,
+    status VARCHAR
+(
+    32
+) NOT NULL,
+    attempt_no INT NOT NULL DEFAULT 0,
+    next_attempt_at TIMESTAMP,
+    lease_owner VARCHAR
+(
+    128
+),
+    lease_until TIMESTAMP,
+    error_code VARCHAR
+(
+    64
+),
+    error_message TEXT,
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL,
+    update_by BIGINT NOT NULL,
+    UNIQUE
+(
+    tenant_id,
+    idempotency_key
+)
+    );
+
+CREATE TABLE IF NOT EXISTS hb_flow_payload
+(
+    id
+    BIGINT
+    GENERATED
+    BY
+    DEFAULT AS
+    IDENTITY
+    PRIMARY
+    KEY,
+    tenant_id
+    BIGINT
+    NOT
+    NULL,
+    run_id
+    BIGINT,
+    payload_sha256
+    CHAR
+(
+    64
+) NOT NULL,
+    payload_json TEXT NOT NULL,
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL,
+    update_by BIGINT NOT NULL
+    );
 
 CREATE TABLE IF NOT EXISTS structure_publish_audit (
     id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
@@ -658,29 +1176,43 @@ CREATE TABLE IF NOT EXISTS structure_publish_audit (
     operator_id BIGINT,
     status VARCHAR(16),
     summary VARCHAR(512),
-    created_at TIMESTAMP NOT NULL
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL,
+    update_by BIGINT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS wf_process_definition (
     id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, tenant_id BIGINT NOT NULL, name VARCHAR(128) NOT NULL,
     definition_key VARCHAR(128) NOT NULL, version_no INT NOT NULL, form_schema TEXT, status VARCHAR(16) NOT NULL,
-    deployed_at TIMESTAMP, created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL,
+    deployed_at TIMESTAMP, create_time TIMESTAMP NOT NULL, update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL, update_by BIGINT NOT NULL,
     UNIQUE (tenant_id, definition_key, version_no)
 );
 CREATE TABLE IF NOT EXISTS wf_process_instance (
     id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, tenant_id BIGINT NOT NULL, definition_id BIGINT NOT NULL,
     business_key VARCHAR(128), title VARCHAR(128) NOT NULL, initiator_id BIGINT, status VARCHAR(16) NOT NULL,
     current_task_id BIGINT, payload TEXT, started_at TIMESTAMP NOT NULL, ended_at TIMESTAMP,
-    created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL
+    create_time TIMESTAMP NOT NULL, update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL, update_by BIGINT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS wf_task (
     id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, tenant_id BIGINT NOT NULL, instance_id BIGINT NOT NULL,
     name VARCHAR(128) NOT NULL, assignee_id BIGINT, status VARCHAR(16) NOT NULL, comment VARCHAR(512),
-    created_at TIMESTAMP NOT NULL, completed_at TIMESTAMP
+    create_time TIMESTAMP NOT NULL, completed_at TIMESTAMP, update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL, update_by BIGINT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS wf_task_action (
     id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, tenant_id BIGINT NOT NULL, task_id BIGINT NOT NULL,
-    action VARCHAR(16) NOT NULL, operator_id BIGINT, comment VARCHAR(512), created_at TIMESTAMP NOT NULL
+    action
+    VARCHAR
+(
+    16
+) NOT NULL, operator_id BIGINT, comment VARCHAR
+(
+    512
+), create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL, create_by BIGINT NOT NULL, update_by BIGINT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS sys_outbox_event (
@@ -692,8 +1224,11 @@ CREATE TABLE IF NOT EXISTS sys_outbox_event (
     aggregate_id VARCHAR(64) NOT NULL,
     payload_json TEXT NOT NULL,
     status VARCHAR(16) NOT NULL DEFAULT 'NEW',
-    created_at TIMESTAMP NOT NULL,
+    create_time TIMESTAMP NOT NULL,
     published_at TIMESTAMP,
+    update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL,
+    update_by BIGINT NOT NULL,
     UNIQUE (event_id)
 );
 
@@ -704,51 +1239,472 @@ CREATE TABLE IF NOT EXISTS sys_inbox_event (
     event_id VARCHAR(64) NOT NULL,
     status VARCHAR(16) NOT NULL DEFAULT 'PROCESSED',
     processed_at TIMESTAMP NOT NULL,
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL,
+    update_by BIGINT NOT NULL,
     UNIQUE (consumer_code, event_id)
 );
 
 CREATE TABLE IF NOT EXISTS pay_channel (
     id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, tenant_id BIGINT NOT NULL, name VARCHAR(128) NOT NULL,
     provider VARCHAR(32) NOT NULL, app_id VARCHAR(128), app_secret VARCHAR(512), status VARCHAR(16) NOT NULL,
-    sort_no INT NOT NULL, config_json TEXT, created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL
+    sort_no INT NOT NULL, config_json TEXT, create_time TIMESTAMP NOT NULL, update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL, update_by BIGINT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS pay_order (
     id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, tenant_id BIGINT NOT NULL, order_no VARCHAR(64) NOT NULL,
     channel_id BIGINT, subject VARCHAR(128), amount DECIMAL(20,4) NOT NULL, currency VARCHAR(16) NOT NULL,
-    status VARCHAR(16) NOT NULL, client_ip VARCHAR(64), extra_json TEXT, created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL, paid_at TIMESTAMP,
+    status VARCHAR
+(
+    16
+) NOT NULL, client_ip VARCHAR
+(
+    64
+), extra_json TEXT, create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL, paid_at TIMESTAMP, create_by BIGINT NOT NULL, update_by BIGINT NOT NULL,
     UNIQUE (tenant_id, order_no)
 );
 CREATE TABLE IF NOT EXISTS pay_transaction (
     id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, tenant_id BIGINT NOT NULL, order_id BIGINT NOT NULL,
     transaction_no VARCHAR(64) NOT NULL, provider VARCHAR(32) NOT NULL, amount DECIMAL(20,4) NOT NULL,
-    status VARCHAR(16) NOT NULL, created_at TIMESTAMP NOT NULL, UNIQUE (tenant_id, transaction_no)
+    status VARCHAR
+(
+    16
+) NOT NULL, create_time TIMESTAMP NOT NULL, update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL, update_by BIGINT NOT NULL, UNIQUE
+(
+    tenant_id,
+    transaction_no
+)
 );
 CREATE TABLE IF NOT EXISTS pay_refund (
     id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, tenant_id BIGINT NOT NULL, order_id BIGINT NOT NULL,
     refund_no VARCHAR(64) NOT NULL, amount DECIMAL(20,4) NOT NULL, status VARCHAR(16) NOT NULL,
-    created_at TIMESTAMP NOT NULL, UNIQUE (tenant_id, refund_no)
+    create_time TIMESTAMP NOT NULL, update_time TIMESTAMP NOT NULL, create_by BIGINT NOT NULL,
+    update_by BIGINT NOT NULL, UNIQUE
+(
+    tenant_id,
+    refund_no
+)
 );
 CREATE TABLE IF NOT EXISTS pay_notify_log (
     id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, tenant_id BIGINT NOT NULL, order_id BIGINT, order_no VARCHAR(64),
     provider VARCHAR(32) NOT NULL, notify_id VARCHAR(96) NOT NULL, notify_payload TEXT, signature_valid VARCHAR(16),
-    status VARCHAR(16), created_at TIMESTAMP NOT NULL, UNIQUE (tenant_id, provider, notify_id)
+    status VARCHAR
+(
+    16
+), create_time TIMESTAMP NOT NULL, update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL, update_by BIGINT NOT NULL, UNIQUE
+(
+    tenant_id,
+    provider,
+    notify_id
+)
 );
 
-CREATE TABLE IF NOT EXISTS mp_account (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, tenant_id BIGINT NOT NULL, name VARCHAR(128), app_id VARCHAR(128), app_secret VARCHAR(512), token VARCHAR(128), aes_key VARCHAR(256), status VARCHAR(16), created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL);
-CREATE TABLE IF NOT EXISTS mp_menu (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, tenant_id BIGINT NOT NULL, account_id BIGINT, parent_id BIGINT, name VARCHAR(128), menu_type VARCHAR(32), url VARCHAR(512), payload TEXT, sort_no INT, status VARCHAR(16), created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL);
-CREATE TABLE IF NOT EXISTS mp_material (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, tenant_id BIGINT NOT NULL, account_id BIGINT, material_type VARCHAR(32), title VARCHAR(128), media_id VARCHAR(128), url VARCHAR(512), payload TEXT, status VARCHAR(16), created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL);
-CREATE TABLE IF NOT EXISTS mp_auto_reply (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, tenant_id BIGINT NOT NULL, account_id BIGINT, keyword VARCHAR(128), match_type VARCHAR(16), reply_type VARCHAR(32), reply_content TEXT, sort_no INT, status VARCHAR(16), created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL);
-CREATE TABLE IF NOT EXISTS mp_sync_log (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, tenant_id BIGINT NOT NULL, account_id BIGINT, sync_type VARCHAR(32) NOT NULL, status VARCHAR(16) NOT NULL, message VARCHAR(512), created_at TIMESTAMP NOT NULL);
-CREATE TABLE IF NOT EXISTS report_datasource (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, tenant_id BIGINT NOT NULL, name VARCHAR(128), datasource_key VARCHAR(128), config_json TEXT, status VARCHAR(16), created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL);
-CREATE TABLE IF NOT EXISTS report_dataset (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, tenant_id BIGINT NOT NULL, name VARCHAR(128), dataset_key VARCHAR(128), query_sql TEXT, params_json TEXT, status VARCHAR(16), created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL);
-CREATE TABLE IF NOT EXISTS report_template (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, tenant_id BIGINT NOT NULL, dataset_id BIGINT, name VARCHAR(128), template_key VARCHAR(128), template_json TEXT, status VARCHAR(16), created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL);
-CREATE TABLE IF NOT EXISTS report_query_log (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, tenant_id BIGINT NOT NULL, dataset_id BIGINT, params_json TEXT, row_count INT, status VARCHAR(16), created_at TIMESTAMP NOT NULL);
-CREATE TABLE IF NOT EXISTS report_export_task (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, tenant_id BIGINT NOT NULL, template_id BIGINT, status VARCHAR(16) NOT NULL, created_at TIMESTAMP NOT NULL);
-CREATE TABLE IF NOT EXISTS mobile_app (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, tenant_id BIGINT NOT NULL, name VARCHAR(128), app_key VARCHAR(128), entry_url VARCHAR(512), status VARCHAR(16), config_json TEXT, created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL);
-CREATE TABLE IF NOT EXISTS mobile_app_version (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, tenant_id BIGINT NOT NULL, app_id BIGINT NOT NULL, version_no INT NOT NULL, schema_json TEXT, status VARCHAR(16) NOT NULL, published_at TIMESTAMP);
-CREATE TABLE IF NOT EXISTS mobile_page (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, tenant_id BIGINT NOT NULL, app_id BIGINT, name VARCHAR(128), page_key VARCHAR(128), route_path VARCHAR(256), schema_json TEXT, sort_no INT, status VARCHAR(16), created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL);
-CREATE TABLE IF NOT EXISTS mobile_api_route (id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, tenant_id BIGINT NOT NULL, app_id BIGINT, name VARCHAR(128), route_key VARCHAR(128), method VARCHAR(16), path VARCHAR(256), target_url VARCHAR(512), sort_no INT, status VARCHAR(16), created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL);
+CREATE TABLE IF NOT EXISTS mp_account
+(
+    id
+    BIGINT
+    GENERATED
+    BY
+    DEFAULT AS
+    IDENTITY
+    PRIMARY
+    KEY,
+    tenant_id
+    BIGINT
+    NOT
+    NULL,
+    name
+    VARCHAR
+(
+    128
+), app_id VARCHAR
+(
+    128
+), app_secret VARCHAR
+(
+    512
+), token VARCHAR
+(
+    128
+), aes_key VARCHAR
+(
+    256
+), status VARCHAR
+(
+    16
+), create_time TIMESTAMP NOT NULL, update_time TIMESTAMP NOT NULL, create_by BIGINT NOT NULL, update_by BIGINT NOT NULL);
+CREATE TABLE IF NOT EXISTS mp_menu
+(
+    id
+    BIGINT
+    GENERATED
+    BY
+    DEFAULT AS
+    IDENTITY
+    PRIMARY
+    KEY,
+    tenant_id
+    BIGINT
+    NOT
+    NULL,
+    account_id
+    BIGINT,
+    parent_id
+    BIGINT,
+    name
+    VARCHAR
+(
+    128
+), menu_type VARCHAR
+(
+    32
+), url VARCHAR
+(
+    512
+), payload TEXT, sort_no INT, status VARCHAR
+(
+    16
+), create_time TIMESTAMP NOT NULL, update_time TIMESTAMP NOT NULL, create_by BIGINT NOT NULL, update_by BIGINT NOT NULL);
+CREATE TABLE IF NOT EXISTS mp_material
+(
+    id
+    BIGINT
+    GENERATED
+    BY
+    DEFAULT AS
+    IDENTITY
+    PRIMARY
+    KEY,
+    tenant_id
+    BIGINT
+    NOT
+    NULL,
+    account_id
+    BIGINT,
+    material_type
+    VARCHAR
+(
+    32
+), title VARCHAR
+(
+    128
+), media_id VARCHAR
+(
+    128
+), url VARCHAR
+(
+    512
+), payload TEXT, status VARCHAR
+(
+    16
+), create_time TIMESTAMP NOT NULL, update_time TIMESTAMP NOT NULL, create_by BIGINT NOT NULL, update_by BIGINT NOT NULL);
+CREATE TABLE IF NOT EXISTS mp_auto_reply
+(
+    id
+    BIGINT
+    GENERATED
+    BY
+    DEFAULT AS
+    IDENTITY
+    PRIMARY
+    KEY,
+    tenant_id
+    BIGINT
+    NOT
+    NULL,
+    account_id
+    BIGINT,
+    keyword
+    VARCHAR
+(
+    128
+), match_type VARCHAR
+(
+    16
+), reply_type VARCHAR
+(
+    32
+), reply_content TEXT, sort_no INT, status VARCHAR
+(
+    16
+), create_time TIMESTAMP NOT NULL, update_time TIMESTAMP NOT NULL, create_by BIGINT NOT NULL, update_by BIGINT NOT NULL);
+CREATE TABLE IF NOT EXISTS mp_sync_log
+(
+    id
+    BIGINT
+    GENERATED
+    BY
+    DEFAULT AS
+    IDENTITY
+    PRIMARY
+    KEY,
+    tenant_id
+    BIGINT
+    NOT
+    NULL,
+    account_id
+    BIGINT,
+    sync_type
+    VARCHAR
+(
+    32
+) NOT NULL, status VARCHAR
+(
+    16
+) NOT NULL, message VARCHAR
+(
+    512
+), create_time TIMESTAMP NOT NULL, update_time TIMESTAMP NOT NULL, create_by BIGINT NOT NULL, update_by BIGINT NOT NULL);
+CREATE TABLE IF NOT EXISTS report_datasource
+(
+    id
+    BIGINT
+    GENERATED
+    BY
+    DEFAULT AS
+    IDENTITY
+    PRIMARY
+    KEY,
+    tenant_id
+    BIGINT
+    NOT
+    NULL,
+    name
+    VARCHAR
+(
+    128
+), datasource_key VARCHAR
+(
+    128
+), config_json TEXT, status VARCHAR
+(
+    16
+), create_time TIMESTAMP NOT NULL, update_time TIMESTAMP NOT NULL, create_by BIGINT NOT NULL, update_by BIGINT NOT NULL);
+CREATE TABLE IF NOT EXISTS report_dataset
+(
+    id
+    BIGINT
+    GENERATED
+    BY
+    DEFAULT AS
+    IDENTITY
+    PRIMARY
+    KEY,
+    tenant_id
+    BIGINT
+    NOT
+    NULL,
+    name
+    VARCHAR
+(
+    128
+), dataset_key VARCHAR
+(
+    128
+), query_sql TEXT, params_json TEXT, status VARCHAR
+(
+    16
+), create_time TIMESTAMP NOT NULL, update_time TIMESTAMP NOT NULL, create_by BIGINT NOT NULL, update_by BIGINT NOT NULL);
+CREATE TABLE IF NOT EXISTS report_template
+(
+    id
+    BIGINT
+    GENERATED
+    BY
+    DEFAULT AS
+    IDENTITY
+    PRIMARY
+    KEY,
+    tenant_id
+    BIGINT
+    NOT
+    NULL,
+    dataset_id
+    BIGINT,
+    name
+    VARCHAR
+(
+    128
+), template_key VARCHAR
+(
+    128
+), template_json TEXT, status VARCHAR
+(
+    16
+), create_time TIMESTAMP NOT NULL, update_time TIMESTAMP NOT NULL, create_by BIGINT NOT NULL, update_by BIGINT NOT NULL);
+CREATE TABLE IF NOT EXISTS report_query_log
+(
+    id
+    BIGINT
+    GENERATED
+    BY
+    DEFAULT AS
+    IDENTITY
+    PRIMARY
+    KEY,
+    tenant_id
+    BIGINT
+    NOT
+    NULL,
+    dataset_id
+    BIGINT,
+    params_json
+    TEXT,
+    row_count
+    INT,
+    status
+    VARCHAR
+(
+    16
+), create_time TIMESTAMP NOT NULL, update_time TIMESTAMP NOT NULL, create_by BIGINT NOT NULL, update_by BIGINT NOT NULL);
+CREATE TABLE IF NOT EXISTS report_export_task
+(
+    id
+    BIGINT
+    GENERATED
+    BY
+    DEFAULT AS
+    IDENTITY
+    PRIMARY
+    KEY,
+    tenant_id
+    BIGINT
+    NOT
+    NULL,
+    template_id
+    BIGINT,
+    status
+    VARCHAR
+(
+    16
+) NOT NULL, create_time TIMESTAMP NOT NULL, update_time TIMESTAMP NOT NULL, create_by BIGINT NOT NULL, update_by BIGINT NOT NULL);
+CREATE TABLE IF NOT EXISTS mobile_app
+(
+    id
+    BIGINT
+    GENERATED
+    BY
+    DEFAULT AS
+    IDENTITY
+    PRIMARY
+    KEY,
+    tenant_id
+    BIGINT
+    NOT
+    NULL,
+    name
+    VARCHAR
+(
+    128
+), app_key VARCHAR
+(
+    128
+), entry_url VARCHAR
+(
+    512
+), status VARCHAR
+(
+    16
+), config_json TEXT, create_time TIMESTAMP NOT NULL, update_time TIMESTAMP NOT NULL, create_by BIGINT NOT NULL, update_by BIGINT NOT NULL);
+CREATE TABLE IF NOT EXISTS mobile_app_version
+(
+    id
+    BIGINT
+    GENERATED
+    BY
+    DEFAULT AS
+    IDENTITY
+    PRIMARY
+    KEY,
+    tenant_id
+    BIGINT
+    NOT
+    NULL,
+    app_id
+    BIGINT
+    NOT
+    NULL,
+    version_no
+    INT
+    NOT
+    NULL,
+    schema_json
+    TEXT,
+    status
+    VARCHAR
+(
+    16
+) NOT NULL, published_at TIMESTAMP, create_time TIMESTAMP NOT NULL, update_time TIMESTAMP NOT NULL, create_by BIGINT NOT NULL, update_by BIGINT NOT NULL);
+CREATE TABLE IF NOT EXISTS mobile_page
+(
+    id
+    BIGINT
+    GENERATED
+    BY
+    DEFAULT AS
+    IDENTITY
+    PRIMARY
+    KEY,
+    tenant_id
+    BIGINT
+    NOT
+    NULL,
+    app_id
+    BIGINT,
+    name
+    VARCHAR
+(
+    128
+), page_key VARCHAR
+(
+    128
+), route_path VARCHAR
+(
+    256
+), schema_json TEXT, sort_no INT, status VARCHAR
+(
+    16
+), create_time TIMESTAMP NOT NULL, update_time TIMESTAMP NOT NULL, create_by BIGINT NOT NULL, update_by BIGINT NOT NULL);
+CREATE TABLE IF NOT EXISTS mobile_api_route
+(
+    id
+    BIGINT
+    GENERATED
+    BY
+    DEFAULT AS
+    IDENTITY
+    PRIMARY
+    KEY,
+    tenant_id
+    BIGINT
+    NOT
+    NULL,
+    app_id
+    BIGINT,
+    name
+    VARCHAR
+(
+    128
+), route_key VARCHAR
+(
+    128
+), method VARCHAR
+(
+    16
+), path VARCHAR
+(
+    256
+), target_url VARCHAR
+(
+    512
+), sort_no INT, status VARCHAR
+(
+    16
+), create_time TIMESTAMP NOT NULL, update_time TIMESTAMP NOT NULL, create_by BIGINT NOT NULL, update_by BIGINT NOT NULL);
 
 CREATE TABLE IF NOT EXISTS sys_gen_table (
     id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
@@ -763,8 +1719,10 @@ CREATE TABLE IF NOT EXISTS sys_gen_table (
     status VARCHAR(16) NOT NULL DEFAULT 'ENABLED',
     version INT NOT NULL DEFAULT 0,
     delete_marker BIGINT NOT NULL DEFAULT 0,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL,
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL,
+    update_by BIGINT NOT NULL,
     UNIQUE (tenant_id, table_name, delete_marker)
 );
 
@@ -781,8 +1739,10 @@ CREATE TABLE IF NOT EXISTS sys_gen_column (
     auto_increment BOOLEAN NOT NULL DEFAULT FALSE,
     nullable BOOLEAN NOT NULL DEFAULT TRUE,
     sort_no INT NOT NULL DEFAULT 0,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL,
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL,
+    update_by BIGINT NOT NULL,
     UNIQUE (tenant_id, gen_table_id, column_name)
 );
 
@@ -799,8 +1759,10 @@ CREATE TABLE IF NOT EXISTS sys_job (
     status VARCHAR(16) NOT NULL DEFAULT 'ENABLED',
     version INT NOT NULL DEFAULT 0,
     delete_marker BIGINT NOT NULL DEFAULT 0,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL,
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL,
+    update_by BIGINT NOT NULL,
     UNIQUE (tenant_id, job_code, delete_marker)
 );
 
@@ -815,5 +1777,8 @@ CREATE TABLE IF NOT EXISTS sys_job_log (
     duration_ms BIGINT NOT NULL DEFAULT 0,
     started_at TIMESTAMP NOT NULL,
     finished_at TIMESTAMP NOT NULL,
-    created_at TIMESTAMP NOT NULL
+    create_time TIMESTAMP NOT NULL,
+    update_time TIMESTAMP NOT NULL,
+    create_by BIGINT NOT NULL,
+    update_by BIGINT NOT NULL
 );

@@ -1,10 +1,13 @@
 package top.kx.heartbeat.infrastructure.platform.repository;
 
-import org.apache.commons.lang3.StringUtils;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import top.kx.heartbeat.application.platform.port.PlatformPermissionRepository;
 import top.kx.heartbeat.infrastructure.persistence.entity.sys.*;
-import top.kx.heartbeat.infrastructure.persistence.mapper.sys.*;
+import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysMenuPermissionDOMapper;
+import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysRoleDOMapper;
+import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysRoleDeptDOMapper;
+import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysRolePermissionDOMapper;
 import top.kx.heartbeat.infrastructure.tenant.TenantContext;
 
 import javax.annotation.Resource;
@@ -18,17 +21,15 @@ import java.util.stream.Collectors;
 public class PlatformPermissionRepositoryImpl implements PlatformPermissionRepository {
 
     @Resource
-    private SysUserRoleDOMapper userRoleMapper;
-    @Resource
     private SysRoleDOMapper roleMapper;
     @Resource
     private SysRolePermissionDOMapper rolePermissionMapper;
     @Resource
-    private SysPermissionDOMapper permissionMapper;
-    @Resource
     private SysMenuPermissionDOMapper menuPermissionMapper;
     @Resource
     private SysRoleDeptDOMapper roleDeptMapper;
+    @Resource
+    private JdbcTemplate jdbcTemplate;
 
     /**
      * 查询列表数据，保持返回结构稳定并便于前端直接消费，通过 Mapper 完成平台管理数据访问。
@@ -38,29 +39,27 @@ public class PlatformPermissionRepositoryImpl implements PlatformPermissionRepos
      */
     @Override
     public List<String> listPermissionsByUserId(String userId) {
-        // 计算当前步骤所需的中间值，供后续业务判断使用。
-        List<Long> permissionIds = permissionIdsByRoleIds(roleIds(userId));
-        // 校验关键文本参数，防止无效输入继续向后流转。
-        if (permissionIds.isEmpty()) {
-            // 返回已经完成封装的业务结果。
+        Long id = longValue(userId);
+        if (id == null) {
             return Collections.emptyList();
         }
-        // 创建查询条件对象，后续通过 Criteria 精确约束查询范围。
-        SysPermissionDOExample permissionExample = new SysPermissionDOExample();
-        // 组装查询条件，确保 Mapper 只读取当前业务需要的数据。
-        permissionExample.createCriteria().andIdIn(permissionIds);
-        // 返回已经完成封装的业务结果。
-        return permissionMapper.selectByExample(permissionExample)
-                // 使用流式转换批量映射数据，减少中间状态暴露。
-                .stream()
-                // 使用流式转换批量映射数据，减少中间状态暴露。
-                .map(SysPermissionDO::getPermissionCode)
-                // 规范化文本值，降低空字符串和空对象带来的分支复杂度。
-                .filter(StringUtils::isNotBlank)
-                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                .distinct()
-                // 使用流式转换批量映射数据，减少中间状态暴露。
-                .collect(Collectors.toList());
+        return jdbcTemplate.queryForList(
+                "SELECT DISTINCT p.permission_code "
+                        + "FROM sys_user_role ur "
+                        + "JOIN sys_role r "
+                        + "ON r.tenant_id = ur.tenant_id AND r.id = ur.role_id "
+                        + "JOIN sys_role_permission rp "
+                        + "ON rp.tenant_id = ur.tenant_id AND rp.role_id = ur.role_id "
+                        + "JOIN sys_permission p "
+                        + "ON p.tenant_id = ur.tenant_id AND p.id = rp.permission_id "
+                        + "WHERE ur.tenant_id = ? AND ur.user_id = ? "
+                        + "AND r.status = 'ENABLED' AND r.delete_marker = 0 "
+                        + "AND p.status = 'ENABLED' AND p.delete_marker = 0 "
+                        + "ORDER BY p.permission_code",
+                String.class,
+                tenantId(),
+                id
+        );
     }
 
     /**
@@ -71,27 +70,21 @@ public class PlatformPermissionRepositoryImpl implements PlatformPermissionRepos
      */
     @Override
     public List<String> listRoleCodesByUserId(String userId) {
-        // 计算当前步骤所需的中间值，供后续业务判断使用。
-        Set<Long> roleIds = roleIds(userId);
-        // 校验关键文本参数，防止无效输入继续向后流转。
-        if (roleIds.isEmpty()) {
-            // 返回已经完成封装的业务结果。
+        Long id = longValue(userId);
+        if (id == null) {
             return Collections.emptyList();
         }
-        // 创建查询条件对象，后续通过 Criteria 精确约束查询范围。
-        SysRoleDOExample example = new SysRoleDOExample();
-        // 创建结果集合，承接后续逐项组装的数据。
-        example.createCriteria().andIdIn(new ArrayList<>(roleIds));
-        // 返回已经完成封装的业务结果。
-        return roleMapper.selectByExample(example)
-                // 使用流式转换批量映射数据，减少中间状态暴露。
-                .stream()
-                // 使用流式转换批量映射数据，减少中间状态暴露。
-                .map(SysRoleDO::getRoleCode)
-                // 规范化文本值，降低空字符串和空对象带来的分支复杂度。
-                .filter(StringUtils::isNotBlank)
-                // 使用流式转换批量映射数据，减少中间状态暴露。
-                .collect(Collectors.toList());
+        return jdbcTemplate.queryForList(
+                "SELECT DISTINCT r.role_code "
+                        + "FROM sys_user_role ur "
+                        + "JOIN sys_role r ON r.tenant_id = ur.tenant_id AND r.id = ur.role_id "
+                        + "WHERE ur.tenant_id = ? AND ur.user_id = ? "
+                        + "AND r.status = 'ENABLED' AND r.delete_marker = 0 "
+                        + "ORDER BY r.role_code",
+                String.class,
+                tenantId(),
+                id
+        );
     }
 
     /**
@@ -102,27 +95,21 @@ public class PlatformPermissionRepositoryImpl implements PlatformPermissionRepos
      */
     @Override
     public List<String> listDataScopesByUserId(String userId) {
-        // 计算当前步骤所需的中间值，供后续业务判断使用。
-        Set<Long> roleIds = roleIds(userId);
-        // 校验关键文本参数，防止无效输入继续向后流转。
-        if (roleIds.isEmpty()) {
-            // 返回已经完成封装的业务结果。
+        Long id = longValue(userId);
+        if (id == null) {
             return Collections.emptyList();
         }
-        // 创建查询条件对象，后续通过 Criteria 精确约束查询范围。
-        SysRoleDOExample example = new SysRoleDOExample();
-        // 创建结果集合，承接后续逐项组装的数据。
-        example.createCriteria().andIdIn(new ArrayList<>(roleIds));
-        // 返回已经完成封装的业务结果。
-        return roleMapper.selectByExample(example)
-                // 使用流式转换批量映射数据，减少中间状态暴露。
-                .stream()
-                // 使用流式转换批量映射数据，减少中间状态暴露。
-                .map(SysRoleDO::getDataScope)
-                // 规范化文本值，降低空字符串和空对象带来的分支复杂度。
-                .filter(StringUtils::isNotBlank)
-                // 使用流式转换批量映射数据，减少中间状态暴露。
-                .collect(Collectors.toList());
+        return jdbcTemplate.queryForList(
+                "SELECT DISTINCT r.data_scope "
+                        + "FROM sys_user_role ur "
+                        + "JOIN sys_role r ON r.tenant_id = ur.tenant_id AND r.id = ur.role_id "
+                        + "WHERE ur.tenant_id = ? AND ur.user_id = ? "
+                        + "AND r.status = 'ENABLED' AND r.delete_marker = 0 "
+                        + "ORDER BY r.data_scope",
+                String.class,
+                tenantId(),
+                id
+        );
     }
 
     /**
@@ -143,7 +130,9 @@ public class PlatformPermissionRepositoryImpl implements PlatformPermissionRepos
         // 创建查询条件对象，后续通过 Criteria 精确约束查询范围。
         SysRoleDeptDOExample example = new SysRoleDeptDOExample();
         // 创建结果集合，承接后续逐项组装的数据。
-        example.createCriteria().andRoleIdIn(new ArrayList<>(roleIds));
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andRoleIdIn(new ArrayList<>(roleIds));
         // 返回已经完成封装的业务结果。
         return roleDeptMapper.selectByExample(example)
                 // 使用流式转换批量映射数据，减少中间状态暴露。
@@ -169,7 +158,15 @@ public class PlatformPermissionRepositoryImpl implements PlatformPermissionRepos
     @Override
     public boolean roleExists(String roleId) {
         Long id = longValue(roleId);
-        return id != null && roleMapper.selectByPrimaryKey(id) != null;
+        if (id == null) {
+            return false;
+        }
+        SysRoleDOExample example = new SysRoleDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andIdEqualTo(id)
+                .andDeleteMarkerEqualTo(0L);
+        return roleMapper.countByExample(example) > 0;
     }
 
     /**
@@ -215,7 +212,9 @@ public class PlatformPermissionRepositoryImpl implements PlatformPermissionRepos
         // 创建查询条件对象，后续通过 Criteria 精确约束查询范围。
         SysRolePermissionDOExample example = new SysRolePermissionDOExample();
         // 组装查询条件，确保 Mapper 只读取当前业务需要的数据。
-        example.createCriteria().andRoleIdEqualTo(id);
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andRoleIdEqualTo(id);
         // 将当前业务变更写入持久化层，保持数据状态同步。
         rolePermissionMapper.deleteByExample(example);
         // 使用流式转换批量映射数据，减少中间状态暴露。
@@ -236,7 +235,9 @@ public class PlatformPermissionRepositoryImpl implements PlatformPermissionRepos
         // 创建查询条件对象，后续通过 Criteria 精确约束查询范围。
         SysMenuPermissionDOExample menuPermissionExample = new SysMenuPermissionDOExample();
         // 组装查询条件，确保 Mapper 只读取当前业务需要的数据。
-        menuPermissionExample.createCriteria().andMenuIdIn(parsedMenuIds);
+        menuPermissionExample.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andMenuIdIn(parsedMenuIds);
         // 从仓储或 Mapper 读取业务数据，为后续处理准备上下文。
         List<Long> permissionIds = menuPermissionMapper.selectByExample(menuPermissionExample)
                 // 使用流式转换批量映射数据，减少中间状态暴露。
@@ -284,20 +285,17 @@ public class PlatformPermissionRepositoryImpl implements PlatformPermissionRepos
             // 返回已经完成封装的业务结果。
             return Collections.emptySet();
         }
-        // 创建查询条件对象，后续通过 Criteria 精确约束查询范围。
-        SysUserRoleDOExample example = new SysUserRoleDOExample();
-        // 组装查询条件，确保 Mapper 只读取当前业务需要的数据。
-        example.createCriteria().andUserIdEqualTo(id);
-        // 返回已经完成封装的业务结果。
-        return userRoleMapper.selectByExample(example)
-                // 使用流式转换批量映射数据，减少中间状态暴露。
-                .stream()
-                // 使用流式转换批量映射数据，减少中间状态暴露。
-                .map(SysUserRoleDOKey::getRoleId)
-                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                .filter(Objects::nonNull)
-                // 使用流式转换批量映射数据，减少中间状态暴露。
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+        return new LinkedHashSet<>(jdbcTemplate.queryForList(
+                "SELECT DISTINCT r.id "
+                        + "FROM sys_user_role ur "
+                        + "JOIN sys_role r ON r.tenant_id = ur.tenant_id AND r.id = ur.role_id "
+                        + "WHERE ur.tenant_id = ? AND ur.user_id = ? "
+                        + "AND r.status = 'ENABLED' AND r.delete_marker = 0 "
+                        + "ORDER BY r.id",
+                Long.class,
+                tenantId(),
+                id
+        ));
     }
 
     /**
@@ -315,7 +313,9 @@ public class PlatformPermissionRepositoryImpl implements PlatformPermissionRepos
         // 创建查询条件对象，后续通过 Criteria 精确约束查询范围。
         SysRolePermissionDOExample example = new SysRolePermissionDOExample();
         // 创建结果集合，承接后续逐项组装的数据。
-        example.createCriteria().andRoleIdIn(new ArrayList<>(roleIds));
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andRoleIdIn(new ArrayList<>(roleIds));
         // 返回已经完成封装的业务结果。
         return rolePermissionMapper.selectByExample(example)
                 // 使用流式转换批量映射数据，减少中间状态暴露。
@@ -345,7 +345,9 @@ public class PlatformPermissionRepositoryImpl implements PlatformPermissionRepos
         // 创建查询条件对象，后续通过 Criteria 精确约束查询范围。
         SysMenuPermissionDOExample example = new SysMenuPermissionDOExample();
         // 组装查询条件，确保 Mapper 只读取当前业务需要的数据。
-        example.createCriteria().andPermissionIdIn(permissionIds);
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andPermissionIdIn(permissionIds);
         // 返回已经完成封装的业务结果。
         return menuPermissionMapper.selectByExample(example)
                 // 使用流式转换批量映射数据，减少中间状态暴露。
@@ -366,8 +368,7 @@ public class PlatformPermissionRepositoryImpl implements PlatformPermissionRepos
      * @return 处理后的业务结果。
      */
     private Long tenantId() {
-        Long tenantId = TenantContext.getTenantId();
-        return tenantId == null ? 1L : tenantId;
+        return TenantContext.getRequiredTenantId();
     }
 
     /**

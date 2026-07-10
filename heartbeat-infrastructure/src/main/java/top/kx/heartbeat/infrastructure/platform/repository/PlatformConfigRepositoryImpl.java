@@ -40,8 +40,12 @@ public class PlatformConfigRepositoryImpl implements PlatformConfigRepository {
      */
     @Override
     public List<DomainRecord> listConfigurations() {
+        SysConfigDOExample example = new SysConfigDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andDeleteMarkerEqualTo(0L);
         // 返回已经完成封装的业务结果。
-        return configMapper.selectByExample(new SysConfigDOExample())
+        return configMapper.selectByExample(example)
                 // 使用流式转换批量映射数据，减少中间状态暴露。
                 .stream()
                 // 使用流式转换批量映射数据，减少中间状态暴露。
@@ -74,11 +78,20 @@ public class PlatformConfigRepositoryImpl implements PlatformConfigRepository {
     @Override
     public DomainRecord updateConfiguration(String id, PlatformConfigurationRequest request) {
         SysConfigDO row = configurationRow(request);
-        Integer key = integerValue(id);
-        row.setId(key == null ? null : key.longValue());
+        Long key = longValue(id);
+        if (key == null) {
+            throw new IllegalArgumentException("Invalid configuration id: " + id);
+        }
+        row.setId(key);
         touch(row, false);
-        configMapper.updateByPrimaryKeySelective(row);
-        SysConfigDO persisted = key == null ? null : configMapper.selectByPrimaryKey(key);
+        SysConfigDO persisted = null;
+        if (key != null) {
+            SysConfigDOExample example = configurationById(key);
+            if (configMapper.updateByExampleSelective(row, example) == 0) {
+                throw new IllegalArgumentException("Configuration does not exist: " + id);
+            }
+            persisted = first(configMapper.selectByExample(example));
+        }
         return record(persisted == null ? row : persisted);
     }
 
@@ -89,9 +102,9 @@ public class PlatformConfigRepositoryImpl implements PlatformConfigRepository {
      */
     @Override
     public void deleteConfiguration(String id) {
-        Integer key = integerValue(id);
+        Long key = longValue(id);
         if (key != null) {
-            configMapper.deleteByPrimaryKey(key);
+            configMapper.deleteByExample(configurationById(key));
         }
     }
 
@@ -102,8 +115,12 @@ public class PlatformConfigRepositoryImpl implements PlatformConfigRepository {
      */
     @Override
     public List<DomainRecord> listDictTypes() {
+        SysDictTypeDOExample example = new SysDictTypeDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andDeleteMarkerEqualTo(0L);
         // 返回已经完成封装的业务结果。
-        return dictTypeMapper.selectByExample(new SysDictTypeDOExample())
+        return dictTypeMapper.selectByExample(example)
                 // 使用流式转换批量映射数据，减少中间状态暴露。
                 .stream()
                 // 使用流式转换批量映射数据，减少中间状态暴露。
@@ -135,8 +152,12 @@ public class PlatformConfigRepositoryImpl implements PlatformConfigRepository {
      */
     @Override
     public List<DomainRecord> listDictData() {
+        SysDictItemDOExample example = new SysDictItemDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andDeleteMarkerEqualTo(0L);
         // 返回已经完成封装的业务结果。
-        return dictItemMapper.selectByExample(new SysDictItemDOExample())
+        return dictItemMapper.selectByExample(example)
                 // 使用流式转换批量映射数据，减少中间状态暴露。
                 .stream()
                 // 使用流式转换批量映射数据，减少中间状态暴露。
@@ -273,8 +294,20 @@ public class PlatformConfigRepositoryImpl implements PlatformConfigRepository {
      * @return 处理后的业务结果。
      */
     private Long tenantId() {
-        Long tenantId = TenantContext.getTenantId();
-        return tenantId == null ? 1L : tenantId;
+        return TenantContext.getRequiredTenantId();
+    }
+
+    private SysConfigDOExample configurationById(Long id) {
+        SysConfigDOExample example = new SysConfigDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andIdEqualTo(id)
+                .andDeleteMarkerEqualTo(0L);
+        return example;
+    }
+
+    private <T> T first(List<T> rows) {
+        return rows == null || rows.isEmpty() ? null : rows.get(0);
     }
 
     /**
@@ -283,11 +316,11 @@ public class PlatformConfigRepositoryImpl implements PlatformConfigRepository {
      * @param value 待转换的原始值。
      * @return 处理后的业务结果。
      */
-    private Integer integerValue(String value) {
+    private Long longValue(String value) {
         // 进入可能失败的处理区间，后续异常会统一转换为业务可理解的结果。
         try {
             // 返回已经完成封装的业务结果。
-            return value == null || value.trim().isEmpty() ? null : Integer.parseInt(value.trim());
+            return value == null || value.trim().isEmpty() ? null : Long.parseLong(value.trim());
         } catch (NumberFormatException ignored) {
             // 返回已经完成封装的业务结果。
             return null;

@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react'
+import {lazy, Suspense, useCallback, useEffect, useMemo, useState} from 'react'
 import {useLocation, useNavigate} from 'react-router-dom'
 import {adminApi, authApi, iamApi, structureApi, toolApi} from './api'
 import {
@@ -30,16 +30,26 @@ import RoleMenuDialog from './components/admin/RoleMenuDialog'
 import MobileAdminShell from './components/admin/MobileAdminShell'
 import ResourceTable from './components/admin/ResourceTable'
 import FluidBackground from './components/FluidBackground/FluidBackground'
-import SchemaForm from './components/SchemaForm'
 import AdminLayout from './layout/AdminLayout'
-import DashboardPage from './pages/DashboardPage'
-import PayCashierPage from './pages/pay/PayCashierPage'
-import FlowStudioPage from './pages/flow/FlowStudioPage'
-import CodeGenPage from './pages/tool/CodeGenPage'
-import ServerMonitorPage from './pages/monitor/ServerMonitorPage'
 import useAppearanceTheme from './appearance/useAppearanceTheme'
+import {safeStorageGet, safeStorageRemove, safeStorageSet} from './infrastructure/browser/safeStorage'
 import './theme/heartbeat-admin.css'
 import './styles.css'
+
+const SchemaForm = lazy(() => import('./components/SchemaForm'))
+const DashboardPage = lazy(() => import('./pages/DashboardPage'))
+const PayCashierPage = lazy(() => import('./pages/pay/PayCashierPage'))
+const FlowStudioPage = lazy(() => import('./pages/flow/FlowStudioPage'))
+const CodeGenPage = lazy(() => import('./pages/tool/CodeGenPage'))
+const ServerMonitorPage = lazy(() => import('./pages/monitor/ServerMonitorPage'))
+
+function LazyModuleFallback({label = 'Loading module...'}) {
+    return (
+        <div className="table-empty lazy-module-fallback" role="status" aria-live="polite">
+            {label}
+        </div>
+    )
+}
 
 // ----- ?????? -----
 const initialSamples = JSON.stringify([
@@ -84,22 +94,31 @@ function parseJson(text, label) {
 function rememberSessionUser(user) {
   if (!user?.id) return
   try {
-    const session = JSON.parse(localStorage.getItem('heartbeat_admin_session') || '{}')
-    localStorage.setItem('heartbeat_admin_session', JSON.stringify({
+      const session = JSON.parse(safeStorageGet('heartbeat_admin_session') || '{}')
+      safeStorageSet('heartbeat_admin_session', JSON.stringify({
       ...session,
       userId: user.id
     }))
   } catch {
-    localStorage.setItem('heartbeat_admin_session', JSON.stringify({ userId: user.id }))
+      safeStorageSet('heartbeat_admin_session', JSON.stringify({userId: user.id}))
   }
 }
 
 function saveAuthSession(result) {
-  localStorage.setItem('heartbeat_admin_session', JSON.stringify({
-    accessToken: result.accessToken,
-    refreshToken: result.refreshToken,
-    userId: result.user?.id
+    const tokens = result?.tokens || result || {}
+    const user = result?.user?.fields || result?.user
+    const tenantId = tokens.tenantId || user?.tenantId || safeStorageGet('heartbeat_tenant_id') || '1'
+    safeStorageSet('heartbeat_tenant_id', String(tenantId))
+    safeStorageSet('heartbeat_admin_session', JSON.stringify({
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        tenantId,
+        userId: user?.id
   }))
+}
+
+function authResultUser(result) {
+    return result?.user?.fields || result?.user || null
 }
 
 const COMMON_FIELD_TITLES = {
@@ -495,7 +514,11 @@ export default function App() {
     const navigate = useNavigate()
     const activeTagKey = tagKeyForLocation(location)
   const [currentUser, setCurrentUser] = useState(null)
-  const [loginForm, setLoginForm] = useState({ username: 'admin', password: 'admin123' })
+    const [loginForm, setLoginForm] = useState({
+        tenantId: safeStorageGet('heartbeat_tenant_id') || '1',
+        username: 'admin',
+        password: ''
+    })
   const [socialProviders, setSocialProviders] = useState([])
   const [pendingBind, setPendingBind] = useState(null)
   const [authChecked, setAuthChecked] = useState(false)
@@ -526,7 +549,9 @@ export default function App() {
   const [resourceDialog, setResourceDialog] = useState({ open: false, mode: 'create', row: null })
   const [roleMenuDialog, setRoleMenuDialog] = useState({ open: false, role: null })
   const [selectedResourceRow, setSelectedResourceRow] = useState(null)
-  const [adminSurfaceMode, setAdminSurfaceMode] = useState(() => localStorage.getItem('heartbeat_admin_surface_mode') || 'balanced')
+    const [adminSurfaceMode, setAdminSurfaceMode] = useState(
+        () => safeStorageGet('heartbeat_admin_surface_mode') || 'balanced'
+    )
     const [surfaceEnvironment, setSurfaceEnvironment] = useState({
         supportsBackdrop: true,
         reducedMotion: false
@@ -541,6 +566,7 @@ export default function App() {
     changeFluidEnabled,
     changeAccentColor,
     changeVisualStyle,
+      changeAppearance,
     syncState
   } = useAppearanceTheme(currentUser)
 
@@ -659,7 +685,7 @@ export default function App() {
 
   useEffect(() => {
     let mounted = true
-    const saved = localStorage.getItem('heartbeat_admin_session')
+      const saved = safeStorageGet('heartbeat_admin_session')
     if (!saved) {
       setAuthChecked(true)
       return () => {
@@ -674,7 +700,7 @@ export default function App() {
           }
         })
         .catch(() => {
-          localStorage.removeItem('heartbeat_admin_session')
+            safeStorageRemove('heartbeat_admin_session')
         })
         .finally(() => {
           if (mounted) setAuthChecked(true)
@@ -700,45 +726,53 @@ export default function App() {
   }, [authChecked, currentUser])
 
   useEffect(() => {
+      if (!authChecked || !currentUser?.id) {
+          setRouteTree([])
+          setAdminModules(fallbackAdminModules)
+          setRouteStatus('loading')
+          return undefined
+      }
+
     let mounted = true
       const controller = new AbortController()
       setRouteStatus('loading')
-      iamApi.routes({signal: controller.signal})
-        .then((routes) => {
-          if (mounted && Array.isArray(routes)) {
-            setRouteTree(routes)
-            const modules = flattenRouteModules(routes)
-            setAdminModules(modules.length > 0 ? modules : fallbackAdminModules)
-            const topId = resolveTopModuleId(routes, activeModuleKey)
-            if (topId) setActiveTopModuleKey(topId)
+
+      async function loadRoutes() {
+          try {
+              const routes = await iamApi.routes({signal: controller.signal})
+              if (!mounted) return
+              const safeRoutes = Array.isArray(routes) ? routes : []
+              const modules = flattenRouteModules(safeRoutes)
+              setRouteTree(safeRoutes)
+              setAdminModules(modules.length > 0 ? modules : fallbackAdminModules)
               setRouteStatus('ready')
+          } catch (routeError) {
+              if (routeError?.name === 'AbortError') return
+              try {
+                  const items = await adminApi.modules({signal: controller.signal})
+                  if (!mounted) return
+                  const safeItems = Array.isArray(items) ? items : []
+                  const modules = safeItems.some((item) => item.key === 'structure')
+                      ? safeItems
+                      : [fallbackAdminModules[0], ...safeItems]
+                  setRouteTree([])
+                  setAdminModules(modules.length > 0 ? modules : fallbackAdminModules)
+                  setRouteStatus('fallback')
+              } catch (fallbackError) {
+                  if (fallbackError?.name === 'AbortError' || !mounted) return
+                  setRouteTree([])
+                  setAdminModules(fallbackAdminModules)
+                  setRouteStatus('fallback')
+              }
           }
-        })
-          .catch((error) => {
-              if (error?.name === 'AbortError') return []
-              return adminApi.modules({signal: controller.signal})
-          })
-        .then((items) => {
-          if (mounted && Array.isArray(items)) {
-            const modules = items.some((item) => item.key === 'structure')
-                ? items
-                : [fallbackAdminModules[0], ...items]
-            setAdminModules(modules.length > 0 ? modules : fallbackAdminModules)
-              if (routeStatus !== 'ready') setRouteStatus('fallback')
-          }
-        })
-          .catch((error) => {
-              if (error?.name === 'AbortError') return
-          if (mounted) {
-            setAdminModules(fallbackAdminModules)
-              setRouteStatus('fallback')
-          }
-        })
+      }
+
+      loadRoutes()
     return () => {
       mounted = false
         controller.abort()
     }
-  }, [])
+  }, [authChecked, currentUser?.id])
 
   useEffect(() => {
     if (!currentUser || activeModuleKey === 'structure' || !activeResource) return
@@ -838,7 +872,7 @@ export default function App() {
     await run('login', async () => {
       const result = await authApi.login(loginForm)
       saveAuthSession(result)
-      setCurrentUser(result.user)
+        setCurrentUser(authResultUser(result))
       setPendingBind(null)
     })
   }
@@ -853,7 +887,7 @@ export default function App() {
           return
         }
         saveAuthSession(result)
-        setCurrentUser(result.user)
+          setCurrentUser(authResultUser(result))
         setPendingBind(null)
         return
       }
@@ -871,16 +905,19 @@ export default function App() {
         password: loginForm.password
       })
       saveAuthSession(result)
-      setCurrentUser(result.user)
+        setCurrentUser(authResultUser(result))
       setPendingBind(null)
     })
   }
 
   async function handleLogout() {
     await run('logout', async () => {
-      await authApi.logout()
-      localStorage.removeItem('heartbeat_admin_session')
-      setCurrentUser(null)
+        try {
+            await authApi.logout()
+        } finally {
+            safeStorageRemove('heartbeat_admin_session')
+            setCurrentUser(null)
+        }
     })
   }
 
@@ -1182,15 +1219,13 @@ export default function App() {
   function handleSurfaceModeChange(nextMode) {
     if (nextMode === 'flat') {
       setAdminSurfaceMode('balanced')
-      localStorage.setItem('heartbeat_admin_surface_mode', 'balanced')
-      changeFluidEnabled(false)
-      changeVisualStyle('flat')
+        safeStorageSet('heartbeat_admin_surface_mode', 'balanced')
+        changeAppearance({fluidEnabled: false, visualStyle: 'flat'})
       return
     }
     setAdminSurfaceMode(nextMode)
-    localStorage.setItem('heartbeat_admin_surface_mode', nextMode)
-    changeFluidEnabled(true)
-    changeVisualStyle('glass')
+      safeStorageSet('heartbeat_admin_surface_mode', nextMode)
+      changeAppearance({fluidEnabled: true, visualStyle: 'glass'})
   }
 
   async function handleValidate() {
@@ -1282,6 +1317,20 @@ export default function App() {
             </p>
             {error && <div className="error-banner" role="alert">{error}</div>}
             <label>
+                Tenant ID
+                <input
+                    aria-label="Tenant ID"
+                    inputMode="numeric"
+                    pattern="[0-9]+"
+                    required
+                    value={loginForm.tenantId}
+                    onChange={(event) => {
+                        safeStorageSet('heartbeat_tenant_id', event.target.value)
+                        setLoginForm({...loginForm, tenantId: event.target.value})
+                    }}
+                />
+            </label>
+              <label>
               ???
               <input
                   aria-label="???"
@@ -1329,7 +1378,6 @@ export default function App() {
                   ))}
                 </div>
             )}
-            <small>?????admin / admin123?MOCK ?????????</small>
           </form>
         </div>
     )
@@ -1343,6 +1391,7 @@ export default function App() {
                     visualStyle={liquidGlassEnabled ? 'glass' : visualStyle}
                     accentColor={accentColor}
                     colorScheme={glassMode === 'immersive' ? colorScheme : 'light'}
+                    reducedMotion={surfaceEnvironment.reducedMotion}
                 />
                 <div className="login-page">
                     <div className="login-card">
@@ -1362,6 +1411,7 @@ export default function App() {
             visualStyle={liquidGlassEnabled ? 'glass' : visualStyle}
             accentColor={accentColor}
             colorScheme={glassMode === 'immersive' ? colorScheme : 'light'}
+            reducedMotion={surfaceEnvironment.reducedMotion}
         />
         <MobileAdminShell
             modules={adminModules}
@@ -1424,21 +1474,23 @@ export default function App() {
             onRefresh={handleRefresh}
             onLogout={handleLogout}
         >
-          {activeModuleKey === 'home-dashboard' && (
-              <DashboardPage currentUser={currentUser} />
-          )}
-          {activeModuleKey === 'biz-pay-cashier' && (
-              <PayCashierPage />
-          )}
-          {activeModuleKey === 'flow' && (
-              <FlowStudioPage busy={busy} onBusy={setBusy} onError={setError} />
-          )}
-          {activeModuleKey === 'tool-gen' && (
-              <CodeGenPage busy={busy} onBusy={setBusy} onError={setError} />
-          )}
-          {activeModuleKey === 'monitor-server' && (
-              <ServerMonitorPage busy={busy} onBusy={setBusy} onError={setError} />
-          )}
+            <Suspense fallback={<LazyModuleFallback/>}>
+                {activeModuleKey === 'home-dashboard' && (
+                    <DashboardPage currentUser={currentUser}/>
+                )}
+                {activeModuleKey === 'biz-pay-cashier' && (
+                    <PayCashierPage/>
+                )}
+                {activeModuleKey === 'flow' && (
+                    <FlowStudioPage busy={busy} onBusy={setBusy} onError={setError}/>
+                )}
+                {activeModuleKey === 'tool-gen' && (
+                    <CodeGenPage busy={busy} onBusy={setBusy} onError={setError}/>
+                )}
+                {activeModuleKey === 'monitor-server' && (
+                    <ServerMonitorPage busy={busy} onBusy={setBusy} onError={setError}/>
+                )}
+            </Suspense>
           {activeModuleKey === 'structure' && (
                 <>
         <header className="structure-page-header" id="structure-workbench">
@@ -1609,16 +1661,18 @@ export default function App() {
                 <>
                   {activeTab === 'FORM' ? (
                       <div className="form-wrapper">
-                        <SchemaForm
-                            schema={artifacts.JSON_SCHEMA}
-                            uiSchema={mergedUiSchema}
-                            formData={formData}
-                            onChange={setFormData}
-                            onSubmit={(data) => {
-                              setSubmittedData(data)
-                              console.log('提交的数据：', data)
-                            }}
-                        />
+                          <Suspense fallback={<LazyModuleFallback label="Loading form renderer..."/>}>
+                              <SchemaForm
+                                  schema={artifacts.JSON_SCHEMA}
+                                  uiSchema={mergedUiSchema}
+                                  formData={formData}
+                                  onChange={setFormData}
+                                  onSubmit={(data) => {
+                                      setSubmittedData(data)
+                                      console.log('提交的数据：', data)
+                                  }}
+                              />
+                          </Suspense>
                         {submittedData && (
                             <details className="submitted-data">
                               <summary>查看提交的数据</summary>

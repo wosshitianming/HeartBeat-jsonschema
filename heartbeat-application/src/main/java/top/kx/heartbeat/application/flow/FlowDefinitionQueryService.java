@@ -31,22 +31,24 @@ public class FlowDefinitionQueryService {
      * 分页查询流程定义
      */
     public PageResultVO<FlowDefinitionVO> page(FlowDefinitionQueryParam param) {
+        FlowDefinitionQueryParam safeParam = param == null ? new FlowDefinitionQueryParam() : param;
         // 计算当前步骤所需的中间值，供后续业务判断使用。
-        int pageNum = param.getPageNum() == null ? 1 : param.getPageNum();
+        int pageNum = Math.max(1, safeParam.getPageNum() == null ? 1 : safeParam.getPageNum());
         // 计算当前步骤所需的中间值，供后续业务判断使用。
-        int pageSize = param.getPageSize() == null ? 20 : param.getPageSize();
+        int pageSize = Math.max(1, Math.min(100,
+                safeParam.getPageSize() == null ? 20 : safeParam.getPageSize()));
         // 计算当前分支的中间结果，供后续判断或组装使用。
         FlowRepository.Page<FlowDefinition> pageInfo = flowRepository.pageByQuery(
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                param.getNameLike(),
+                safeParam.getNameLike(),
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                param.getCodeEqual(),
+                safeParam.getCodeEqual(),
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                param.getStatusEqual(),
+                safeParam.getStatusEqual(),
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                param.getOrderByColumn(),
+                safeParam.getOrderByColumn(),
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                param.getOrderByDirection(),
+                safeParam.getOrderByDirection(),
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 pageNum,
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。

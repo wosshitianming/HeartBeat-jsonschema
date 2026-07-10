@@ -97,96 +97,97 @@ public class FlowExecutor {
 
         // 初始化最后输出数据。
         Map<String, Object> lastOutput = new LinkedHashMap<>();
-        // 循环执行待处理节点。
-        while (CollectionUtils.isNotEmpty(queue)) {
-            // 弹出当前节点负载。
-            NodePayload payload = queue.poll();
-            // 查询当前流程节点。
-            FlowNode node = nodes.get(payload.nodeId);
-            // 查询当前节点组件清单。
-            NodeComponentManifest manifest = manifestByNodeId.get(node.getId());
-            // 查询当前节点执行器。
-            NodeExecutor executor = nodeExecutorRegistry.getRequired(manifest.getRuntime().getExecutor());
-            // 记录节点开始时间戳。
-            long started = System.currentTimeMillis();
-            // 执行当前节点。
-            NodeExecutionResult result = executor.execute(new NodeExecutionContext(runId, node, payload.input, flow.getVariables()));
-            // 计算节点执行耗时。
-            long elapsed = System.currentTimeMillis() - started;
-            // 更新最后输出数据。
-            lastOutput = result.getOutput();
-            // 添加节点运行事件。
-            // 构建节点运行事件。
-            FlowRunEvent event = new FlowRunEvent();
-            // 写入运行事件标识。
-            event.setId(nextNumericId());
-            // 写入流程运行标识。
-            event.setRunId(runId);
-            // 写入节点标识。
-            event.setNodeId(node.getId());
-            // 写入源节点标识。
-            event.setSourceNodeId(node.getId());
-            // 写入节点类型。
-            event.setNodeType(node.getType());
-            // 写入事件类型。
-            event.setEventType(result.getStatus());
-            // 写入节点输入。
-            event.setInput(payload.input);
-            // 写入节点输出。
-            event.setOutput(result.getOutput());
-            // 写入错误信息。
-            event.setErrorMessage(result.getErrorMessage());
-            // 写入执行耗时。
-            event.setElapsedMs(elapsed);
-            // 写入事件创建时间。
-            event.setCreateTime(Instant.now());
-            // 添加节点运行事件。
-            events.add(event);
-            // 保存最新节点运行事件。
-            flowRunRepository.saveEvent(events.get(events.size() - 1));
-            // 遍历当前节点的出边。
-            for (FlowEdge edge : edgesBySource.getOrDefault(node.getId(), new ArrayList<>())) {
-                // 命中后续端口时推进目标节点。
-                if (result.getNextPorts().contains(edge.getSourcePort())) {
-                    // 将目标节点加入执行队列。
-                    queue.add(new NodePayload(edge.getTarget(), result.getOutput()));
+        // 先持久化运行记录，保证后续事件只能关联当前租户已有运行。
+        FlowRun run = new FlowRun();
+        run.setId(runId);
+        run.setFlowId(flow.getId());
+        run.setVersionNo(flow.getActiveVersionNo() == null ? 0 : flow.getActiveVersionNo());
+        run.setEngine(FlowRuntimeEngine.LOCAL_DEBUG.getCode());
+        run.setTriggerType(FlowRunTriggerType.DEBUG.getCode());
+        run.setIdempotencyScope(FlowIdempotencyScope.START.getCode());
+        run.setStatus(FlowRunStatus.RUNNING.getCode());
+        run.setInputSummary(input == null ? new LinkedHashMap<>() : input);
+        run.setStartedAt(startedAt);
+        flowRunRepository.saveRun(run);
+
+        try {
+            // 循环执行待处理节点。
+            while (CollectionUtils.isNotEmpty(queue)) {
+                // 弹出当前节点负载。
+                NodePayload payload = queue.poll();
+                // 查询当前流程节点。
+                FlowNode node = nodes.get(payload.nodeId);
+                // 查询当前节点组件清单。
+                NodeComponentManifest manifest = manifestByNodeId.get(node.getId());
+                // 查询当前节点执行器。
+                NodeExecutor executor = nodeExecutorRegistry.getRequired(manifest.getRuntime().getExecutor());
+                // 记录节点开始时间戳。
+                long started = System.currentTimeMillis();
+                // 执行当前节点。
+                NodeExecutionResult result = executor.execute(new NodeExecutionContext(runId, node, payload.input, flow.getVariables()));
+                // 计算节点执行耗时。
+                long elapsed = System.currentTimeMillis() - started;
+                // 更新最后输出数据。
+                lastOutput = result.getOutput();
+                // 添加节点运行事件。
+                // 构建节点运行事件。
+                FlowRunEvent event = new FlowRunEvent();
+                // 写入运行事件标识。
+                event.setId(nextNumericId());
+                // 写入流程运行标识。
+                event.setRunId(runId);
+                // 写入节点标识。
+                event.setNodeId(node.getId());
+                // 写入源节点标识。
+                event.setSourceNodeId(node.getId());
+                // 写入节点类型。
+                event.setNodeType(node.getType());
+                // 写入事件类型。
+                event.setEventType(result.getStatus());
+                // 写入节点输入。
+                event.setInput(payload.input);
+                // 写入节点输出。
+                event.setOutput(result.getOutput());
+                // 写入错误信息。
+                event.setErrorMessage(result.getErrorMessage());
+                // 写入执行耗时。
+                event.setElapsedMs(elapsed);
+                // 写入事件创建时间。
+                event.setCreateTime(Instant.now());
+                // 添加节点运行事件。
+                events.add(event);
+                // 保存最新节点运行事件。
+                flowRunRepository.saveEvent(events.get(events.size() - 1));
+                // 遍历当前节点的出边。
+                for (FlowEdge edge : edgesBySource.getOrDefault(node.getId(), new ArrayList<>())) {
+                    // 命中后续端口时推进目标节点。
+                    if (result.getNextPorts().contains(edge.getSourcePort())) {
+                        // 将目标节点加入执行队列。
+                        queue.add(new NodePayload(edge.getTarget(), result.getOutput()));
+                    }
                 }
             }
-        }
 
-        // 记录流程结束时间。
-        Instant finishedAt = Instant.now();
-        // 保存流程运行记录。
-        // 构建流程运行记录。
-        FlowRun run = new FlowRun();
-        // 写入流程运行标识。
-        run.setId(runId);
-        // 写入流程定义标识。
-        run.setFlowId(flow.getId());
-        // 写入流程版本号。
-        run.setVersionNo(flow.getActiveVersionNo() == null ? 0 : flow.getActiveVersionNo());
-        // 写入运行时引擎。
-        run.setEngine(FlowRuntimeEngine.LOCAL_DEBUG.getCode());
-        // 写入触发类型。
-        run.setTriggerType(FlowRunTriggerType.DEBUG.getCode());
-        // 写入幂等范围。
-        run.setIdempotencyScope(FlowIdempotencyScope.START.getCode());
-        // 写入运行状态。
-        run.setStatus(FlowRunStatus.SUCCESS.getCode());
-        // 写入输入摘要。
-        run.setInputSummary(input == null ? new LinkedHashMap<>() : input);
-        // 写入输出摘要。
-        run.setOutputSummary(lastOutput);
-        // 写入开始时间。
-        run.setStartedAt(startedAt);
-        // 写入结束时间。
-        run.setFinishedAt(finishedAt);
-        // 写入执行耗时。
-        run.setElapsedMs(finishedAt.toEpochMilli() - startedAt.toEpochMilli());
-        // 保存流程运行记录。
-        flowRunRepository.saveRun(run);
-        // 返回流程调试结果。
-        return new FlowDebugResult(runId, FlowRunStatus.SUCCESS.getCode(), lastOutput, events);
+            // 记录流程结束时间并更新成功状态。
+            Instant finishedAt = Instant.now();
+            run.setStatus(FlowRunStatus.SUCCESS.getCode());
+            run.setOutputSummary(lastOutput);
+            run.setFinishedAt(finishedAt);
+            run.setElapsedMs(finishedAt.toEpochMilli() - startedAt.toEpochMilli());
+            flowRunRepository.saveRun(run);
+            // 返回流程调试结果。
+            return new FlowDebugResult(runId, FlowRunStatus.SUCCESS.getCode(), lastOutput, events);
+        } catch (RuntimeException ex) {
+            // 已保存的事件保持可追溯，同时把运行记录收敛为失败状态。
+            Instant finishedAt = Instant.now();
+            run.setStatus(FlowRunStatus.FAILED.getCode());
+            run.setOutputSummary(lastOutput);
+            run.setErrorMessage(ex.getMessage());
+            run.setFinishedAt(finishedAt);
+            run.setElapsedMs(finishedAt.toEpochMilli() - startedAt.toEpochMilli());
+            flowRunRepository.saveRun(run);
+            throw ex;
+        }
     }
 
     /**

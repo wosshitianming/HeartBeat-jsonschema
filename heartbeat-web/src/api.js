@@ -1,8 +1,12 @@
+import {safeStorageGet, safeStorageSet} from './infrastructure/browser/safeStorage'
+
+const TENANT_STORAGE_KEY = 'heartbeat_tenant_id'
+
 // 从本地会话中构造认证请求头（Bearer + 兼容 X-User-Id）
 function sessionHeaders() {
   try {
     // 读取本地持久化的登录会话
-    const session = JSON.parse(window.localStorage.getItem('heartbeat_admin_session') || '{}')
+      const session = JSON.parse(safeStorageGet('heartbeat_admin_session') || '{}')
     const headers = {}
     // 优先携带 JWT 访问令牌
     if (session.accessToken) {
@@ -12,34 +16,76 @@ function sessionHeaders() {
     if (session.userId) {
       headers['X-User-Id'] = String(session.userId)
     }
+      const tenantId = session.tenantId || safeStorageGet(TENANT_STORAGE_KEY)
+      if (tenantId) {
+          headers['X-Tenant-Id'] = String(tenantId)
+      }
     return headers
   } catch {
-  // 会话损坏时返回空头
-    return {}
+      const tenantId = safeStorageGet(TENANT_STORAGE_KEY)
+      return tenantId ? {'X-Tenant-Id': String(tenantId)} : {}
   }
 }
 
-// 统一 fetch 封装：自动附加 JSON 头与会话头，并解析 Result 包装
+function unwrapRecordEnvelope(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return value
+    const keys = Object.keys(value)
+    if (keys.length !== 1 || keys[0] !== 'fields') return value
+    const fields = value.fields
+    return fields && typeof fields === 'object' && !Array.isArray(fields) ? fields : value
+}
+
+function normalizeResponseData(value) {
+    return Array.isArray(value) ? value.map(unwrapRecordEnvelope) : unwrapRecordEnvelope(value)
+}
+
+// 统一 fetch 封装：按需附加 JSON 头与会话头，并解析 Result 包装
 async function request(path, options = {}) {
     const {headers: optionHeaders, ...fetchOptions} = options
+    const headers = {
+        ...sessionHeaders(),
+        ...(optionHeaders || {})
+    }
+    const hasContentType = Object.keys(headers).some((key) => key.toLowerCase() === 'content-type')
+    const isFormData = typeof FormData !== 'undefined' && fetchOptions.body instanceof FormData
+    if (fetchOptions.body != null && !isFormData && !hasContentType) {
+        headers['Content-Type'] = 'application/json'
+    }
   // 发起 HTTP 请求
   const response = await fetch(path, {
       ...fetchOptions,
-    headers: {
-      'Content-Type': 'application/json',
-      ...sessionHeaders(),
-        ...(optionHeaders || {})
-    }
+      headers
   })
 
-  // 解析 JSON 响应体
-  const body = await response.json()
-  // 非 2xx 或业务 code 非 0 时抛错
-  if (!response.ok || body.code !== '0') {
-    throw new Error(body.msg || `请求失败 (${response.status})`)
-  }
-  // 返回 data 字段
-  return body.data
+    let body = null
+    if (response.status !== 204 && response.status !== 205) {
+        if (typeof response.text === 'function') {
+            const responseText = await response.text()
+            if (responseText) {
+                try {
+                    body = JSON.parse(responseText)
+                } catch {
+                    body = responseText
+                }
+            }
+        } else if (typeof response.json === 'function') {
+            body = await response.json()
+        }
+    }
+
+    if (!response.ok) {
+        const message = typeof body === 'string' ? body : body?.msg
+        throw new Error(message || `请求失败 (${response.status})`)
+    }
+
+    if (body && typeof body === 'object' && Object.prototype.hasOwnProperty.call(body, 'code')) {
+        if (String(body.code) !== '0') {
+            throw new Error(body.msg || `请求失败 (${response.status})`)
+        }
+        return normalizeResponseData(body.data)
+    }
+
+    return normalizeResponseData(body)
 }
 
 export const structureApi = {
@@ -183,9 +229,14 @@ export const authApi = {
     return request('/api/v1/auth/me')
   },
   login(payload) {
+      const tenantId = String(payload?.tenantId || safeStorageGet(TENANT_STORAGE_KEY) || '1').trim() || '1'
+      safeStorageSet(TENANT_STORAGE_KEY, tenantId)
+      const credentials = {...(payload || {})}
+      delete credentials.tenantId
     return request('/api/v1/auth/login', {
       method: 'POST',
-      body: JSON.stringify(payload)
+        headers: {'X-Tenant-Id': tenantId},
+        body: JSON.stringify(credentials)
     })
   },
   logout() {
@@ -216,11 +267,12 @@ export const authApi = {
       body: JSON.stringify(payload)
     })
   },
-  appearancePreference() {
-    return request('/api/v1/auth/preferences/appearance')
+    appearancePreference(options = {}) {
+        return request('/api/v1/auth/preferences/appearance', options)
   },
-  updateAppearancePreference(appearance) {
+    updateAppearancePreference(appearance, options = {}) {
     return request('/api/v1/auth/preferences/appearance', {
+        ...options,
       method: 'PUT',
       body: JSON.stringify(appearance)
     })

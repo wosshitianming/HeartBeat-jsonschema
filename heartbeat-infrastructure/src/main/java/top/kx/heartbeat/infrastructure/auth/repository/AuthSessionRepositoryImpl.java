@@ -52,19 +52,24 @@ public class AuthSessionRepositoryImpl implements AuthSessionRepository {
     }
 
     @Override
-    public void rotateRefreshToken(long tenantId, String sessionId, String refreshTokenHash,
-                                   // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                                   LocalDateTime refreshExpireAt) {
+    public boolean rotateRefreshToken(long tenantId, String sessionId, String expectedRefreshTokenHash,
+                                      String newRefreshTokenHash, LocalDateTime refreshExpireAt) {
         // 创建数据库记录对象，承载即将写入的业务字段。
         AuthSessionDO row = new AuthSessionDO();
         // 设置持久化字段，保证数据库记录具备完整业务属性。
-        row.setRefreshTokenHash(refreshTokenHash);
+        row.setRefreshTokenHash(newRefreshTokenHash);
         // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setRefreshExpireAt(date(refreshExpireAt));
         // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setUpdateTime(new Date());
-        // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-        updateByTenantAndSession(tenantId, sessionId, row);
+
+        AuthSessionDOExample example = new AuthSessionDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId)
+                .andSessionIdEqualTo(sessionId)
+                .andStatusEqualTo(AuthSessionStatus.ACTIVE.getCode())
+                .andRefreshTokenHashEqualTo(expectedRefreshTokenHash);
+        return authSessionMapper.updateByExampleSelective(row, example) == 1;
     }
 
     @Override

@@ -16,9 +16,10 @@ export default function FluidBackground({
   enabled = true,
   visualStyle = 'glass',
   accentColor = '#1677ff',
-  colorScheme = 'dark'
+                                            colorScheme = 'dark',
+                                            reducedMotion = false
 }) {
-  const useWebGL = visualStyle === 'glass'
+    const useWebGL = visualStyle === 'glass' && !reducedMotion
 
   const containerClassName = useMemo(() => {
     const classes = [styles.backgroundContainer]

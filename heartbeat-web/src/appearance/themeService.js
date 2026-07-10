@@ -1,3 +1,5 @@
+import {safeStorageGet, safeStorageSet} from '../infrastructure/browser/safeStorage'
+
 export const COLOR_MODES = ['light', 'dark', 'system']
 export const VISUAL_STYLES = ['flat', 'glass']
 export const DEFAULT_ACCENT_COLOR = '#1677ff'
@@ -50,7 +52,7 @@ export function appearanceStorageKey(userId) {
 }
 
 function legacyAppearance(userId) {
-  const legacyTheme = window.localStorage.getItem(`heartbeat_appearance_theme:${userId || 'anonymous'}`)
+    const legacyTheme = safeStorageGet(`heartbeat_appearance_theme:${userId || 'anonymous'}`)
   if (!legacyTheme) return null
   return {
     colorMode: 'dark',
@@ -61,7 +63,7 @@ function legacyAppearance(userId) {
 }
 
 export function readCachedAppearance(userId) {
-  const cached = window.localStorage.getItem(appearanceStorageKey(userId))
+    const cached = safeStorageGet(appearanceStorageKey(userId))
   if (cached) {
     try {
       return normalizeAppearance(JSON.parse(cached))
@@ -78,18 +80,18 @@ export function readCachedAppearance(userId) {
 }
 
 export function readInitialAppearance() {
-  const lastUserId = window.localStorage.getItem(LAST_USER_KEY)
+    const lastUserId = safeStorageGet(LAST_USER_KEY)
   return lastUserId ? readCachedAppearance(lastUserId) : { ...DEFAULT_APPEARANCE }
 }
 
 export function cacheAppearance(userId, appearance) {
   const normalized = normalizeAppearance(appearance)
-  window.localStorage.setItem(appearanceStorageKey(userId), JSON.stringify(normalized))
+    safeStorageSet(appearanceStorageKey(userId), JSON.stringify(normalized))
   return normalized
 }
 
 export function rememberUser(userId) {
-  if (userId) window.localStorage.setItem(LAST_USER_KEY, String(userId))
+    if (userId) safeStorageSet(LAST_USER_KEY, String(userId))
 }
 
 export function resolvedColorScheme(colorMode, matchMedia = window.matchMedia?.bind(window)) {

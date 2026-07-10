@@ -9,6 +9,9 @@ import top.kx.heartbeat.application.common.response.RecordResponse;
 import top.kx.heartbeat.application.mp.port.MpMenuSyncGateway;
 
 import javax.annotation.Resource;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -22,6 +25,7 @@ import java.util.Map;
 @Component
 public class WechatMpMenuSyncGateway implements MpMenuSyncGateway {
 
+    private static final int MAX_RESPONSE_BYTES = 64 * 1024;
     private static final String WECHAT_MENU_CREATE_URL =
             "https://api.weixin.qq.com/cgi-bin/menu/create?access_token=";
 
@@ -67,7 +71,7 @@ public class WechatMpMenuSyncGateway implements MpMenuSyncGateway {
             // 写入对外字段，保持调用方依赖的响应结构稳定。
             result.put("status", "FAILED");
             // 写入对外字段，保持调用方依赖的响应结构稳定。
-            result.put("message", ex.getMessage());
+            result.put("message", "微信菜单同步失败，请稍后重试");
             // 返回已经完成封装的业务结果。
             return RecordResponse.from(result);
         }
@@ -144,53 +148,42 @@ public class WechatMpMenuSyncGateway implements MpMenuSyncGateway {
     private String postJson(String url, Map<String, Object> payload) throws Exception {
         // 创建当前流程需要的临时对象，承载后续处理数据。
         HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
-        // 设置持久化字段，保证数据库记录具备完整业务属性。
-        connection.setRequestMethod("POST");
-        // 设置持久化字段，保证数据库记录具备完整业务属性。
-        connection.setConnectTimeout(5000);
-        // 设置持久化字段，保证数据库记录具备完整业务属性。
-        connection.setReadTimeout(10000);
-        // 设置持久化字段，保证数据库记录具备完整业务属性。
-        connection.setDoOutput(true);
-        // 设置持久化字段，保证数据库记录具备完整业务属性。
-        connection.setRequestProperty("Content-Type", "application/json;charset=UTF-8");
-        // 读取扩展参数载体，为后续动态处理准备数据。
-        byte[] body = objectMapper.writeValueAsBytes(payload);
-        // 进入可能失败的处理区间，后续异常会统一转换为业务可理解的结果。
-        try (OutputStream outputStream = connection.getOutputStream()) {
-            // 写入 ZIP 条目，保证下载包包含当前生成文件。
-            outputStream.write(body);
+        try {
+            connection.setRequestMethod("POST");
+            connection.setConnectTimeout(5000);
+            connection.setReadTimeout(10000);
+            connection.setDoOutput(true);
+            connection.setRequestProperty("Content-Type", "application/json;charset=UTF-8");
+            byte[] body = objectMapper.writeValueAsBytes(payload);
+            try (OutputStream outputStream = connection.getOutputStream()) {
+                outputStream.write(body);
+            }
+            InputStream inputStream = connection.getResponseCode() >= 400
+                    ? connection.getErrorStream()
+                    : connection.getInputStream();
+            if (inputStream == null) {
+                return "";
+            }
+            try (InputStream responseStream = inputStream) {
+                return new String(readAll(responseStream), StandardCharsets.UTF_8);
+            }
+        } finally {
+            connection.disconnect();
         }
-        // 计算当前分支的中间结果，供后续判断或组装使用。
-        java.io.InputStream inputStream = connection.getResponseCode() >= 400
-                // 条件成立时使用前一个分支计算出的业务值。
-                ? connection.getErrorStream()
-                // 条件不成立时使用兜底业务值。
-                : connection.getInputStream();
-        // 计算当前分支的中间结果，供后续判断或组装使用。
-        byte[] bytes = readAll(inputStream);
-        // 返回已经完成封装的业务结果。
-        return new String(bytes, StandardCharsets.UTF_8);
     }
 
-    private byte[] readAll(java.io.InputStream inputStream) throws java.io.IOException {
-        // 先处理空值或缺省场景，避免后续业务流程出现空指针。
-        if (inputStream == null) {
-            // 返回已经完成封装的业务结果。
-            return new byte[0];
-        }
-        // 创建当前流程需要的临时对象，承载后续处理数据。
-        java.io.ByteArrayOutputStream outputStream = new java.io.ByteArrayOutputStream();
-        // 创建当前流程需要的临时对象，承载后续处理数据。
+    private byte[] readAll(InputStream inputStream) throws IOException {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         byte[] buffer = new byte[1024];
-        // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
+        int total = 0;
         int len;
-        // 持续读取可用数据，直到当前数据源处理完成。
         while ((len = inputStream.read(buffer)) != -1) {
-            // 写入 ZIP 条目，保证下载包包含当前生成文件。
+            total += len;
+            if (total > MAX_RESPONSE_BYTES) {
+                throw new IOException("微信接口响应超过大小限制");
+            }
             outputStream.write(buffer, 0, len);
         }
-        // 返回已经完成封装的业务结果。
         return outputStream.toByteArray();
     }
 

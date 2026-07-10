@@ -5,10 +5,7 @@ import top.kx.heartbeat.application.common.model.DomainRecord;
 import top.kx.heartbeat.application.platform.port.PlatformMenuRepository;
 import top.kx.heartbeat.application.platform.request.PlatformMenuRequest;
 import top.kx.heartbeat.infrastructure.persistence.entity.sys.*;
-import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysMenuDOMapper;
-import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysMenuPermissionDOMapper;
-import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysRolePermissionDOMapper;
-import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysUserRoleDOMapper;
+import top.kx.heartbeat.infrastructure.persistence.mapper.sys.*;
 import top.kx.heartbeat.infrastructure.tenant.TenantContext;
 
 import javax.annotation.Resource;
@@ -29,6 +26,10 @@ public class PlatformMenuRepositoryImpl implements PlatformMenuRepository {
     private SysRolePermissionDOMapper rolePermissionMapper;
     @Resource
     private SysMenuPermissionDOMapper menuPermissionMapper;
+    @Resource
+    private SysRoleDOMapper roleMapper;
+    @Resource
+    private SysPermissionDOMapper permissionMapper;
 
     /**
      * 查询列表数据，保持返回结构稳定并便于前端直接消费，通过 Mapper 完成平台管理数据访问。
@@ -38,6 +39,9 @@ public class PlatformMenuRepositoryImpl implements PlatformMenuRepository {
     @Override
     public List<DomainRecord> listMenus() {
         SysMenuDOExample example = new SysMenuDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andDeleteMarkerEqualTo(0L);
         example.setOrderByClause("sort_no ASC, id ASC");
         return menuMapper.selectByExample(example).stream().map(this::record).collect(Collectors.toList());
     }
@@ -67,7 +71,11 @@ public class PlatformMenuRepositoryImpl implements PlatformMenuRepository {
         // 创建查询条件对象，后续通过 Criteria 精确约束查询范围。
         SysMenuDOExample menuExample = new SysMenuDOExample();
         // 组装查询条件，确保 Mapper 只读取当前业务需要的数据。
-        menuExample.createCriteria().andIdIn(menuIds);
+        menuExample.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andIdIn(menuIds)
+                .andStatusEqualTo("ENABLED")
+                .andDeleteMarkerEqualTo(0L);
         // 设置持久化字段，保证数据库记录具备完整业务属性。
         menuExample.setOrderByClause("sort_no ASC, id ASC");
         // 返回已经完成封装的业务结果。
@@ -82,6 +90,7 @@ public class PlatformMenuRepositoryImpl implements PlatformMenuRepository {
      */
     @Override
     public DomainRecord createMenu(PlatformMenuRequest request) {
+        validateParentMenu(request == null ? null : request.getParentId(), null);
         SysMenuDO row = menuRow(request);
         touch(row, true);
         menuMapper.insertSelective(row);
@@ -98,11 +107,21 @@ public class PlatformMenuRepositoryImpl implements PlatformMenuRepository {
     @Override
     public DomainRecord updateMenu(String id, PlatformMenuRequest request) {
         Long key = longValue(id);
+        if (key == null) {
+            throw new IllegalArgumentException("Invalid menu id: " + id);
+        }
+        validateParentMenu(request == null ? null : request.getParentId(), key);
         SysMenuDO row = menuRow(request);
         row.setId(key);
         touch(row, false);
-        menuMapper.updateByPrimaryKeySelective(row);
-        SysMenuDO persisted = key == null ? null : menuMapper.selectByPrimaryKey(key);
+        SysMenuDO persisted = null;
+        if (key != null) {
+            SysMenuDOExample example = menuById(key);
+            if (menuMapper.updateByExampleSelective(row, example) == 0) {
+                throw new IllegalArgumentException("Menu does not exist: " + id);
+            }
+            persisted = first(menuMapper.selectByExample(example));
+        }
         return record(persisted == null ? row : persisted);
     }
 
@@ -115,7 +134,7 @@ public class PlatformMenuRepositoryImpl implements PlatformMenuRepository {
     public void deleteMenu(String id) {
         Long key = longValue(id);
         if (key != null) {
-            menuMapper.deleteByPrimaryKey(key);
+            menuMapper.deleteByExample(menuById(key));
         }
     }
 
@@ -136,16 +155,30 @@ public class PlatformMenuRepositoryImpl implements PlatformMenuRepository {
         // 创建查询条件对象，后续通过 Criteria 精确约束查询范围。
         SysUserRoleDOExample example = new SysUserRoleDOExample();
         // 组装查询条件，确保 Mapper 只读取当前业务需要的数据。
-        example.createCriteria().andUserIdEqualTo(id);
-        // 返回已经完成封装的业务结果。
-        return userRoleMapper.selectByExample(example)
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andUserIdEqualTo(id);
+        Set<Long> assignedRoleIds = userRoleMapper.selectByExample(example)
                 // 使用流式转换批量映射数据，减少中间状态暴露。
                 .stream()
                 // 使用流式转换批量映射数据，减少中间状态暴露。
-                .map(SysUserRoleDOKey::getRoleId)
+                .map(SysUserRoleDO::getRoleId)
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .filter(Objects::nonNull)
                 // 使用流式转换批量映射数据，减少中间状态暴露。
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        if (assignedRoleIds.isEmpty()) {
+            return Collections.emptySet();
+        }
+        SysRoleDOExample roleExample = new SysRoleDOExample();
+        roleExample.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andIdIn(new ArrayList<>(assignedRoleIds))
+                .andStatusEqualTo("ENABLED")
+                .andDeleteMarkerEqualTo(0L);
+        return roleMapper.selectByExample(roleExample).stream()
+                .map(SysRoleDO::getId)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
@@ -164,9 +197,10 @@ public class PlatformMenuRepositoryImpl implements PlatformMenuRepository {
         // 创建查询条件对象，后续通过 Criteria 精确约束查询范围。
         SysRolePermissionDOExample example = new SysRolePermissionDOExample();
         // 创建结果集合，承接后续逐项组装的数据。
-        example.createCriteria().andRoleIdIn(new ArrayList<>(roleIds));
-        // 返回已经完成封装的业务结果。
-        return rolePermissionMapper.selectByExample(example)
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andRoleIdIn(new ArrayList<>(roleIds));
+        List<Long> assignedPermissionIds = rolePermissionMapper.selectByExample(example)
                 // 使用流式转换批量映射数据，减少中间状态暴露。
                 .stream()
                 // 使用流式转换批量映射数据，减少中间状态暴露。
@@ -176,6 +210,20 @@ public class PlatformMenuRepositoryImpl implements PlatformMenuRepository {
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .distinct()
                 // 使用流式转换批量映射数据，减少中间状态暴露。
+                .collect(Collectors.toList());
+        if (assignedPermissionIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        SysPermissionDOExample permissionExample = new SysPermissionDOExample();
+        permissionExample.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andIdIn(assignedPermissionIds)
+                .andStatusEqualTo("ENABLED")
+                .andDeleteMarkerEqualTo(0L);
+        return permissionMapper.selectByExample(permissionExample).stream()
+                .map(SysPermissionDO::getId)
+                .filter(Objects::nonNull)
+                .distinct()
                 .collect(Collectors.toList());
     }
 
@@ -194,7 +242,9 @@ public class PlatformMenuRepositoryImpl implements PlatformMenuRepository {
         // 创建查询条件对象，后续通过 Criteria 精确约束查询范围。
         SysMenuPermissionDOExample example = new SysMenuPermissionDOExample();
         // 组装查询条件，确保 Mapper 只读取当前业务需要的数据。
-        example.createCriteria().andPermissionIdIn(permissionIds);
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andPermissionIdIn(permissionIds);
         // 返回已经完成封装的业务结果。
         return menuPermissionMapper.selectByExample(example)
                 // 使用流式转换批量映射数据，减少中间状态暴露。
@@ -221,7 +271,7 @@ public class PlatformMenuRepositoryImpl implements PlatformMenuRepository {
         // 创建数据库记录对象，承载即将写入的业务字段。
         SysMenuDO row = new SysMenuDO();
         // 设置持久化字段，保证数据库记录具备完整业务属性。
-        row.setParentId(longValue(safeRequest.getParentId()));
+        row.setParentId(parentIdValue(safeRequest.getParentId()));
         // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setMenuCode(safeRequest.getMenuCode());
         // 设置持久化字段，保证数据库记录具备完整业务属性。
@@ -351,8 +401,51 @@ public class PlatformMenuRepositoryImpl implements PlatformMenuRepository {
      * @return 处理后的业务结果。
      */
     private Long tenantId() {
-        Long tenantId = TenantContext.getTenantId();
-        return tenantId == null ? 1L : tenantId;
+        return TenantContext.getRequiredTenantId();
+    }
+
+    private SysMenuDOExample menuById(Long id) {
+        SysMenuDOExample example = new SysMenuDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andIdEqualTo(id)
+                .andDeleteMarkerEqualTo(0L);
+        return example;
+    }
+
+    private void validateParentMenu(String parentId, Long menuId) {
+        if (parentId == null || parentId.trim().isEmpty()) {
+            return;
+        }
+        String value = parentId.trim();
+        if ("root".equalsIgnoreCase(value) || "0".equals(value)) {
+            return;
+        }
+        Long parentKey = longValue(value);
+        if (parentKey == null || parentKey < 0L) {
+            throw new IllegalArgumentException("Invalid parent menu id: " + parentId);
+        }
+        if (parentKey == 0L) {
+            return;
+        }
+        if (parentKey.equals(menuId)) {
+            throw new IllegalArgumentException("Menu cannot be its own parent: " + parentId);
+        }
+        if (menuMapper.countByExample(menuById(parentKey)) == 0L) {
+            throw new IllegalArgumentException("Parent menu does not belong to current tenant: " + parentId);
+        }
+    }
+
+    private Long parentIdValue(String parentId) {
+        if (parentId == null || parentId.trim().isEmpty()) {
+            return null;
+        }
+        String value = parentId.trim();
+        return "root".equalsIgnoreCase(value) ? 0L : longValue(value);
+    }
+
+    private <T> T first(List<T> rows) {
+        return rows == null || rows.isEmpty() ? null : rows.get(0);
     }
 
     /**

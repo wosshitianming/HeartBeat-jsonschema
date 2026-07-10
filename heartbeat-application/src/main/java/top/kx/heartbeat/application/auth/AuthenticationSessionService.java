@@ -17,6 +17,8 @@ import java.util.UUID;
 @Service
 public class AuthenticationSessionService {
 
+    private static final long SESSION_TOUCH_INTERVAL_MINUTES = 5L;
+
     @Resource
     private AuthSessionRepository authSessionRepository;
     @Resource
@@ -79,8 +81,10 @@ public class AuthenticationSessionService {
             // 对非法业务状态立即失败，避免错误继续扩散。
             throw new IllegalArgumentException("Auth session is not active");
         }
-        // 补齐审计字段和默认值，保证新增与更新写入口径一致。
-        authSessionRepository.touch(tenantId, sessionId, now);
+        // 限制最近访问时间的写入频率，避免每次鉴权都更新同一会话记录。
+        if (shouldTouch(session, now)) {
+            authSessionRepository.touch(tenantId, sessionId, now);
+        }
         // 返回已经完成封装的业务结果。
         return session;
     }
@@ -100,8 +104,9 @@ public class AuthenticationSessionService {
             // 对非法业务状态立即失败，避免错误继续扩散。
             throw new IllegalArgumentException("Auth session cannot be refreshed");
         }
+        String currentRefreshTokenHash = sha256(refreshToken);
         // 比对当前业务状态，决定是否进入该处理分支。
-        if (!sha256(refreshToken).equals(session.getRefreshTokenHash())) {
+        if (!currentRefreshTokenHash.equals(session.getRefreshTokenHash())) {
             // 对非法业务状态立即失败，避免错误继续扩散。
             throw new IllegalArgumentException("Refresh token has been rotated");
         }
@@ -117,17 +122,22 @@ public class AuthenticationSessionService {
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 claims.getSessionId()
         );
-        // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-        authSessionRepository.rotateRefreshToken(
+        // 只有数据库中的旧令牌哈希仍匹配时才完成轮换，阻止并发刷新和重放。
+        boolean rotated = authSessionRepository.rotateRefreshToken(
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 claims.getTenantId(),
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 claims.getSessionId(),
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
+                currentRefreshTokenHash,
+                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 sha256(tokens.getRefreshToken()),
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 now.plusSeconds(tokenIssuer.refreshTokenTtlSeconds())
         );
+        if (!rotated) {
+            throw new IllegalArgumentException("Refresh token has been rotated");
+        }
         // 返回已经完成封装的业务结果。
         return AuthTokenResponse.from(tokens);
     }
@@ -162,6 +172,12 @@ public class AuthenticationSessionService {
 
     private boolean hasText(String value) {
         return StringUtils.isNotBlank(value);
+    }
+
+    private boolean shouldTouch(AuthSession session, LocalDateTime now) {
+        LocalDateTime lastAccessAt = session.getLastAccessAt();
+        return lastAccessAt == null
+                || !lastAccessAt.plusMinutes(SESSION_TOUCH_INTERVAL_MINUTES).isAfter(now);
     }
 
     private String sha256(String value) {

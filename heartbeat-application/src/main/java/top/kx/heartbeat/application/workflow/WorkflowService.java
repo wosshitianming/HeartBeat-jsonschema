@@ -18,6 +18,7 @@ import top.kx.heartbeat.domain.auth.CurrentUserProvider;
 import top.kx.heartbeat.domain.workflow.WorkflowTaskAction;
 
 import javax.annotation.Resource;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
@@ -181,9 +182,7 @@ public class WorkflowService {
         // 进入可能失败的处理区间，后续异常会统一转换为业务可理解的结果。
         try {
             // 解析流程定义 XML，提取后续页面和任务需要的结构信息。
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            // 设置持久化字段，保证数据库记录具备完整业务属性。
-            factory.setNamespaceAware(false);
+            DocumentBuilderFactory factory = secureDocumentBuilderFactory();
             // 解析流程定义 XML，提取后续页面和任务需要的结构信息。
             Document document = factory.newDocumentBuilder()
                     // 按签名算法处理字节数据，保证验签结果可重复计算。
@@ -241,7 +240,7 @@ public class WorkflowService {
         // 创建结果集合，承接后续逐项组装的数据。
         List<Map<String, Object>> userTasks = new ArrayList<>();
         // 解析流程定义 XML，提取后续页面和任务需要的结构信息。
-        NodeList tasks = document.getElementsByTagName("userTask");
+        NodeList tasks = document.getElementsByTagNameNS("*", "userTask");
         // 逐条遍历集合数据，完成业务结果组装或状态处理。
         for (int index = 0; index < tasks.getLength(); index++) {
             // 解析流程定义 XML，提取后续页面和任务需要的结构信息。
@@ -279,8 +278,29 @@ public class WorkflowService {
      * @return 处理后的业务结果。
      */
     private Element firstElement(Document document, String name) {
-        NodeList nodes = document.getElementsByTagName(name);
+        NodeList nodes = document.getElementsByTagNameNS("*", name);
         return nodes.getLength() == 0 ? null : (Element) nodes.item(0);
+    }
+
+    /**
+     * 创建仅允许解析本地 XML 内容的 BPMN 文档工厂。
+     *
+     * @return 禁用外部实体与外部资源访问的文档工厂
+     * @throws Exception 当前 XML 解析器不支持必要的安全配置时抛出
+     */
+    private DocumentBuilderFactory secureDocumentBuilderFactory() throws Exception {
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setNamespaceAware(true);
+        factory.setXIncludeAware(false);
+        factory.setExpandEntityReferences(false);
+        factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+        factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+        factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+        factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+        factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+        factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+        factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
+        return factory;
     }
 
     /**

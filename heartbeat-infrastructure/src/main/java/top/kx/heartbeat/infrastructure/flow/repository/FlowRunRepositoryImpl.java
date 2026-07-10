@@ -7,12 +7,11 @@ import top.kx.heartbeat.domain.flow.model.FlowRun;
 import top.kx.heartbeat.domain.flow.model.FlowRunEvent;
 import top.kx.heartbeat.domain.flow.repository.FlowRunRepository;
 import top.kx.heartbeat.infrastructure.flow.convert.FlowRunConvert;
-import top.kx.heartbeat.infrastructure.persistence.entity.flow.HbFlowRunDOExample;
-import top.kx.heartbeat.infrastructure.persistence.entity.flow.HbFlowRunDOWithBLOBs;
-import top.kx.heartbeat.infrastructure.persistence.entity.flow.HbFlowRunEventDOExample;
-import top.kx.heartbeat.infrastructure.persistence.entity.flow.HbFlowRunEventDOWithBLOBs;
+import top.kx.heartbeat.infrastructure.persistence.entity.flow.*;
+import top.kx.heartbeat.infrastructure.persistence.mapper.flow.HbFlowDefinitionDOMapper;
 import top.kx.heartbeat.infrastructure.persistence.mapper.flow.HbFlowRunDOMapper;
 import top.kx.heartbeat.infrastructure.persistence.mapper.flow.HbFlowRunEventDOMapper;
+import top.kx.heartbeat.infrastructure.tenant.TenantContext;
 
 import java.util.List;
 import java.util.Map;
@@ -26,6 +25,9 @@ public class FlowRunRepositoryImpl implements FlowRunRepository {
     private HbFlowRunDOMapper runDOMapper;
 
     @Autowired
+    private HbFlowDefinitionDOMapper definitionDOMapper;
+
+    @Autowired
     private HbFlowRunEventDOMapper eventDOMapper;
 
     @Autowired
@@ -36,23 +38,51 @@ public class FlowRunRepositoryImpl implements FlowRunRepository {
 
     @Override
     public FlowRun saveRun(FlowRun run) {
+        long tenantId = tenantId();
+        Long flowId = parseLong(run.getFlowId());
+        if (!ownsFlow(flowId, tenantId)) {
+            throw new IllegalStateException("流程不存在或不属于当前租户: " + run.getFlowId());
+        }
         HbFlowRunDOWithBLOBs record = convert.toGenDO(run);
-        runDOMapper.insertSelective(record);
-        updateRuntimeFields(run);
+        record.setTenantId(tenantId);
+        HbFlowRunDOWithBLOBs existing = record.getId() == null ? null : selectRun(record.getId(), tenantId);
+        if (existing == null) {
+            runDOMapper.insertSelective(record);
+        } else {
+            runDOMapper.updateByExampleSelective(record, runById(record.getId(), tenantId));
+        }
+        if (record.getId() != null) {
+            run.setId(String.valueOf(record.getId()));
+        }
+        run.setTenantId(String.valueOf(tenantId));
+        updateRuntimeFields(run, tenantId);
         return findRun(run.getId()).orElse(run);
     }
 
     @Override
     public FlowRunEvent saveEvent(FlowRunEvent event) {
+        long tenantId = tenantId();
+        Long runId = parseLong(event.getRunId());
+        if (selectRun(runId, tenantId) == null) {
+            throw new IllegalStateException("流程运行不存在或不属于当前租户: " + event.getRunId());
+        }
         HbFlowRunEventDOWithBLOBs record = convert.toGenEventDO(event);
+        record.setTenantId(tenantId);
         eventDOMapper.insertSelective(record);
+        if (record.getId() != null) {
+            event.setId(String.valueOf(record.getId()));
+        }
+        event.setTenantId(String.valueOf(tenantId));
         return event;
     }
 
     @Override
     public Optional<FlowRun> findRun(String runId) {
-        HbFlowRunDOWithBLOBs record = runDOMapper.selectByPrimaryKey(parseLong(runId));
-        return Optional.ofNullable(record).map(convert::toDomain).map(this::enrichRuntimeFields);
+        long tenantId = tenantId();
+        HbFlowRunDOWithBLOBs record = selectRun(parseLong(runId), tenantId);
+        return Optional.ofNullable(record)
+                .map(convert::toDomain)
+                .map(run -> enrichRuntimeFields(run, tenantId));
     }
 
     private static Long parseLong(String s) {
@@ -73,10 +103,13 @@ public class FlowRunRepositoryImpl implements FlowRunRepository {
 
     @Override
     public List<FlowRun> findRunsByFlowId(String flowId) {
+        long tenantId = tenantId();
         // 创建查询条件对象，后续通过 Criteria 精确约束查询范围。
         HbFlowRunDOExample example = new HbFlowRunDOExample();
         // 组装查询条件，确保 Mapper 只读取当前业务需要的数据。
-        example.createCriteria().andFlowIdEqualTo(parseLong(flowId));
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId)
+                .andFlowIdEqualTo(parseLong(flowId));
         // 设置持久化字段，保证数据库记录具备完整业务属性。
         example.setOrderByClause("started_at DESC");
         // 返回已经完成封装的业务结果。
@@ -86,21 +119,22 @@ public class FlowRunRepositoryImpl implements FlowRunRepository {
                 // 使用流式转换批量映射数据，减少中间状态暴露。
                 .map(convert::toDomain)
                 // 使用流式转换批量映射数据，减少中间状态暴露。
-                .map(this::enrichRuntimeFields)
+                .map(run -> enrichRuntimeFields(run, tenantId))
                 // 使用流式转换批量映射数据，减少中间状态暴露。
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<FlowRunEvent> findEvents(String runId) {
+        long tenantId = tenantId();
         // 创建查询条件对象，后续通过 Criteria 精确约束查询范围。
         HbFlowRunEventDOExample example = new HbFlowRunEventDOExample();
         // 组装查询条件，确保 Mapper 只读取当前业务需要的数据。
         HbFlowRunEventDOExample.Criteria criteria = example.createCriteria();
         // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-        criteria.andRunIdEqualTo(parseLong(runId));
+        criteria.andTenantIdEqualTo(tenantId).andRunIdEqualTo(parseLong(runId));
         // 设置持久化字段，保证数据库记录具备完整业务属性。
-        example.setOrderByClause("created_at ASC");
+        example.setOrderByClause("create_time ASC");
         // 返回已经完成封装的业务结果。
         return eventDOMapper.selectByExampleWithBLOBs(example)
                 // 使用流式转换批量映射数据，减少中间状态暴露。
@@ -116,11 +150,11 @@ public class FlowRunRepositoryImpl implements FlowRunRepository {
      *
      * @param run 流程运行记录
      */
-    private void updateRuntimeFields(FlowRun run) {
+    private void updateRuntimeFields(FlowRun run, long tenantId) {
         // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
         jdbcTemplate.update(
                 // 计算当前分支的中间结果，供后续判断或组装使用。
-                "UPDATE hb_flow_run SET run_no = ?, engine = ?, engine_instance_id = ?, process_definition_id = ?, flow_version_id = ?, trigger_id = ?, trigger_key = ?, idempotency_key = ?, idempotency_scope = ?, business_key = ?, correlation_key = ?, parent_run_id = ?, root_run_id = ?, retry_from_run_id = ?, retry_no = ?, retry_reason = ?, tenant_id = ? WHERE id = ?",
+                "UPDATE hb_flow_run SET run_no = ?, engine = ?, engine_instance_id = ?, process_definition_id = ?, flow_version_id = ?, trigger_id = ?, trigger_key = ?, idempotency_key = ?, idempotency_scope = ?, business_key = ?, correlation_key = ?, parent_run_id = ?, root_run_id = ?, retry_from_run_id = ?, retry_no = ?, retry_reason = ? WHERE id = ? AND tenant_id = ?",
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 run.getRunNo(),
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
@@ -154,9 +188,8 @@ public class FlowRunRepositoryImpl implements FlowRunRepository {
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 run.getRetryReason(),
                 // 计算当前步骤所需的中间值，供后续业务判断使用。
-                parseNullableLong(run.getTenantId()) == null ? 1L : parseNullableLong(run.getTenantId()),
-                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                parseLong(run.getId())
+                parseLong(run.getId()),
+                tenantId
         );
     }
 
@@ -188,13 +221,14 @@ public class FlowRunRepositoryImpl implements FlowRunRepository {
      * @param run 流程运行记录
      * @return 补齐扩展字段后的运行记录
      */
-    private FlowRun enrichRuntimeFields(FlowRun run) {
+    private FlowRun enrichRuntimeFields(FlowRun run, long tenantId) {
         // 计算当前步骤所需的中间值，供后续业务判断使用。
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(
                 // 计算当前分支的中间结果，供后续判断或组装使用。
-                "SELECT run_no, engine, engine_instance_id, process_definition_id, flow_version_id, trigger_id, trigger_key, idempotency_key, idempotency_scope, business_key, correlation_key, parent_run_id, root_run_id, retry_from_run_id, retry_no, retry_reason, tenant_id FROM hb_flow_run WHERE id = ?",
+                "SELECT run_no, engine, engine_instance_id, process_definition_id, flow_version_id, trigger_id, trigger_key, idempotency_key, idempotency_scope, business_key, correlation_key, parent_run_id, root_run_id, retry_from_run_id, retry_no, retry_reason, tenant_id FROM hb_flow_run WHERE id = ? AND tenant_id = ?",
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                parseLong(run.getId())
+                parseLong(run.getId()),
+                tenantId
         );
         // 校验关键文本参数，防止无效输入继续向后流转。
         if (rows.isEmpty()) {
@@ -239,6 +273,37 @@ public class FlowRunRepositoryImpl implements FlowRunRepository {
         run.setTenantId(toString(row.get("tenant_id")));
         // 返回已经完成封装的业务结果。
         return run;
+    }
+
+    private HbFlowRunDOWithBLOBs selectRun(Long id, long tenantId) {
+        if (id == null || id < 0) {
+            return null;
+        }
+        List<HbFlowRunDOWithBLOBs> rows = runDOMapper.selectByExampleWithBLOBs(runById(id, tenantId));
+        return rows.isEmpty() ? null : rows.get(0);
+    }
+
+    private HbFlowRunDOExample runById(Long id, long tenantId) {
+        HbFlowRunDOExample example = new HbFlowRunDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId)
+                .andIdEqualTo(id);
+        return example;
+    }
+
+    private boolean ownsFlow(Long flowId, long tenantId) {
+        if (flowId == null || flowId < 0) {
+            return false;
+        }
+        HbFlowDefinitionDOExample example = new HbFlowDefinitionDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId)
+                .andIdEqualTo(flowId);
+        return definitionDOMapper.countByExample(example) > 0;
+    }
+
+    private long tenantId() {
+        return TenantContext.getRequiredTenantId();
     }
 
     /**
