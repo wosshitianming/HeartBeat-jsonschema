@@ -215,7 +215,7 @@ class MybatisFlexMigrationGuardTest {
 
         for (String expectedColumn : Arrays.asList(
                 "id", "tenant_id", "dept_id", "username", "nickname", "real_name", "email", "phone",
-                "avatar_url", "password_hash", "password_algo", "password_updated_at", "gender",
+                "avatar_url", "password_hash", "password_algo", "password_update_time", "gender",
                 "user_type", "status", "last_login_at", "last_login_ip", "version", "delete_marker",
                 "create_by", "create_time", "update_by", "update_time"
         )) {
