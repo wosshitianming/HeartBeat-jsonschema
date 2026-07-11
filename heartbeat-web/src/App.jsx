@@ -18,23 +18,17 @@ import {
 } from './application/admin/adminModuleService'
 import {appPathForMenu, findMenuByAppPath, findMenuById} from './domain/admin/navigationPolicy'
 import {detectBackdropSupport, effectiveSurfaceMode} from './domain/admin/performancePolicy'
-import {
-  DEFAULT_ADMIN_PATH,
-  tagKeyForLocation,
-  updateTagTitle,
-  upsertTagForLocation
-} from './domain/admin/workspaceRouting'
+import {DEFAULT_ADMIN_PATH, tagKeyForLocation, upsertTagForLocation} from './domain/admin/workspaceRouting'
 import {readWorkspaceState, writeWorkspaceState} from './infrastructure/browser/workspaceStorage'
 import ResourceDialog from './components/admin/ResourceDialog'
 import RoleMenuDialog from './components/admin/RoleMenuDialog'
-import MobileAdminShell from './components/admin/MobileAdminShell'
 import ResourceTable from './components/admin/ResourceTable'
 import FluidBackground from './components/FluidBackground/FluidBackground'
 import AdminLayout from './layout/AdminLayout'
 import useAppearanceTheme from './appearance/useAppearanceTheme'
 import {safeStorageGet, safeStorageRemove, safeStorageSet} from './infrastructure/browser/safeStorage'
-import './theme/heartbeat-admin.css'
 import './styles.css'
+import './theme/heartbeat-admin.css'
 
 const SchemaForm = lazy(() => import('./components/SchemaForm'))
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
@@ -51,7 +45,7 @@ function LazyModuleFallback({label = 'Loading module...'}) {
     )
 }
 
-// ----- ?????? -----
+// ----- 示例数据 -----
 const initialSamples = JSON.stringify([
   {
     name: 'Alice',
@@ -73,7 +67,7 @@ const initialPayload = JSON.stringify({
   extraFromVendor: true
 }, null, 2)
 
-// ----- ?????????JSON Path -> ui:title??-----
+// ----- 默认 UI 覆盖配置（JSON Path -> ui:title）-----
 const defaultOverrides = JSON.stringify({
   "$.name": { "title": "姓名" },
   "$.age": { "title": "年龄" },
@@ -82,12 +76,12 @@ const defaultOverrides = JSON.stringify({
   "$.tags": { "title": "标签" }
 }, null, 2)
 
-// ----- ???? -----
+// ----- 通用工具 -----
 function parseJson(text, label) {
   try {
     return JSON.parse(text)
   } catch (error) {
-    throw new Error(`${label}???? JSON??{error.message}`)
+      throw new Error(`${label}不是有效的 JSON：${error.message}`)
   }
 }
 
@@ -249,7 +243,9 @@ function JsonPanel({ value, editable = false, onChange, label }) {
 }
 
 /**
- * ??JSON Path ????????RJSF ?? uiSchema?? * ???????? title/widget ??RJSF ??ui:title/ui:widget?? */
+ * 将 JSON Path 覆盖配置转换为 RJSF 的 uiSchema。
+ * 同时兼容 title/widget 与 RJSF 的 ui:title/ui:widget。
+ */
 function buildUiSchemaFromOverrides(overrides) {
   const result = {}
   Object.entries(overrides).forEach(([path, config]) => {
@@ -379,7 +375,7 @@ function collectSchemaFields(schema, path = '$', result = []) {
   return result
 }
 
-// ----- ???? -----
+// ----- 后台模块配置 -----
 const TABS = [
   { key: 'JSON_SCHEMA', label: 'JSON Schema' },
   { key: 'UI_SCHEMA', label: 'UI Schema' },
@@ -455,13 +451,6 @@ const fallbackAdminModules = [
   }
 ]
 
-const fallbackTopModules = [
-  { id: 'data', name: '数据配置', type: 'DIR', children: [] },
-  { id: 'system', name: '系统管理', type: 'DIR', children: [] },
-  { id: 'monitor', name: '运维监控', type: 'DIR', children: [] },
-  { id: 'tool', name: '基础工具', type: 'DIR', children: [] }
-]
-
 const fallbackSideMenus = [
   {
     id: 'system',
@@ -481,6 +470,22 @@ const fallbackSideMenus = [
       { id: 'structure', name: '结构展示配置', type: 'MENU', permission: 'structure:definition:list' },
       { id: 'flow', name: '流程编排', type: 'MENU', permission: 'flow:studio:list' }
     ]
+  },
+    {
+        id: 'monitor',
+        name: '运维监控',
+        type: 'DIR',
+        children: [
+            {id: 'monitor-server', name: '服务监控', type: 'MENU', permission: 'monitor:server:list'}
+        ]
+    },
+    {
+        id: 'tool',
+        name: '基础工具',
+        type: 'DIR',
+        children: [
+            {id: 'tool-gen', name: '代码生成', type: 'MENU', permission: 'tool:gen:list'}
+        ]
   }
 ]
 
@@ -508,7 +513,7 @@ function menuIdFromAdminPath(pathname = '') {
     return match ? decodeURIComponent(match[1]) : null
 }
 
-// ----- ????? -----
+// ----- 主应用 -----
 export default function App() {
     const location = useLocation()
     const navigate = useNavigate()
@@ -522,8 +527,8 @@ export default function App() {
   const [socialProviders, setSocialProviders] = useState([])
   const [pendingBind, setPendingBind] = useState(null)
   const [authChecked, setAuthChecked] = useState(false)
-  const [name, setName] = useState('??????')
-  const [description, setDescription] = useState('?????????????')
+    const [name, setName] = useState('用户资料结构')
+    const [description, setDescription] = useState('由用户样例推断的结构定义')
   const [samplesText, setSamplesText] = useState(initialSamples)
   const [mode, setMode] = useState('LENIENT')
   const [overridesText, setOverridesText] = useState(defaultOverrides)
@@ -549,9 +554,6 @@ export default function App() {
   const [resourceDialog, setResourceDialog] = useState({ open: false, mode: 'create', row: null })
   const [roleMenuDialog, setRoleMenuDialog] = useState({ open: false, role: null })
   const [selectedResourceRow, setSelectedResourceRow] = useState(null)
-    const [adminSurfaceMode, setAdminSurfaceMode] = useState(
-        () => safeStorageGet('heartbeat_admin_surface_mode') || 'balanced'
-    )
     const [surfaceEnvironment, setSurfaceEnvironment] = useState({
         supportsBackdrop: true,
         reducedMotion: false
@@ -565,8 +567,7 @@ export default function App() {
     changeColorMode,
     changeFluidEnabled,
     changeAccentColor,
-    changeVisualStyle,
-      changeAppearance,
+      changeVisualStyle,
     syncState
   } = useAppearanceTheme(currentUser)
 
@@ -594,14 +595,14 @@ export default function App() {
       () => columnsForResource(activeResource, activeAdminModule),
       [activeResource, activeAdminModule]
   )
-  const topModules = useMemo(() => splitTopSideMenus(routeTree), [routeTree])
-  const sideMenus = useMemo(
-      () => sideMenusForTop(routeTree, activeTopModuleKey),
-      [routeTree, activeTopModuleKey]
-  )
     const navigationTree = useMemo(
         () => (routeTree.length > 0 ? routeTree : fallbackSideMenus),
         [routeTree]
+    )
+    const topModules = useMemo(() => splitTopSideMenus(navigationTree), [navigationTree])
+    const sideMenus = useMemo(
+        () => sideMenusForTop(navigationTree, activeTopModuleKey),
+        [navigationTree, activeTopModuleKey]
     )
     const routeReady = routeStatus === 'ready' || routeStatus === 'fallback'
     const resolveMenuForPath = useCallback((pathname) => {
@@ -626,7 +627,7 @@ export default function App() {
         if (pathname === '/' || pathname === '/admin') {
             return findMenuById(navigationTree, 'structure') || {
                 id: 'structure',
-                name: '缁撴瀯灞曠ず閰嶇疆',
+                name: '结构展示配置',
                 type: 'MENU'
             }
         }
@@ -634,9 +635,7 @@ export default function App() {
         return null
     }, [adminModules, navigationTree])
   const structureMode = false
-    const requestedGlassMode = visualStyle === 'flat' || !fluidEnabled
-      ? 'flat'
-      : (structureMode ? 'immersive' : adminSurfaceMode)
+    const requestedGlassMode = visualStyle === 'glass' && fluidEnabled ? 'balanced' : 'flat'
     const glassMode = requestedGlassMode === 'flat'
         ? 'flat'
         : effectiveSurfaceMode({
@@ -646,6 +645,7 @@ export default function App() {
             rowCount: activeRecords.length
         })
   const liquidGlassEnabled = glassMode !== 'flat'
+    const fluidBackgroundEnabled = liquidGlassEnabled && glassMode !== 'restrained'
 
     useEffect(() => {
         const media = window.matchMedia?.('(prefers-reduced-motion: reduce)')
@@ -826,7 +826,7 @@ export default function App() {
         routeReady
     ])
 
-  // ??????
+    // UI 覆盖配置
   const uiOverrides = useMemo(() => {
     try {
       return JSON.parse(overridesText)
@@ -835,13 +835,13 @@ export default function App() {
     }
   }, [overridesText])
 
-  // ?? payload
+    // 构建生成请求
   function buildGenerationPayload() {
-    const samples = parseJson(samplesText, 'JSON ??')
+      const samples = parseJson(samplesText, 'JSON 样例')
     if (!Array.isArray(samples) || samples.length === 0) {
-      throw new Error('JSON ?????????')
+        throw new Error('JSON 样例必须是非空数组')
     }
-    const uiOverrides = parseJson(overridesText, 'UI ??')
+      const uiOverrides = parseJson(overridesText, 'UI 覆盖配置')
     return { samples, validationMode: mode, uiOverrides }
   }
 
@@ -860,7 +860,7 @@ export default function App() {
     try {
       return await work()
     } catch (err) {
-      setError(err.message || '????')
+        setError(err.message || '操作失败')
       return null
     } finally {
       setBusy('')
@@ -957,10 +957,6 @@ export default function App() {
         }
     }
 
-    const handleWorkspaceTitleChange = useCallback((tagKey, title) => {
-        setOpenTags((previous) => updateTagTitle(normalizeWorkspaceTags(previous), tagKey, title))
-    }, [])
-
     async function loadModuleResource(resource = activeResource, options = {}) {
     if (!resource) return []
         const items = resource === 'menus' ? await iamApi.menus(options) : await adminApi.resources(resource, options)
@@ -973,7 +969,7 @@ export default function App() {
 
   async function handleJobAction(action) {
     if (!selectedResourceRow?.id) {
-      setError('??????????')
+        setError('请先选择任务')
       return
     }
     const jobId = selectedResourceRow.id
@@ -987,20 +983,20 @@ export default function App() {
   }
 
   async function handleModuleAction(action) {
-    if (action.includes('??')) {
+      if (action.includes('刷新')) {
       if (!activeResource) {
-        setError('??????????')
+          setError('当前模块未绑定资源接口')
         return
       }
       await run('module-refresh', () => loadModuleResource(activeResource))
       return
     }
     if (!activeResource) {
-      setError('??????????')
+        setError('当前模块未绑定资源接口')
       return
     }
     if (isResourceReadOnly(activeResource)) {
-      if (action.includes('??')) {
+        if (action.includes('导出')) {
         await run(`module-${action}`, async () => {
           const rows = await loadModuleResource(activeResource)
           exportRows(activeAdminModule.name, rows)
@@ -1008,29 +1004,29 @@ export default function App() {
       }
       return
     }
-    if (action.includes('??') || action.includes('??')) {
+      if (action.includes('新增') || action.includes('创建')) {
       openResourceDialog('create')
       return
     }
-    if (action.includes('??') || action.includes('??') || action.includes('??')) {
+      if (action.includes('修改') || action.includes('编辑') || action.includes('配置')) {
       if (!selectedResourceRow) {
-        setError('????????????')
+          setError('请先选择要修改的记录')
         return
       }
       openResourceDialog('edit', selectedResourceRow)
       return
     }
-    if (action.includes('??')) {
+      if (action.includes('删除')) {
       if (!selectedResourceRow) {
-        setError('????????????')
+          setError('请先选择要删除的记录')
         return
       }
       await deleteResourceRow(selectedResourceRow)
       return
     }
-    if (action.includes('????')) {
+      if (action.includes('分配菜单')) {
       if (!selectedResourceRow) {
-        setError('????????????')
+          setError('请先选择要分配菜单的角色')
         return
       }
       await openRoleMenuDialog(selectedResourceRow)
@@ -1038,7 +1034,7 @@ export default function App() {
     }
     await run(`module-${action}`, async () => {
       const rows = await loadModuleResource(activeResource)
-      if (action.includes('??')) exportRows(activeAdminModule.name, rows)
+        if (action.includes('导出')) exportRows(activeAdminModule.name, rows)
     })
   }
 
@@ -1059,7 +1055,7 @@ export default function App() {
         open: true,
         role: {
           roleId: row.id,
-          roleName: row['????'] || row.raw?.name || row.id,
+            roleName: row['角色名称'] || row.raw?.name || row.id,
           menuIds: detail.menuIds || [],
           menuTree: detail.menuTree || []
         }
@@ -1101,7 +1097,7 @@ export default function App() {
   }
 
   async function deleteResourceRow(row) {
-    if (typeof window.confirm === 'function' && !window.confirm(`??????{row[activeColumns[0]] || row.id}???`)) {
+      if (typeof window.confirm === 'function' && !window.confirm(`确认删除“${row[activeColumns[0]] || row.id}”吗？`)) {
       return
     }
     await run('resource-delete', async () => {
@@ -1144,7 +1140,7 @@ export default function App() {
 
   async function handleSave() {
     if (!name.trim()) {
-      setError('???????')
+        setError('请输入结构名称')
       return
     }
     await run('save', async () => {
@@ -1168,7 +1164,7 @@ export default function App() {
 
   async function handleSaveDraft() {
     if (!selected) {
-      setError('??????????')
+        setError('请先选择结构定义')
       return
     }
     await run('draft', async () => {
@@ -1216,26 +1212,14 @@ export default function App() {
     await run('refresh', () => refreshDefinitions(selected))
   }
 
-  function handleSurfaceModeChange(nextMode) {
-    if (nextMode === 'flat') {
-      setAdminSurfaceMode('balanced')
-        safeStorageSet('heartbeat_admin_surface_mode', 'balanced')
-        changeAppearance({fluidEnabled: false, visualStyle: 'flat'})
-      return
-    }
-    setAdminSurfaceMode(nextMode)
-      safeStorageSet('heartbeat_admin_surface_mode', nextMode)
-      changeAppearance({fluidEnabled: true, visualStyle: 'glass'})
-  }
-
   async function handleValidate() {
     if (!selected) {
-      setError('??????????')
+        setError('请先选择结构定义')
       return
     }
     await run('validate', async () => {
       const result = await structureApi.validate(selected, {
-        payload: parseJson(payloadText, '????')
+          payload: parseJson(payloadText, '待校验数据')
       })
       setValidation(result)
     })
@@ -1243,11 +1227,11 @@ export default function App() {
 
   function handleGenerateTitleOverrides() {
     try {
-      const samples = parseJson(samplesText, 'JSON ??')
+        const samples = parseJson(samplesText, 'JSON 样例')
       if (!Array.isArray(samples) || samples.length === 0) {
-        throw new Error('JSON ?????????')
+          throw new Error('JSON 样例必须是非空数组')
       }
-      const currentOverrides = parseJson(overridesText, 'UI ??')
+        const currentOverrides = parseJson(overridesText, 'UI 覆盖配置')
       const generatedOverrides = generateTitleOverrides(samples)
       setOverridesText(JSON.stringify({
         ...generatedOverrides,
@@ -1255,7 +1239,7 @@ export default function App() {
       }, null, 2))
       setError('')
     } catch (err) {
-      setError(err.message || '????????')
+        setError(err.message || '生成中文标题失败')
     }
   }
 
@@ -1296,8 +1280,8 @@ export default function App() {
         <div className="login-page">
           <div className="login-card">
             <span className="brand-orb" />
-            <h1>???? HeartBeat</h1>
-            <p>????????...</p>
+              <h1>正在启动 HeartBeat</h1>
+              <p>正在检查登录状态...</p>
           </div>
         </div>
     )
@@ -1308,20 +1292,21 @@ export default function App() {
         <div className="login-page">
           <form className="login-card" onSubmit={pendingBind ? handleSocialBind : handleLogin}>
             <span className="brand-orb" />
-            <p className="eyebrow">SAAS ADMIN</p>
-            <h1>{pendingBind ? '????' : '????'}</h1>
+              <p className="eyebrow">HEARTBEAT ADMIN</p>
+              <h1>{pendingBind ? '绑定账号' : '管理员登录'}</h1>
             <p>
               {pendingBind
-                  ? `??? ${pendingBind.nickname || pendingBind.provider} ???????????`
-                  : '????????????????????'}
+                  ? `检测到 ${pendingBind.nickname || pendingBind.provider} 尚未绑定账号，请输入现有账号完成绑定。`
+                  : '使用租户、用户名和密码登录管理控制台。'}
             </p>
             {error && <div className="error-banner" role="alert">{error}</div>}
             <label>
-                Tenant ID
+                租户 ID
                 <input
-                    aria-label="Tenant ID"
+                    aria-label="租户 ID"
                     inputMode="numeric"
                     pattern="[0-9]+"
+                    autoComplete="off"
                     required
                     value={loginForm.tenantId}
                     onChange={(event) => {
@@ -1331,26 +1316,30 @@ export default function App() {
                 />
             </label>
               <label>
-              ???
+                  用户名
               <input
-                  aria-label="???"
+                  aria-label="用户名"
+                  autoComplete="username"
+                  required
                   value={loginForm.username}
                   onChange={(event) => setLoginForm({ ...loginForm, username: event.target.value })}
               />
             </label>
             <label>
-              ??
+                密码
               <input
-                  aria-label="??"
+                  aria-label="密码"
                   type="password"
+                  autoComplete="current-password"
+                  required
                   value={loginForm.password}
                   onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })}
               />
             </label>
             <button className="button primary" type="submit" disabled={Boolean(busy)}>
               {pendingBind
-                  ? (busy === 'social-bind' ? '???...' : '?????')
-                  : (busy === 'login' ? '???...' : '??')}
+                  ? (busy === 'social-bind' ? '绑定中...' : '绑定账号')
+                  : (busy === 'login' ? '登录中...' : '登录')}
             </button>
             {pendingBind && (
                 <button
@@ -1359,12 +1348,12 @@ export default function App() {
                     onClick={() => setPendingBind(null)}
                     disabled={Boolean(busy)}
                 >
-                  ????
+                    取消绑定
                 </button>
             )}
             {!pendingBind && socialProviders.length > 0 && (
                 <div className="social-login-row">
-                  <span>?????</span>
+                    <span>其他登录方式</span>
                   {socialProviders.map((item) => (
                       <button
                           key={item.provider}
@@ -1373,7 +1362,7 @@ export default function App() {
                           disabled={Boolean(busy)}
                           onClick={() => handleSocialLogin(item.provider)}
                       >
-                        {busy === `social-${item.provider}` ? '???...' : (item.name || item.provider)}
+                          {busy === `social-${item.provider}` ? '跳转中...' : (item.name || item.provider)}
                       </button>
                   ))}
                 </div>
@@ -1387,10 +1376,10 @@ export default function App() {
         return (
             <>
                 <FluidBackground
-                    enabled={liquidGlassEnabled}
+                    enabled={fluidBackgroundEnabled}
                     visualStyle={liquidGlassEnabled ? 'glass' : visualStyle}
                     accentColor={accentColor}
-                    colorScheme={glassMode === 'immersive' ? colorScheme : 'light'}
+                    colorScheme={colorScheme}
                     reducedMotion={surfaceEnvironment.reducedMotion}
                 />
                 <div className="login-page">
@@ -1407,48 +1396,16 @@ export default function App() {
   return (
       <>
         <FluidBackground
-            enabled={liquidGlassEnabled}
+            enabled={fluidBackgroundEnabled}
             visualStyle={liquidGlassEnabled ? 'glass' : visualStyle}
             accentColor={accentColor}
-            colorScheme={glassMode === 'immersive' ? colorScheme : 'light'}
+            colorScheme={colorScheme}
             reducedMotion={surfaceEnvironment.reducedMotion}
-        />
-        <MobileAdminShell
-            modules={adminModules}
-            activeModule={activeAdminModule}
-            activeResource={activeResource}
-            resourceEditable={resourceEditable}
-            records={activeRecords}
-            columns={activeColumns}
-            selectedRecord={selectedResourceRow}
-            currentUser={currentUser}
-            colorMode={colorMode}
-            onColorModeChange={changeColorMode}
-            accentColor={accentColor}
-            onAccentColorChange={changeAccentColor}
-            visualStyle={visualStyle}
-            onVisualStyleChange={changeVisualStyle}
-            fluidEnabled={fluidEnabled}
-            onFluidChange={changeFluidEnabled}
-            syncState={syncState}
-            onSelectModule={(moduleKey) => {
-                const module = adminModules.find((item) => item.key === moduleKey)
-                openMenuTag({id: moduleKey, name: module?.name || moduleKey, path: module?.appPath})
-            }}
-            onSelectRecord={setSelectedResourceRow}
-            onCreate={() => openResourceDialog('create')}
-            onEdit={(record) => {
-              setSelectedResourceRow(record)
-              openResourceDialog('edit', record)
-            }}
-            onDelete={deleteResourceRow}
-            onRefresh={handleRefresh}
-            onLogout={handleLogout}
         />
         <AdminLayout
             structureMode={structureMode}
-            topModules={topModules.length > 0 ? topModules : fallbackTopModules}
-            sideMenus={sideMenus.length > 0 ? sideMenus : fallbackSideMenus}
+            topModules={topModules}
+            sideMenus={sideMenus}
             tags={normalizeWorkspaceTags(openTags)}
             activeTopModuleId={activeTopModuleKey}
             activeTagKey={activeTagKey}
@@ -1467,7 +1424,6 @@ export default function App() {
             onVisualStyleChange={changeVisualStyle}
             syncState={syncState}
             onSelectTopModule={handleSelectTopModule}
-            onGlassModeChange={handleSurfaceModeChange}
             onSelectMenu={openMenuTag}
             onSelectTag={handleSelectTag}
             onCloseTag={handleCloseTag}
@@ -1902,6 +1858,7 @@ export default function App() {
                       <span className="status-pill">{activeResource ? (resourceEditable ? '可维护' : '只读') : '未接入'}</span>
                     </div>
                     <ResourceTable
+                        key={activeResource}
                         moduleName={activeAdminModule.name}
                         columns={activeColumns}
                         records={activeRecords}
@@ -1925,6 +1882,7 @@ export default function App() {
             mode={resourceDialog.mode}
             resource={activeResource}
             values={resourceFormValues}
+            busy={busy === `resource-${resourceDialog.mode}`}
             onClose={closeResourceDialog}
             onSubmit={submitResourceDialog}
         />

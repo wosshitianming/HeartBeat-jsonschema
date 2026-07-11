@@ -8,7 +8,7 @@ export default function AdminLayout({
   sideMenus,
   tags,
   activeTopModuleId,
-                                      activeTagKey,
+                                        activeTagKey,
   activeModuleKey,
   liquidGlassEnabled,
   glassMode,
@@ -16,15 +16,14 @@ export default function AdminLayout({
   busy,
   fluidEnabled,
   onFluidChange,
-                                      colorMode,
-                                      onColorModeChange,
-                                      accentColor,
-                                      onAccentColorChange,
-                                      visualStyle,
-                                      onVisualStyleChange,
-                                      syncState,
+                                        colorMode,
+                                        onColorModeChange,
+                                        accentColor,
+                                        onAccentColorChange,
+                                        visualStyle,
+                                        onVisualStyleChange,
+                                        syncState,
   onSelectTopModule,
-  onGlassModeChange,
   onSelectMenu,
   onSelectTag,
   onCloseTag,
@@ -52,8 +51,6 @@ export default function AdminLayout({
             onVisualStyleChange={onVisualStyleChange}
             syncState={syncState}
             onSelectTopModule={onSelectTopModule}
-            glassMode={glassMode}
-            onGlassModeChange={onGlassModeChange}
             onRefresh={onRefresh}
             onLogout={onLogout}
         />

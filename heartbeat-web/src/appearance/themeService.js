@@ -23,6 +23,12 @@ export const DEFAULT_APPEARANCE = Object.freeze({
   accentColor: DEFAULT_ACCENT_COLOR,
   visualStyle: 'glass'
 })
+export const DEFAULT_INITIAL_APPEARANCE = Object.freeze({
+    colorMode: 'light',
+    fluidEnabled: false,
+    accentColor: DEFAULT_ACCENT_COLOR,
+    visualStyle: 'flat'
+})
 export const LAST_USER_KEY = 'heartbeat_last_user_id'
 
 const HEX_COLOR = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/
@@ -76,12 +82,12 @@ export function readCachedAppearance(userId) {
     cacheAppearance(userId, migrated)
     return migrated
   }
-  return { ...DEFAULT_APPEARANCE }
+    return {...DEFAULT_INITIAL_APPEARANCE}
 }
 
 export function readInitialAppearance() {
     const lastUserId = safeStorageGet(LAST_USER_KEY)
-  return lastUserId ? readCachedAppearance(lastUserId) : { ...DEFAULT_APPEARANCE }
+    return lastUserId ? readCachedAppearance(lastUserId) : {...DEFAULT_INITIAL_APPEARANCE}
 }
 
 export function cacheAppearance(userId, appearance) {

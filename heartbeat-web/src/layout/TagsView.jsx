@@ -1,37 +1,35 @@
-export default function TagsView({ tags, activeTagId, onSelect, onClose }) {
+export default function TagsView({tags = [], activeTagId, onSelect, onClose}) {
   return (
-      <div className="hb-tags-view">
+      <nav className="hb-tags-view" aria-label="已打开页面">
           {tags.map((tag) => {
               const tagKey = tag.key || tag.id
               const title = tag.title || tag.name || tagKey
+              const active = tagKey === activeTagId
               return (
-                  <div
-                      key={tagKey}
-                      className={`hb-tag ${tagKey === activeTagId ? 'active' : ''}`}
-                      onClick={() => onSelect(tag)}
-                      onKeyDown={(event) => {
-                          if (event.key === 'Enter') onSelect(tag)
-                      }}
-                      role="button"
-                      tabIndex={0}
-                      title={tag.path || tagKey}
-                  >
-                      <span>{title}</span>
+                  <div key={tagKey} className={`hb-tag ${active ? 'active' : ''}`}>
+                      <button
+                          type="button"
+                          className="hb-tag-main"
+                          aria-current={active ? 'page' : undefined}
+                          title={tag.path || tagKey}
+                          onClick={() => onSelect?.(tag)}
+                      >
+                          <span>{title}</span>
+                      </button>
                       {tag.closable !== false && (
                           <button
                               type="button"
-                              aria-label={`Close ${title}`}
-                              onClick={(event) => {
-                                  event.stopPropagation()
-                                  onClose(tagKey)
-                              }}
+                              className="hb-tag-close"
+                              aria-label={`关闭 ${title}`}
+                              title={`关闭 ${title}`}
+                              onClick={() => onClose?.(tagKey)}
                           >
-                              x
+                              <span aria-hidden="true">×</span>
                           </button>
                       )}
                   </div>
               )
           })}
-      </div>
+      </nav>
   )
 }

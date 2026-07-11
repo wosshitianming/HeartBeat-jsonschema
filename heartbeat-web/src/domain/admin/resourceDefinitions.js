@@ -52,7 +52,7 @@ export const RESOURCE_DEFINITIONS = {
     fields: [
       { name: 'username', label: '用户名', required: true },
       { name: 'nickname', label: '昵称', required: true },
-      { name: 'password', label: '初始密码', type: 'password', createOnly: true },
+        {name: 'password', label: '初始密码', type: 'password', createOnly: true, required: true},
       { name: 'email', label: '邮箱' },
       { name: 'phone', label: '手机号' },
       { name: 'deptId', label: '部门 ID' },
@@ -61,7 +61,7 @@ export const RESOURCE_DEFINITIONS = {
     emptyValues: {
       username: '',
       nickname: '',
-      password: '123456',
+        password: '',
       email: '',
       phone: '',
       deptId: '',

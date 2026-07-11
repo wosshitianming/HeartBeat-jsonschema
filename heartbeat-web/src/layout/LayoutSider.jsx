@@ -1,14 +1,21 @@
-function SideMenuItems({ items, activeModuleKey, onSelect, depth = 0 }) {
+function menuMarker(item) {
+    const name = String(item?.name || '').trim()
+    return name.slice(0, 1) || '·'
+}
+
+function SideMenuItems({items = [], activeModuleKey, onSelect, depth = 0}) {
   return items.map((item) => {
     if (item.type === 'BUTTON') return null
     const hasChildren = Array.isArray(item.children) && item.children.length > 0
     const isMenu = item.type === 'MENU'
     const isActive = item.id === activeModuleKey
+
     if (hasChildren && !isMenu) {
       return (
-          <div key={item.id}>
-            <div className="hb-side-group-title" style={{ paddingLeft: `${12 + depth * 8}px` }}>
-              {item.name}
+          <section className="hb-side-group" key={item.id}>
+              <div className="hb-side-group-title" style={{paddingLeft: `${12 + depth * 8}px`}}>
+                  <span className="hb-side-group-marker" aria-hidden="true"/>
+                  <span>{item.name}</span>
             </div>
             <SideMenuItems
                 items={item.children}
@@ -16,19 +23,23 @@ function SideMenuItems({ items, activeModuleKey, onSelect, depth = 0 }) {
                 onSelect={onSelect}
                 depth={depth + 1}
             />
-          </div>
+          </section>
       )
     }
+
     if (!isMenu && !hasChildren) return null
+
     return (
         <div key={item.id} className="hb-side-menu">
           <button
               type="button"
               className={isActive ? 'active' : ''}
-              style={{ paddingLeft: `${12 + depth * 8}px` }}
-              onClick={() => onSelect(item)}
+              style={{paddingLeft: `${12 + depth * 8}px`}}
+              aria-current={isActive ? 'page' : undefined}
+              onClick={() => onSelect?.(item)}
           >
-            {item.name}
+              <span className="hb-side-menu-icon" aria-hidden="true">{menuMarker(item)}</span>
+              <span className="hb-side-menu-label">{item.name}</span>
           </button>
           {hasChildren && (
               <SideMenuItems
@@ -43,23 +54,16 @@ function SideMenuItems({ items, activeModuleKey, onSelect, depth = 0 }) {
   })
 }
 
-export default function LayoutSider({ sideMenus, activeModuleKey, onSelectMenu }) {
+export default function LayoutSider({sideMenus = [], activeModuleKey, onSelectMenu}) {
   return (
       <aside className="hb-layout-sider" aria-label="后台导航">
-        <div className="hb-sider-logo" aria-hidden="true" />
-        <SideMenuItems
-            items={sideMenus}
-            activeModuleKey={activeModuleKey}
-            onSelect={onSelectMenu}
-        />
-        {sideMenus.length <= 1 && (
-            <div className="hb-sider-ghosts" aria-hidden="true">
-              <span />
-              <span />
-              <span />
-              <span />
-            </div>
-        )}
+          <nav className="hb-side-navigation" aria-label="功能菜单">
+              <SideMenuItems
+                  items={sideMenus}
+                  activeModuleKey={activeModuleKey}
+                  onSelect={onSelectMenu}
+              />
+          </nav>
       </aside>
   )
 }

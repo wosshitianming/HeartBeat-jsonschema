@@ -9,12 +9,28 @@
   <body>
     <script>
       try {
-        const allowed = ['immersive', 'balanced', 'professional']
         const userId = localStorage.getItem('heartbeat_last_user_id')
-        const cached = userId && localStorage.getItem(`heartbeat_appearance_theme:${userId}`)
-        document.documentElement.dataset.theme = allowed.includes(cached) ? cached : 'balanced'
+          const cached = userId && localStorage.getItem(`heartbeat_appearance:${userId}`)
+          const appearance = cached ? JSON.parse(cached) : {}
+          const colorMode = ['light', 'dark', 'system'].includes(appearance.colorMode)
+              ? appearance.colorMode
+              : 'light'
+          const systemDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches
+          const colorScheme = colorMode === 'system' ? (systemDark ? 'dark' : 'light') : colorMode
+          const visualStyle = ['flat', 'glass'].includes(appearance.visualStyle)
+              ? appearance.visualStyle
+              : 'flat'
+
+          document.documentElement.dataset.colorMode = colorMode
+          document.documentElement.dataset.colorScheme = colorScheme
+          document.documentElement.dataset.theme = colorScheme
+          document.documentElement.dataset.visualStyle = visualStyle
+          document.documentElement.style.setProperty('--accent', appearance.accentColor || '#1677ff')
       } catch {
-        document.documentElement.dataset.theme = 'balanced'
+          document.documentElement.dataset.colorMode = 'light'
+          document.documentElement.dataset.colorScheme = 'light'
+          document.documentElement.dataset.theme = 'light'
+          document.documentElement.dataset.visualStyle = 'flat'
       }
     </script>
     <div id="root"></div>
