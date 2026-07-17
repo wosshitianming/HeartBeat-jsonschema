@@ -1,5 +1,6 @@
 package top.kx.heartbeat.infrastructure.platform.repository;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Repository;
 import top.kx.heartbeat.application.common.model.DomainRecord;
 import top.kx.heartbeat.application.platform.port.PlatformMenuRepository;
@@ -414,7 +415,7 @@ public class PlatformMenuRepositoryImpl implements PlatformMenuRepository {
     }
 
     private void validateParentMenu(String parentId, Long menuId) {
-        if (parentId == null || parentId.trim().isEmpty()) {
+        if (StringUtils.isBlank(parentId)) {
             return;
         }
         String value = parentId.trim();
@@ -437,7 +438,7 @@ public class PlatformMenuRepositoryImpl implements PlatformMenuRepository {
     }
 
     private Long parentIdValue(String parentId) {
-        if (parentId == null || parentId.trim().isEmpty()) {
+        if (StringUtils.isBlank(parentId)) {
             return null;
         }
         String value = parentId.trim();
@@ -456,7 +457,7 @@ public class PlatformMenuRepositoryImpl implements PlatformMenuRepository {
      */
     private Long longValue(Object value) {
         // 先处理空值或缺省场景，避免后续业务流程出现空指针。
-        if (value == null || String.valueOf(value).trim().isEmpty()) {
+        if (value == null || StringUtils.isBlank(String.valueOf(value))) {
             // 返回已经完成封装的业务结果。
             return null;
         }

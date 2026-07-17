@@ -64,6 +64,21 @@ class ProductionCodeConventionTest {
                         + String.join("\n", violations));
     }
 
+    @Test
+    void springManagedCodeUsesSharedObjectMapper() throws IOException {
+        List<String> violations = new ArrayList<>();
+        for (SourceFile sourceFile : productionSources()) {
+            if (isSpringManaged(sourceFile.content)
+                    && sourceFile.content.contains("new ObjectMapper()")) {
+                violations.add(sourceFile.relativePath + " creates a private ObjectMapper");
+            }
+        }
+
+        assertTrue(violations.isEmpty(),
+                "Spring-managed code must reuse the configured ObjectMapper:\n"
+                        + String.join("\n", violations));
+    }
+
     private boolean isSpringManaged(String source) {
         return source.contains("@Component")
                 || source.contains("@Service")

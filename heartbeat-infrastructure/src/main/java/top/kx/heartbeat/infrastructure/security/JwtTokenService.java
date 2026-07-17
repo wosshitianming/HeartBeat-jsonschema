@@ -344,11 +344,13 @@ public class JwtTokenService implements TokenIssuer {
     }
 
     private SecretKey secretKey() {
-        byte[] bytes = properties.getSecret().getBytes(StandardCharsets.UTF_8);
+        String secret = StringUtils.trimToNull(properties.getSecret());
+        if (secret == null) {
+            throw new IllegalStateException("heartbeat.security.jwt.secret must be configured");
+        }
+        byte[] bytes = secret.getBytes(StandardCharsets.UTF_8);
         if (bytes.length < 32) {
-            byte[] padded = new byte[32];
-            System.arraycopy(bytes, 0, padded, 0, bytes.length);
-            bytes = padded;
+            throw new IllegalStateException("heartbeat.security.jwt.secret must contain at least 32 UTF-8 bytes");
         }
         return Keys.hmacShaKeyFor(bytes);
     }

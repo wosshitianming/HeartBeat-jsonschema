@@ -34,15 +34,15 @@ public class PlatformLoginLogRepositoryImpl implements PlatformLoginLogRepositor
         row.setTenantId(tenantId());
         // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setUsername(username);
-        //TODO 参数不明
-//        row.setLoginName(username);
         row.setResultStatus(status);
-//        row.setLoginStatus(status);
-//        row.setMessage(message);
-//        row.setLoginMessage(message);
-        row.setCreateTime(new Date());
+        row.setFailureReason(message);
+        Date now = new Date();
+        row.setLoggedAt(now);
+        row.setCreateTime(now);
         // 设置持久化字段，保证数据库记录具备完整业务属性。
-        row.setUpdateTime(new Date());
+        row.setUpdateTime(now);
+        row.setCreateBy(0L);
+        row.setUpdateBy(0L);
         // 将当前业务变更写入持久化层，保持数据状态同步。
         loginLogMapper.insertSelective(row);
     }

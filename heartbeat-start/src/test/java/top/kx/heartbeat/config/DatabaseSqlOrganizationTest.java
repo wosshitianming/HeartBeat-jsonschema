@@ -11,8 +11,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class DatabaseSqlOrganizationTest {
 
@@ -25,7 +24,15 @@ class DatabaseSqlOrganizationTest {
             "V5__structure_intelligence.sql",
             "V6__automation_workflow_events.sql",
             "V7__payment.sql",
-            "V8__content_report_mobile.sql"
+            "V8__content_report_mobile.sql",
+            "V9__flowable_runtime_integration.sql",
+            "V10__flow_operations_ledger.sql",
+            "V11__flow_external_io_reliability.sql",
+            "V12__normalize_sys_user_password_time.sql",
+            "V13__social_provider_auto_registration.sql",
+            "V14__normalize_default_admin_credential.sql",
+            "V15__normalize_audit_actor_columns.sql",
+            "V16__quartz_scheduler_tables.sql"
     );
 
     @Test
@@ -39,6 +46,9 @@ class DatabaseSqlOrganizationTest {
             assertTrue(index > previous, "Aggregate should contain " + version + " after previous migration");
             previous = index;
         }
+
+        assertEquals(normalizeLineEndings(generatedAggregate()), normalizeLineEndings(sql),
+                "Enterprise aggregate must be regenerated from the Flyway migrations without manual schema folding");
     }
 
     @Test
@@ -71,5 +81,23 @@ class DatabaseSqlOrganizationTest {
         } finally {
             input.close();
         }
+    }
+
+    private String generatedAggregate() throws IOException {
+        StringBuilder builder = new StringBuilder();
+        builder.append("-- Generated from Flyway migrations. Do not edit manually.\n");
+        builder.append("SET NAMES utf8mb4;\n");
+        builder.append("SET time_zone = '+00:00';\n\n");
+        for (String version : FLYWAY_VERSIONS) {
+            builder.append("-- =================================================================\n");
+            builder.append("-- ").append(version).append('\n');
+            builder.append("-- =================================================================\n");
+            builder.append(resource("db/migration/mysql/" + version).trim()).append("\n\n");
+        }
+        return builder.toString();
+    }
+
+    private String normalizeLineEndings(String value) {
+        return value.replace("\r\n", "\n").replace('\r', '\n');
     }
 }

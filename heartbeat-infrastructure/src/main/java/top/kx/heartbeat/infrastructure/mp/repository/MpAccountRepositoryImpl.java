@@ -8,6 +8,7 @@ import top.kx.heartbeat.application.mp.request.MpAccountRequest;
 import top.kx.heartbeat.infrastructure.persistence.entity.mp.MpAccountDO;
 import top.kx.heartbeat.infrastructure.persistence.entity.mp.MpAccountDOExample;
 import top.kx.heartbeat.infrastructure.persistence.mapper.mp.MpAccountDOMapper;
+import top.kx.heartbeat.infrastructure.security.SecretCryptoService;
 import top.kx.heartbeat.infrastructure.tenant.TenantContext;
 
 import javax.annotation.Resource;
@@ -25,6 +26,9 @@ public class MpAccountRepositoryImpl implements MpAccountRepository {
 
     @Resource
     private MpAccountDOMapper accountDOMapper;
+
+    @Resource
+    private SecretCryptoService secretCryptoService;
 
     /**
      * 查询列表数据，保持返回结构稳定并便于前端直接消费，通过 Mapper 完成公众号管理数据访问。
@@ -111,11 +115,14 @@ public class MpAccountRepositoryImpl implements MpAccountRepository {
         // 设置持久化字段，保证数据库记录具备完整业务属性。
         record.setAppId(defaultText(request.getAppId(), defaultText(record.getAppId(), "")));
         // 设置持久化字段，保证数据库记录具备完整业务属性。
-        record.setAppSecret(defaultText(request.getAppSecret(), defaultText(record.getAppSecret(), "")));
+        record.setAppSecret(secretCryptoService.encryptIfPlain(
+                defaultText(request.getAppSecret(), defaultText(record.getAppSecret(), ""))));
         // 设置持久化字段，保证数据库记录具备完整业务属性。
-        record.setToken(defaultText(request.getToken(), defaultText(record.getToken(), "")));
+        record.setToken(secretCryptoService.encryptIfPlain(
+                defaultText(request.getToken(), defaultText(record.getToken(), ""))));
         // 设置持久化字段，保证数据库记录具备完整业务属性。
-        record.setAesKey(defaultText(request.getAesKey(), defaultText(record.getAesKey(), "")));
+        record.setAesKey(secretCryptoService.encryptIfPlain(
+                defaultText(request.getAesKey(), defaultText(record.getAesKey(), ""))));
         // 设置持久化字段，保证数据库记录具备完整业务属性。
         record.setStatus(defaultText(request.getStatus(), defaultText(record.getStatus(), "ACTIVE")));
     }
@@ -170,6 +177,7 @@ public class MpAccountRepositoryImpl implements MpAccountRepository {
      * @return 处理后的业务结果。
      */
     private DomainRecord toAccountRecord(MpAccountDO entity) {
+        migratePlainSecrets(entity);
         // 创建有序字段容器，保证响应或领域记录的字段顺序稳定。
         Map<String, Object> row = new LinkedHashMap<>();
         // 写入对外字段，保持调用方依赖的响应结构稳定。
@@ -181,11 +189,11 @@ public class MpAccountRepositoryImpl implements MpAccountRepository {
         // 写入对外字段，保持调用方依赖的响应结构稳定。
         row.put("appId", entity.getAppId());
         // 写入对外字段，保持调用方依赖的响应结构稳定。
-        row.put("appSecret", entity.getAppSecret());
+        row.put("appSecret", secretCryptoService.decryptIfCipher(entity.getAppSecret()));
         // 写入对外字段，保持调用方依赖的响应结构稳定。
-        row.put("token", entity.getToken());
+        row.put("token", secretCryptoService.decryptIfCipher(entity.getToken()));
         // 写入对外字段，保持调用方依赖的响应结构稳定。
-        row.put("aesKey", entity.getAesKey());
+        row.put("aesKey", secretCryptoService.decryptIfCipher(entity.getAesKey()));
         // 写入对外字段，保持调用方依赖的响应结构稳定。
         row.put("status", entity.getStatus());
         // 写入对外字段，保持调用方依赖的响应结构稳定。
@@ -194,6 +202,32 @@ public class MpAccountRepositoryImpl implements MpAccountRepository {
         row.put("updateTime", stringValue(entity.getUpdateTime()));
         // 返回已经完成封装的业务结果。
         return DomainRecord.of(row);
+    }
+
+    private void migratePlainSecrets(MpAccountDO entity) {
+        if (entity == null) {
+            return;
+        }
+        MpAccountDO patch = new MpAccountDO();
+        patch.setId(entity.getId());
+        boolean changed = migrateSecret(entity.getAppSecret(), patch::setAppSecret, entity::setAppSecret);
+        changed |= migrateSecret(entity.getToken(), patch::setToken, entity::setToken);
+        changed |= migrateSecret(entity.getAesKey(), patch::setAesKey, entity::setAesKey);
+        if (changed) {
+            accountDOMapper.updateByPrimaryKeySelective(patch);
+        }
+    }
+
+    private boolean migrateSecret(String value,
+                                  java.util.function.Consumer<String> patchSetter,
+                                  java.util.function.Consumer<String> entitySetter) {
+        if (StringUtils.isBlank(value) || secretCryptoService.isEncrypted(value)) {
+            return false;
+        }
+        String encrypted = secretCryptoService.encryptIfPlain(value);
+        patchSetter.accept(encrypted);
+        entitySetter.accept(encrypted);
+        return true;
     }
 
     /**

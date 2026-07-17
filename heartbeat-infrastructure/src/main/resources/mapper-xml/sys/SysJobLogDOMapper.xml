@@ -308,10 +308,10 @@
         update_time = #{record.updateTime,jdbcType=TIMESTAMP},
       </if>
       <if test="record.createBy != null">
-        create_by = #{record.createBy,jdbcType=BIGINT},
+          create_by = #{record.createBy,jdbcType=VARCHAR},
       </if>
       <if test="record.updateBy != null">
-        update_by = #{record.updateBy,jdbcType=BIGINT},
+          update_by = #{record.updateBy,jdbcType=VARCHAR},
       </if>
     </set>
     <if test="_parameter != null">
@@ -336,8 +336,8 @@
     finished_at = #{record.finishedAt,jdbcType=TIMESTAMP},
     create_time = #{record.createTime,jdbcType=TIMESTAMP},
     update_time = #{record.updateTime,jdbcType=TIMESTAMP},
-    create_by = #{record.createBy,jdbcType=BIGINT},
-    update_by = #{record.updateBy,jdbcType=BIGINT}
+      create_by = #{record.createBy,jdbcType=VARCHAR},
+      update_by = #{record.updateBy,jdbcType=VARCHAR}
     <if test="_parameter != null">
       <include refid="Update_By_Example_Where_Clause" />
     </if>

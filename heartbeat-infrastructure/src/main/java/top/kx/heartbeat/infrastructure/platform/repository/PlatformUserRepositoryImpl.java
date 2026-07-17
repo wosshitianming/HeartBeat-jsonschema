@@ -1,12 +1,13 @@
 package top.kx.heartbeat.infrastructure.platform.repository;
 
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
 import top.kx.heartbeat.application.common.model.DomainRecord;
 import top.kx.heartbeat.application.platform.port.PlatformUserRepository;
 import top.kx.heartbeat.application.platform.request.PlatformUserRequest;
 import top.kx.heartbeat.domain.auth.CurrentUserProvider;
 import top.kx.heartbeat.infrastructure.persistence.entity.sys.*;
-import top.kx.heartbeat.infrastructure.persistence.mapper.platform.PlatformUserPreferenceBatchMapper;
 import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysDeptDOMapper;
 import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysUserDOMapper;
 import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysUserPreferenceDOMapper;
@@ -29,8 +30,6 @@ public class PlatformUserRepositoryImpl implements PlatformUserRepository {
     @Resource
     private SysUserPreferenceDOMapper userPreferenceMapper;
     @Resource
-    private PlatformUserPreferenceBatchMapper userPreferenceBatchMapper;
-    @Resource
     private CurrentUserProvider currentUserProvider;
 
     /**
@@ -41,7 +40,7 @@ public class PlatformUserRepositoryImpl implements PlatformUserRepository {
      */
     @Override
     public Optional<DomainRecord> findUserByUsername(String username) {
-        if (username == null || username.trim().isEmpty()) {
+        if (StringUtils.isBlank(username)) {
             return Optional.empty();
         }
         SysUserDOExample example = new SysUserDOExample();
@@ -204,7 +203,6 @@ public class PlatformUserRepositoryImpl implements PlatformUserRepository {
 
         Long currentTenantId = tenantId();
         requireTenantUser(id, currentTenantId);
-        List<SysUserPreferenceDO> rows = new ArrayList<>(values.size());
         for (Map.Entry<String, String> entry : values.entrySet()) {
             SysUserPreferenceDO row = new SysUserPreferenceDO();
             row.setTenantId(currentTenantId);
@@ -212,10 +210,25 @@ public class PlatformUserRepositoryImpl implements PlatformUserRepository {
             row.setPreferenceKey(entry.getKey());
             row.setPreferenceValue(entry.getValue());
             row.setValueType("STRING");
+            touch(row, false);
+
+            SysUserPreferenceDOExample example = new SysUserPreferenceDOExample();
+            example.createCriteria()
+                    .andTenantIdEqualTo(currentTenantId)
+                    .andUserIdEqualTo(id)
+                    .andPreferenceKeyEqualTo(entry.getKey());
+            if (userPreferenceMapper.updateByExampleSelective(row, example) > 0) {
+                continue;
+            }
+
             touch(row, true);
-            rows.add(row);
+            try {
+                userPreferenceMapper.insertSelective(row);
+            } catch (DuplicateKeyException ignored) {
+                touch(row, false);
+                userPreferenceMapper.updateByExampleSelective(row, example);
+            }
         }
-        userPreferenceBatchMapper.upsert(rows);
     }
 
     /**
@@ -512,7 +525,7 @@ public class PlatformUserRepositoryImpl implements PlatformUserRepository {
     }
 
     private void validateDepartmentReference(String deptId) {
-        if (deptId == null || deptId.trim().isEmpty()) {
+        if (StringUtils.isBlank(deptId)) {
             return;
         }
         Long key = longValue(deptId);
@@ -555,7 +568,7 @@ public class PlatformUserRepositoryImpl implements PlatformUserRepository {
      */
     private Long longValue(Object value) {
         // 先处理空值或缺省场景，避免后续业务流程出现空指针。
-        if (value == null || String.valueOf(value).trim().isEmpty()) {
+        if (value == null || StringUtils.isBlank(String.valueOf(value))) {
             // 返回已经完成封装的业务结果。
             return null;
         }

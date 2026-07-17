@@ -27,8 +27,7 @@ public class FlowableProjectionEventListener implements FlowableEventListener {
      */
     @Override
     public void onEvent(FlowableEvent event) {
-        // 发布 Flowable 原始事件摘要。
-        projectionPublisher.publishRawEvent(String.valueOf(event.getType()), "");
+        projectionPublisher.publish(event);
     }
 
     /**

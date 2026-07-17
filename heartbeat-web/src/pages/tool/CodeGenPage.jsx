@@ -1,11 +1,14 @@
 import {useEffect, useState} from 'react'
 import {toolApi} from '../../api'
+import {hasPermission} from '../../domain/admin/permissionPolicy'
 
-export default function CodeGenPage({ busy, onBusy, onError }) {
+export default function CodeGenPage({permissions = [], busy, onBusy, onError}) {
   const [dbTables, setDbTables] = useState([])
   const [importedTables, setImportedTables] = useState([])
   const [selectedImportId, setSelectedImportId] = useState('')
   const [previewFiles, setPreviewFiles] = useState(null)
+    const canImport = hasPermission(permissions, 'tool:gen:import')
+    const canDownload = hasPermission(permissions, 'tool:gen:download')
 
   async function loadTables() {
     onBusy('codegen-load')
@@ -88,14 +91,16 @@ export default function CodeGenPage({ busy, onBusy, onError }) {
             {dbTables.map((table) => (
                 <div className="codegen-table-item" key={table.tableName}>
                   <strong>{table.tableName}</strong>
-                  <button
-                      type="button"
-                      className="button ghost"
-                      disabled={Boolean(busy)}
-                      onClick={() => handleImport(table.tableName)}
-                  >
-                    导入
-                  </button>
+                    {canImport && (
+                        <button
+                            type="button"
+                            className="button ghost"
+                            disabled={Boolean(busy)}
+                            onClick={() => handleImport(table.tableName)}
+                        >
+                            导入
+                        </button>
+                    )}
                 </div>
             ))}
           </div>
@@ -116,9 +121,12 @@ export default function CodeGenPage({ busy, onBusy, onError }) {
             <button type="button" className="button ghost" disabled={Boolean(busy) || !selectedImportId} onClick={handlePreview}>
               预览代码
             </button>
-            <button type="button" className="button primary" disabled={Boolean(busy) || !selectedImportId} onClick={handleDownload}>
-              下载 ZIP
-            </button>
+              {canDownload && (
+                  <button type="button" className="button primary" disabled={Boolean(busy) || !selectedImportId}
+                          onClick={handleDownload}>
+                      下载 ZIP
+                  </button>
+              )}
             <button type="button" className="button ghost" disabled={Boolean(busy)} onClick={loadTables}>
               刷新
             </button>

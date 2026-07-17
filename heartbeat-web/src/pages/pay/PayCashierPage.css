@@ -1,0 +1,143 @@
+.pay-cashier-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+    gap: 14px;
+}
+
+.pay-cashier-form,
+.pay-cashier-result {
+    min-width: 0;
+    margin: 0;
+}
+
+.pay-cashier-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.pay-cashier-form-grid label {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    color: var(--hb-text-soft);
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.pay-cashier-form-grid label.full-field {
+    grid-column: 1 / -1;
+}
+
+.pay-cashier-form-grid input,
+.pay-cashier-form-grid select {
+    width: 100%;
+    min-width: 0;
+    height: 40px;
+    border: 1px solid var(--hb-border);
+    border-radius: 6px;
+    padding: 0 11px;
+    color: var(--hb-text);
+    background: var(--hb-surface);
+}
+
+.pay-cashier-submit-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--hb-border);
+}
+
+.pay-cashier-submit-row strong {
+    overflow: hidden;
+    color: var(--hb-accent);
+    font-size: 24px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pay-cashier-result {
+    display: flex;
+    flex-direction: column;
+}
+
+.pay-cashier-result dl {
+    display: grid;
+    gap: 0;
+    margin: 0 0 18px;
+}
+
+.pay-cashier-result dl > div {
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr);
+    gap: 12px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--hb-border);
+}
+
+.pay-cashier-result dt {
+    color: var(--hb-text-faint);
+    font-size: 12px;
+}
+
+.pay-cashier-result dd {
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+    color: var(--hb-text);
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.pay-cashier-result > .button {
+    align-self: flex-start;
+    margin-top: auto;
+}
+
+.pay-cashier-empty {
+    display: grid;
+    min-height: 190px;
+    margin-bottom: 18px;
+    place-content: center;
+    color: var(--hb-text-faint);
+    text-align: center;
+}
+
+.pay-cashier-empty strong {
+    color: var(--hb-text-soft);
+    font-size: 14px;
+}
+
+.pay-cashier-empty p {
+    margin: 6px 0 0;
+    font-size: 12px;
+}
+
+@media (max-width: 920px) {
+    .pay-cashier-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 560px) {
+    .pay-cashier-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .pay-cashier-form-grid label.full-field {
+        grid-column: auto;
+    }
+
+    .pay-cashier-submit-row {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .pay-cashier-submit-row .button,
+    .pay-cashier-result > .button {
+        width: 100%;
+    }
+}

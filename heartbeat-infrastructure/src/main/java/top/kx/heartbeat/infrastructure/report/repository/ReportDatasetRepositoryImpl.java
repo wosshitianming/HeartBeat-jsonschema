@@ -25,7 +25,8 @@ import java.util.stream.Collectors;
 @Repository
 public class ReportDatasetRepositoryImpl implements ReportDatasetRepository {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Resource
+    private ObjectMapper objectMapper;
 
     @Resource
     private ReportDatasetDOMapper datasetDOMapper;

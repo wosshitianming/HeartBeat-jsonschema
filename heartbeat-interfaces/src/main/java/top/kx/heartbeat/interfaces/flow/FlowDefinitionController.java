@@ -1,5 +1,6 @@
 package top.kx.heartbeat.interfaces.flow;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -42,6 +43,7 @@ public class FlowDefinitionController {
      * @return 分页结果
      */
     @PostMapping("/page")
+    @PreAuthorize("@permissionGuard.has('flow:studio:list')")
     public Result<PageResultVO<FlowDefinitionVO>> page(@RequestBody @Valid FlowDefinitionQueryParam param) {
         PageResultVO<FlowDefinitionVO> page = flowDefinitionQueryService.page(param);
         return Result.success(page);

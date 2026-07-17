@@ -1,9 +1,11 @@
 package top.kx.heartbeat.infrastructure.flow.flowable;
 
+import org.apache.commons.lang3.StringUtils;
 import org.flowable.engine.delegate.DelegateExecution;
 import org.flowable.engine.delegate.ExecutionListener;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Resource;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -15,6 +17,9 @@ import java.util.UUID;
  */
 @Component("flowWaitRegistrationListener")
 public class FlowWaitRegistrationListener implements ExecutionListener {
+
+    @Resource
+    private FlowExternalIoCommandDispatcher externalIoCommandDispatcher;
 
     /**
      * 等待实例变量名。
@@ -32,6 +37,9 @@ public class FlowWaitRegistrationListener implements ExecutionListener {
         String waitInstanceId = UUID.randomUUID().toString();
         // 写入等待实例变量。
         execution.setVariableLocal(WAIT_INSTANCE_ID, waitInstanceId);
+        if (StringUtils.endsWith(execution.getCurrentActivityId(), "__io_wait")) {
+            externalIoCommandDispatcher.bindWaitExecution(execution, waitInstanceId);
+        }
         // 写入等待订阅摘要。
         execution.setVariableLocal("hbWaitSubscription", createSubscription(execution, waitInstanceId));
     }

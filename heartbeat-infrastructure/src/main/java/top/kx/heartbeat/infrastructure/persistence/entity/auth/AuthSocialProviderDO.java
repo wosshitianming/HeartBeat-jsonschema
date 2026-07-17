@@ -154,6 +154,11 @@ public class AuthSocialProviderDO {
     private Boolean enabled;
 
     /**
+     * Whether a successful social login may create a local user.
+     */
+    private Boolean autoRegister;
+
+    /**
      * Database Column Remarks:
      *   状态
      *
@@ -540,6 +545,14 @@ public class AuthSocialProviderDO {
      */
     public void setEnabled(Boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public Boolean getAutoRegister() {
+        return autoRegister;
+    }
+
+    public void setAutoRegister(Boolean autoRegister) {
+        this.autoRegister = autoRegister;
     }
 
     /**

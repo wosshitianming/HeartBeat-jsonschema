@@ -1,0 +1,66 @@
+.scheduler-control-page {
+    min-width: 0;
+}
+
+.scheduler-command-panel {
+    max-width: 760px;
+}
+
+.scheduler-job-input {
+    display: grid;
+    gap: 7px;
+    margin-top: 18px;
+    color: var(--hb-text-soft);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.scheduler-job-input input {
+    width: 100%;
+    height: 40px;
+    border: 1px solid var(--hb-border-strong);
+    border-radius: 7px;
+    padding: 0 12px;
+    color: var(--hb-text);
+    background: var(--hb-surface);
+}
+
+.scheduler-command-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.scheduler-feedback {
+    margin-top: 16px;
+    border: 1px solid var(--hb-border);
+    border-radius: 7px;
+    padding: 10px 12px;
+    color: var(--hb-text-soft);
+    background: var(--hb-surface-muted);
+    font-size: 13px;
+}
+
+.scheduler-feedback[data-status="SUCCESS"] {
+    border-color: color-mix(in srgb, var(--hb-success) 28%, transparent);
+    color: var(--hb-success);
+    background: color-mix(in srgb, var(--hb-success) 8%, transparent);
+}
+
+.scheduler-feedback[data-status="FAILED"] {
+    border-color: color-mix(in srgb, var(--hb-danger) 28%, transparent);
+    color: var(--hb-danger);
+    background: color-mix(in srgb, var(--hb-danger) 8%, transparent);
+}
+
+@media (max-width: 640px) {
+    .scheduler-command-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .scheduler-command-actions .button {
+        width: 100%;
+    }
+}

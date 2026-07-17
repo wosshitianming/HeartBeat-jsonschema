@@ -9,7 +9,6 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -27,40 +26,12 @@ class EnterpriseDatabaseContractTest {
             "db/migration/mysql/V3__permission_seed.sql";
     private static final String TOOLING_MIGRATION =
             "db/migration/mysql/V4__enterprise_tooling.sql";
-    private static final List<String> PHASE_ONE_TABLES = Arrays.asList(
-            "sys_tenant_plan",
-            "sys_plan_feature",
-            "sys_tenant",
-            "sys_tenant_feature",
-            "sys_dept",
-            "sys_post",
-            "sys_user",
-            "sys_user_post",
-            "sys_role",
-            "sys_permission",
-            "sys_menu",
-            "sys_user_role",
-            "sys_role_permission",
-            "sys_menu_permission",
-            "sys_role_dept",
-            "sys_dict_type",
-            "sys_dict_item",
-            "sys_config",
-            "sys_notice",
-            "sys_user_preference",
-            "auth_oauth_client",
-            "auth_client_grant",
-            "auth_client_redirect_uri",
-            "auth_social_provider",
-            "auth_social_binding",
-            "auth_session",
-            "sys_oper_log",
-            "sys_login_log"
-    );
-    private static final List<String> TOOLING_TABLES = Arrays.asList(
-            "sys_gen_table", "sys_gen_column", "sys_job", "sys_job_log"
-    );
-
+    private static final String FLOW_OPERATIONS_MIGRATION =
+            "db/migration/mysql/V10__flow_operations_ledger.sql";
+    private static final String FLOW_EXTERNAL_IO_MIGRATION =
+            "db/migration/mysql/V11__flow_external_io_reliability.sql";
+    private static final String AUDIT_ACTOR_MIGRATION =
+            "db/migration/mysql/V15__normalize_audit_actor_columns.sql";
     @Test
     void phaseOneMigrationUsesDedicatedEnterpriseTables() throws IOException {
         String sql = resource(PHASE_ONE_MIGRATION);
@@ -113,12 +84,8 @@ class EnterpriseDatabaseContractTest {
     @Test
     void authSessionSchemaSupportsServerSideLifecycleChecks() throws IOException {
         String mysql = resource(PHASE_ONE_MIGRATION);
-        String h2 = resource("schema.sql");
 
         assertTableContains(mysql, "auth_session",
-                "tenant_id", "session_id", "user_id", "refresh_token_hash", "status",
-                "expire_at", "refresh_expire_at", "revoked_at", "last_access_at");
-        assertTableContains(h2, "auth_session",
                 "tenant_id", "session_id", "user_id", "refresh_token_hash", "status",
                 "expire_at", "refresh_expire_at", "revoked_at", "last_access_at");
         assertTrue(mysql.contains("UNIQUE KEY `uk_auth_session_no` (`tenant_id`, `session_id`)"));
@@ -156,23 +123,8 @@ class EnterpriseDatabaseContractTest {
     }
 
     @Test
-    void localH2SchemaKeepsPhaseOneTableAndColumnParity() throws IOException {
-        String mysql = resource(PHASE_ONE_MIGRATION);
-        String h2 = resource("schema.sql");
-
-        for (String table : PHASE_ONE_TABLES) {
-            assertTrue(hasTable(h2, table), "schema.sql should contain " + table);
-            assertTrue(hasTable(mysql, table), "MySQL migration should contain " + table);
-            assertTrue(columnNames(h2, table).equals(columnNames(mysql, table)),
-                    "schema.sql columns for " + table + " should match MySQL migration. expected="
-                            + columnNames(mysql, table) + " actual=" + columnNames(h2, table));
-        }
-    }
-
-    @Test
     void toolingMigrationUsesDedicatedAutoIncrementTables() throws IOException {
         String mysql = resource(TOOLING_MIGRATION);
-        String h2 = resource("schema.sql");
         String upper = mysql.toUpperCase(Locale.ROOT);
 
         assertFalse(mysql.contains("sys_resource_base"));
@@ -186,11 +138,73 @@ class EnterpriseDatabaseContractTest {
         assertTableContains(mysql, "sys_job_log",
                 "job_id", "job_code", "invoke_target", "result_status", "duration_ms", "started_at");
 
-        for (String table : TOOLING_TABLES) {
-            assertTrue(columnNames(h2, table).equals(columnNames(mysql, table)),
-                    "schema.sql columns for " + table + " should match MySQL migration. expected="
-                            + columnNames(mysql, table) + " actual=" + columnNames(h2, table));
+    }
+
+    @Test
+    void flowOperationsMigrationBackfillsThePerRunEventCursor() throws IOException {
+        String sql = resource(FLOW_OPERATIONS_MIGRATION);
+
+        assertTrue(sql.contains("MAX(`event_seq`) AS `max_event_seq`"));
+        assertTrue(sql.contains("MODIFY COLUMN `event_seq` BIGINT UNSIGNED NOT NULL DEFAULT 0"));
+        assertTrue(sql.contains("e.`tenant_id` = r.`tenant_id`"));
+        assertTrue(sql.contains("e.`run_id` = r.`id`"));
+        assertTrue(sql.contains("uk_flow_run_engine_instance"));
+        assertTrue(sql.contains("idx_flow_run_status_started"));
+    }
+
+    @Test
+    void externalIoMigrationAddsWorkerFencingAndReconciliation() throws IOException {
+        String sql = resource(FLOW_EXTERNAL_IO_MIGRATION);
+
+        assertTrue(sql.contains("`wait_instance_id`"));
+        assertTrue(sql.contains("`lease_token`"));
+        assertTrue(sql.contains("`lease_version`"));
+        assertTrue(sql.contains("`external_call_policy`"));
+        assertTrue(sql.contains("`timeout_at`"));
+        assertTrue(sql.contains("uk_flow_io_correlation"));
+        assertTrue(sql.contains("flowExternalIoReconcileJob.reconcileOnce"));
+        assertTrue(sql.contains("flow:worker:execute"));
+    }
+
+    @Test
+    void auditActorMigrationCoversEveryEnterpriseTableWithAuditColumns() throws IOException {
+        StringBuilder schema = new StringBuilder();
+        for (String migration : Arrays.asList(
+                PHASE_ONE_MIGRATION,
+                TOOLING_MIGRATION,
+                "db/migration/mysql/V5__structure_intelligence.sql",
+                "db/migration/mysql/V6__automation_workflow_events.sql",
+                "db/migration/mysql/V7__payment.sql",
+                "db/migration/mysql/V8__content_report_mobile.sql",
+                "db/migration/mysql/V9__flowable_runtime_integration.sql")) {
+            schema.append(resource(migration)).append('\n');
         }
+
+        String auditMigration = resource(AUDIT_ACTOR_MIGRATION);
+        Pattern createTable = Pattern.compile(
+                "(?is)CREATE\\s+TABLE\\s+`([^`]+)`\\s*\\((.*?)\\)\\s*ENGINE\\s*=");
+        Matcher matcher = createTable.matcher(schema);
+        int auditedTableCount = 0;
+        while (matcher.find()) {
+            String tableName = matcher.group(1);
+            String body = matcher.group(2);
+            if (!body.contains("`create_by`") || !body.contains("`update_by`")) {
+                continue;
+            }
+            auditedTableCount++;
+            if ("sys_login_log".equals(tableName)) {
+                assertFalse(auditMigration.contains("ALTER TABLE `sys_login_log`"),
+                        "sys_login_log keeps BIGINT audit actors because its generated DO uses Long");
+                continue;
+            }
+            Pattern normalizedTable = Pattern.compile(
+                    "(?is)ALTER\\s+TABLE\\s+`" + Pattern.quote(tableName) + "`\\s+"
+                            + "MODIFY\\s+COLUMN\\s+`create_by`\\s+VARCHAR\\(64\\)\\s+NOT\\s+NULL\\s+DEFAULT\\s+'0'.*?"
+                            + "MODIFY\\s+COLUMN\\s+`update_by`\\s+VARCHAR\\(64\\)\\s+NOT\\s+NULL\\s+DEFAULT\\s+'0'");
+            assertTrue(normalizedTable.matcher(auditMigration).find(),
+                    "V15 must normalize audit actor columns for " + tableName);
+        }
+        assertTrue(auditedTableCount > 0, "Expected enterprise schema to contain audited tables");
     }
 
     private void assertTableContains(String sql, String tableName, String... columns) {
@@ -199,12 +213,6 @@ class EnterpriseDatabaseContractTest {
             assertTrue(actualColumns.contains(column.toLowerCase(Locale.ROOT)),
                     "Expected " + tableName + " to contain column " + column);
         }
-    }
-
-    private boolean hasTable(String sql, String tableName) {
-        Pattern pattern = Pattern.compile("(?is)CREATE\\s+TABLE\\s+(?:IF\\s+NOT\\s+EXISTS\\s+)?`?"
-                + Pattern.quote(tableName) + "`?\\s*\\(");
-        return pattern.matcher(sql).find();
     }
 
     private LinkedHashSet<String> columnNames(String sql, String tableName) {

@@ -2,9 +2,9 @@ package top.kx.heartbeat.application.flow.runtime;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
+import top.kx.heartbeat.application.flow.NodeComponentRegistryService;
 import top.kx.heartbeat.domain.flow.model.*;
 import top.kx.heartbeat.domain.flow.repository.FlowRunRepository;
-import top.kx.heartbeat.domain.flow.repository.NodeComponentRepository;
 import top.kx.heartbeat.domain.flow.validation.FlowDslValidator;
 import top.kx.heartbeat.domain.flow.validation.FlowValidationResult;
 
@@ -23,10 +23,10 @@ import java.util.stream.Collectors;
 public class FlowExecutor {
 
     /**
-     * 节点组件仓储。
+     * 节点组件目录。
      */
     @Resource
-    private NodeComponentRepository componentRepository;
+    private NodeComponentRegistryService componentRegistryService;
 
     /**
      * 流程运行记录仓储。
@@ -55,7 +55,7 @@ public class FlowExecutor {
      */
     public FlowDebugResult debug(FlowDefinition flow, Map<String, Object> input) {
         // 查询全部启用节点组件。
-        List<NodeComponentManifest> manifests = componentRepository.findAllActive();
+        List<NodeComponentManifest> manifests = componentRegistryService.listActive();
         // 校验流程定义。
         FlowValidationResult validation = validator.validate(flow, manifests);
         // 判断流程定义是否有效。

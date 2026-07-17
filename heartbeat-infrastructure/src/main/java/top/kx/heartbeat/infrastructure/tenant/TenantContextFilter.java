@@ -1,5 +1,6 @@
 package top.kx.heartbeat.infrastructure.tenant;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import top.kx.heartbeat.domain.auth.TokenIssuer;
@@ -63,10 +64,10 @@ public class TenantContextFilter extends OncePerRequestFilter {
     private long resolveTenantId(HttpServletRequest request) {
         Long stateTenantId = socialCallbackTenantId(request);
         String value = request.getHeader(TENANT_HEADER);
-        if (value == null || value.trim().isEmpty()) {
+        if (StringUtils.isBlank(value)) {
             value = request.getParameter(TENANT_PARAMETER);
         }
-        if (value == null || value.trim().isEmpty()) {
+        if (StringUtils.isBlank(value)) {
             return stateTenantId == null ? DEFAULT_TENANT_ID : stateTenantId;
         }
         try {
@@ -88,7 +89,7 @@ public class TenantContextFilter extends OncePerRequestFilter {
             return null;
         }
         String state = request.getParameter("state");
-        if (state == null || state.trim().isEmpty()) {
+        if (StringUtils.isBlank(state)) {
             return null;
         }
         try {

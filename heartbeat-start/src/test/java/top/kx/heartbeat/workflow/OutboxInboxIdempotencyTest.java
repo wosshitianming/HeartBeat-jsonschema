@@ -7,6 +7,7 @@ import org.springframework.test.context.ActiveProfiles;
 import top.kx.heartbeat.infrastructure.event.ReliableWorkflowEventService;
 import top.kx.heartbeat.infrastructure.persistence.entity.event.FlowWaitStateDO;
 import top.kx.heartbeat.infrastructure.tenant.TenantContext;
+import top.kx.heartbeat.support.MySqlIntegrationTestSupport;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -15,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.*;
         "heartbeat.security.dev-header-enabled=false"
 })
 @ActiveProfiles("local")
-class OutboxInboxIdempotencyTest {
+class OutboxInboxIdempotencyTest extends MySqlIntegrationTestSupport {
 
     @Autowired
     private ReliableWorkflowEventService eventService;

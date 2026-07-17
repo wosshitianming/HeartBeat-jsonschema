@@ -1,0 +1,95 @@
+.mobile-workspace-page {
+    min-width: 0;
+}
+
+.mobile-feedback {
+    margin-bottom: 12px;
+    border-left: 3px solid var(--hb-success);
+    padding: 9px 12px;
+    color: var(--hb-success);
+    background: color-mix(in srgb, var(--hb-success) 7%, var(--hb-surface));
+    font-size: 12px;
+}
+
+.mobile-app-context {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 14px;
+    border-top: 1px solid var(--hb-border);
+    border-bottom: 1px solid var(--hb-border);
+    padding: 12px 14px;
+    background: var(--hb-surface-muted);
+}
+
+.mobile-app-context > div {
+    display: grid;
+    min-width: 0;
+    gap: 2px;
+}
+
+.mobile-app-context > div span,
+.mobile-app-context label span,
+.mobile-app-context small {
+    color: var(--hb-text-faint);
+    font-size: 11px;
+}
+
+.mobile-app-context strong,
+.mobile-app-context small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mobile-app-context strong {
+    color: var(--hb-text);
+    font-size: 15px;
+}
+
+.mobile-app-context label {
+    display: grid;
+    flex: 0 0 min(320px, 44%);
+    gap: 5px;
+}
+
+.mobile-app-context select {
+    width: 100%;
+    height: 36px;
+    border: 1px solid var(--hb-border);
+    border-radius: 6px;
+    padding: 0 10px;
+    color: var(--hb-text);
+    background: var(--hb-surface);
+}
+
+.mobile-empty-context {
+    display: grid;
+    justify-items: start;
+    gap: 8px;
+    padding: 24px;
+}
+
+.mobile-empty-context strong {
+    color: var(--hb-text);
+    font-size: 16px;
+}
+
+.mobile-empty-context p {
+    margin: 0;
+    color: var(--hb-text-soft);
+    font-size: 13px;
+}
+
+@media (max-width: 720px) {
+    .mobile-app-context {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .mobile-app-context label {
+        flex-basis: auto;
+        width: 100%;
+    }
+}

@@ -346,13 +346,13 @@
         delete_marker = #{record.deleteMarker,jdbcType=BIGINT},
       </if>
       <if test="record.createBy != null">
-        create_by = #{record.createBy,jdbcType=BIGINT},
+          create_by = #{record.createBy,jdbcType=VARCHAR},
       </if>
       <if test="record.createTime != null">
         create_time = #{record.createTime,jdbcType=TIMESTAMP},
       </if>
       <if test="record.updateBy != null">
-        update_by = #{record.updateBy,jdbcType=BIGINT},
+          update_by = #{record.updateBy,jdbcType=VARCHAR},
       </if>
       <if test="record.updateTime != null">
         update_time = #{record.updateTime,jdbcType=TIMESTAMP},
@@ -381,9 +381,9 @@
     expired_at = #{record.expiredAt,jdbcType=TIMESTAMP},
     version = #{record.version,jdbcType=INTEGER},
     delete_marker = #{record.deleteMarker,jdbcType=BIGINT},
-    create_by = #{record.createBy,jdbcType=BIGINT},
+      create_by = #{record.createBy,jdbcType=VARCHAR},
     create_time = #{record.createTime,jdbcType=TIMESTAMP},
-    update_by = #{record.updateBy,jdbcType=BIGINT},
+      update_by = #{record.updateBy,jdbcType=VARCHAR},
     update_time = #{record.updateTime,jdbcType=TIMESTAMP},
     notice_content = #{record.noticeContent,jdbcType=LONGVARCHAR}
     <if test="_parameter != null">
@@ -406,9 +406,9 @@
     expired_at = #{record.expiredAt,jdbcType=TIMESTAMP},
     version = #{record.version,jdbcType=INTEGER},
     delete_marker = #{record.deleteMarker,jdbcType=BIGINT},
-    create_by = #{record.createBy,jdbcType=BIGINT},
+      create_by = #{record.createBy,jdbcType=VARCHAR},
     create_time = #{record.createTime,jdbcType=TIMESTAMP},
-    update_by = #{record.updateBy,jdbcType=BIGINT},
+      update_by = #{record.updateBy,jdbcType=VARCHAR},
     update_time = #{record.updateTime,jdbcType=TIMESTAMP}
     <if test="_parameter != null">
       <include refid="Update_By_Example_Where_Clause" />

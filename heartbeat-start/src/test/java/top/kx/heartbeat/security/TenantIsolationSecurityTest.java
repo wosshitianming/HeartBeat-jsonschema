@@ -56,6 +56,21 @@ class TenantIsolationSecurityTest {
     }
 
     @Test
+    void tenantScopeRestoresAnOuterPlatformScope() {
+        TenantContext.runAsPlatform(() -> {
+            assertNull(TenantContext.getTenantId());
+            String result = TenantContext.runAsTenant(9L, () -> {
+                assertEquals(Long.valueOf(9L), TenantContext.getTenantId());
+                return "tenant-work";
+            });
+            assertEquals("tenant-work", result);
+            assertNull(TenantContext.getTenantId());
+            assertArrayEquals(new Object[0], tenantFactory.getTenantIds());
+            return null;
+        });
+    }
+
+    @Test
     void platformIdsRejectZeroAndNegativeValues() {
         assertEquals(1L, TenantId.of(1L).value());
         assertEquals(1L, UserId.of(1L).value());

@@ -35,7 +35,9 @@ public enum FlowRunTriggerType {
     /**
      * 调试触发。
      */
-    DEBUG("DEBUG", "调试触发");
+    DEBUG("DEBUG", "调试触发"),
+
+    RETRY("RETRY", "失败执行重试");
 
     /**
      * 触发类型编码。

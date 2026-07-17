@@ -22,9 +22,9 @@ CREATE TABLE `sys_tenant_plan`
     `sort_no`           INT             NOT NULL DEFAULT 0 COMMENT '排序号',
     `version`           INT             NOT NULL DEFAULT 0 COMMENT '乐观锁版本',
     `delete_marker`     BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '逻辑删除标识',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_tenant_plan_code` (`plan_code`, `delete_marker`),
@@ -48,9 +48,9 @@ CREATE TABLE `sys_plan_feature`
     `sort_no`        INT             NOT NULL DEFAULT 0 COMMENT '排序号',
     `version`        INT             NOT NULL DEFAULT 0 COMMENT '乐观锁版本',
     `delete_marker`  BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '逻辑删除标识',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_plan_feature_code` (`plan_id`, `feature_code`),
@@ -77,9 +77,9 @@ CREATE TABLE `sys_tenant`
     `status`         VARCHAR(16)     NOT NULL DEFAULT 'ENABLED' COMMENT '状态',
     `version`        INT             NOT NULL DEFAULT 0 COMMENT '乐观锁版本',
     `delete_marker`  BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '逻辑删除标识',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_tenant_code` (`tenant_code`, `delete_marker`),
@@ -102,9 +102,9 @@ CREATE TABLE `sys_tenant_feature`
     `effective_at` DATETIME(3)     NULL COMMENT '生效时间',
     `expire_at`    DATETIME(3)     NULL COMMENT '到期时间',
     `version`      INT             NOT NULL DEFAULT 0 COMMENT '乐观锁版本',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_tenant_feature_code` (`tenant_id`, `feature_code`),
@@ -129,9 +129,9 @@ CREATE TABLE `sys_dept`
     `status`         VARCHAR(16)     NOT NULL DEFAULT 'ENABLED' COMMENT '状态',
     `version`        INT             NOT NULL DEFAULT 0 COMMENT '乐观锁版本',
     `delete_marker`  BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '逻辑删除标识',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_dept_code` (`tenant_id`, `dept_code`, `delete_marker`),
@@ -154,9 +154,9 @@ CREATE TABLE `sys_post`
     `status`         VARCHAR(16)     NOT NULL DEFAULT 'ENABLED' COMMENT '状态',
     `version`        INT             NOT NULL DEFAULT 0 COMMENT '乐观锁版本',
     `delete_marker`  BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '逻辑删除标识',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_post_code` (`tenant_id`, `post_code`, `delete_marker`),
@@ -186,9 +186,9 @@ CREATE TABLE `sys_user`
     `last_login_ip`       VARCHAR(64)     NULL COMMENT '最后登录IP',
     `version`             INT             NOT NULL DEFAULT 0 COMMENT '乐观锁版本',
     `delete_marker`       BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '逻辑删除标识',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_user_username` (`tenant_id`, `username`, `delete_marker`),
@@ -207,10 +207,10 @@ CREATE TABLE `sys_user_post`
     `user_id`      BIGINT UNSIGNED NOT NULL COMMENT '用户ID',
     `post_id`      BIGINT UNSIGNED NOT NULL COMMENT '岗位ID',
     `primary_post` TINYINT(1)      NOT NULL DEFAULT 0 COMMENT '是否主岗位',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_user_post` (`tenant_id`, `user_id`, `post_id`),
     KEY `idx_user_post_post` (`tenant_id`, `post_id`, `user_id`)
@@ -231,9 +231,9 @@ CREATE TABLE `sys_role`
     `status`         VARCHAR(16)     NOT NULL DEFAULT 'ENABLED' COMMENT '状态',
     `version`        INT             NOT NULL DEFAULT 0 COMMENT '乐观锁版本',
     `delete_marker`  BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '逻辑删除标识',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_role_code` (`tenant_id`, `role_code`, `delete_marker`),
@@ -257,9 +257,9 @@ CREATE TABLE `sys_permission`
     `sort_no`         INT             NOT NULL DEFAULT 0 COMMENT '排序号',
     `version`         INT             NOT NULL DEFAULT 0 COMMENT '乐观锁版本',
     `delete_marker`   BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '逻辑删除标识',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_permission_code` (`tenant_id`, `permission_code`, `delete_marker`),
@@ -289,9 +289,9 @@ CREATE TABLE `sys_menu`
     `status`          VARCHAR(16)     NOT NULL DEFAULT 'ENABLED' COMMENT '状态',
     `version`         INT             NOT NULL DEFAULT 0 COMMENT '乐观锁版本',
     `delete_marker`   BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '逻辑删除标识',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_menu_code` (`tenant_id`, `menu_code`, `delete_marker`),
@@ -307,10 +307,10 @@ CREATE TABLE `sys_user_role`
     `tenant_id`  BIGINT UNSIGNED NOT NULL COMMENT '租户ID',
     `user_id`    BIGINT UNSIGNED NOT NULL COMMENT '用户ID',
     `role_id`    BIGINT UNSIGNED NOT NULL COMMENT '角色ID',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_user_role` (`tenant_id`, `user_id`, `role_id`),
     KEY `idx_user_role_role` (`tenant_id`, `role_id`, `user_id`)
@@ -324,10 +324,10 @@ CREATE TABLE `sys_role_permission`
     `tenant_id`     BIGINT UNSIGNED NOT NULL COMMENT '租户ID',
     `role_id`       BIGINT UNSIGNED NOT NULL COMMENT '角色ID',
     `permission_id` BIGINT UNSIGNED NOT NULL COMMENT '权限ID',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_role_permission` (`tenant_id`, `role_id`, `permission_id`),
     KEY `idx_role_permission_permission` (`tenant_id`, `permission_id`, `role_id`)
@@ -341,10 +341,10 @@ CREATE TABLE `sys_menu_permission`
     `tenant_id`     BIGINT UNSIGNED NOT NULL COMMENT '租户ID',
     `menu_id`       BIGINT UNSIGNED NOT NULL COMMENT '菜单ID',
     `permission_id` BIGINT UNSIGNED NOT NULL COMMENT '权限ID',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_menu_permission` (`tenant_id`, `menu_id`, `permission_id`),
     KEY `idx_menu_permission_permission` (`tenant_id`, `permission_id`, `menu_id`)
@@ -358,10 +358,10 @@ CREATE TABLE `sys_role_dept`
     `tenant_id`  BIGINT UNSIGNED NOT NULL COMMENT '租户ID',
     `role_id`    BIGINT UNSIGNED NOT NULL COMMENT '角色ID',
     `dept_id`    BIGINT UNSIGNED NOT NULL COMMENT '部门ID',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_role_dept` (`tenant_id`, `role_id`, `dept_id`),
     KEY `idx_role_dept_dept` (`tenant_id`, `dept_id`, `role_id`)
@@ -380,9 +380,9 @@ CREATE TABLE `sys_dict_type`
     `sort_no`        INT             NOT NULL DEFAULT 0 COMMENT '排序号',
     `version`        INT             NOT NULL DEFAULT 0 COMMENT '乐观锁版本',
     `delete_marker`  BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '逻辑删除标识',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_dict_type_code` (`tenant_id`, `dict_code`, `delete_marker`),
@@ -406,9 +406,9 @@ CREATE TABLE `sys_dict_item`
     `sort_no`        INT             NOT NULL DEFAULT 0 COMMENT '排序号',
     `version`        INT             NOT NULL DEFAULT 0 COMMENT '乐观锁版本',
     `delete_marker`  BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '逻辑删除标识',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_dict_item_value` (`tenant_id`, `dict_type_id`, `item_value`, `delete_marker`),
@@ -431,9 +431,9 @@ CREATE TABLE `sys_config`
     `status`         VARCHAR(16)     NOT NULL DEFAULT 'ENABLED' COMMENT '状态',
     `version`        INT             NOT NULL DEFAULT 0 COMMENT '乐观锁版本',
     `delete_marker`  BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '逻辑删除标识',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_config_key` (`tenant_id`, `config_key`, `delete_marker`),
@@ -455,9 +455,9 @@ CREATE TABLE `sys_notice`
     `expired_at`     DATETIME(3)     NULL COMMENT '过期时间',
     `version`        INT             NOT NULL DEFAULT 0 COMMENT '乐观锁版本',
     `delete_marker`  BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '逻辑删除标识',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
     KEY `idx_notice_status` (`tenant_id`, `publish_status`, `published_at`),
@@ -477,8 +477,8 @@ CREATE TABLE `sys_user_preference`
     `version`          INT             NOT NULL DEFAULT 0 COMMENT '乐观锁版本',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_user_preference` (`tenant_id`, `user_id`, `preference_key`)
 ) ENGINE = InnoDB
@@ -500,9 +500,9 @@ CREATE TABLE `auth_oauth_client`
     `status`              VARCHAR(16)     NOT NULL DEFAULT 'ENABLED' COMMENT '状态',
     `version`             INT             NOT NULL DEFAULT 0 COMMENT '乐观锁版本',
     `delete_marker`       BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '逻辑删除标识',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_oauth_client_id` (`tenant_id`, `client_id`, `delete_marker`),
@@ -517,10 +517,10 @@ CREATE TABLE `auth_client_grant`
     `tenant_id`       BIGINT UNSIGNED NOT NULL COMMENT '租户ID',
     `oauth_client_id` BIGINT UNSIGNED NOT NULL COMMENT 'OAuth客户端ID',
     `grant_type`      VARCHAR(64)     NOT NULL COMMENT '授权方式',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_client_grant` (`tenant_id`, `oauth_client_id`, `grant_type`),
     KEY `idx_client_grant_client` (`tenant_id`, `oauth_client_id`)
@@ -534,10 +534,10 @@ CREATE TABLE `auth_client_redirect_uri`
     `tenant_id`       BIGINT UNSIGNED NOT NULL COMMENT '租户ID',
     `oauth_client_id` BIGINT UNSIGNED NOT NULL COMMENT 'OAuth客户端ID',
     `redirect_uri`    VARCHAR(512)    NOT NULL COMMENT '回调地址',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_client_redirect_uri` (`tenant_id`, `oauth_client_id`, `redirect_uri`),
     KEY `idx_client_redirect_client` (`tenant_id`, `oauth_client_id`)
@@ -563,9 +563,9 @@ CREATE TABLE `auth_social_provider`
     `status`            VARCHAR(16)     NOT NULL DEFAULT 'ENABLED' COMMENT '状态',
     `version`           INT             NOT NULL DEFAULT 0 COMMENT '乐观锁版本',
     `delete_marker`     BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '逻辑删除标识',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_social_provider_code` (`tenant_id`, `provider_code`, `delete_marker`),
@@ -589,8 +589,8 @@ CREATE TABLE `auth_social_binding`
     `last_login_at`     DATETIME(3)     NULL COMMENT '最后登录时间',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_social_binding_external` (`tenant_id`, `provider_id`, `external_user_id`),
     UNIQUE KEY `uk_social_binding_user` (`tenant_id`, `provider_id`, `user_id`),
@@ -620,8 +620,8 @@ CREATE TABLE `auth_session`
     `last_access_at`      DATETIME(3)     NULL COMMENT '最后访问时间',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_auth_session_no` (`tenant_id`, `session_id`),
     KEY `idx_auth_session_user` (`tenant_id`, `user_id`, `status`, `expire_at`),
@@ -653,8 +653,8 @@ CREATE TABLE `sys_oper_log`
     `operated_at`      DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '操作时间',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`),
     KEY `idx_oper_log_operator` (`tenant_id`, `operator_id`, `operated_at`),
     KEY `idx_oper_log_trace` (`tenant_id`, `trace_id`),
@@ -678,8 +678,8 @@ CREATE TABLE `sys_login_log`
     `logged_at`      DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '登录时间',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`),
     KEY `idx_login_log_user` (`tenant_id`, `user_id`, `logged_at`),
     KEY `idx_login_log_username` (`tenant_id`, `username`, `logged_at`),
@@ -1086,8 +1086,8 @@ CREATE TABLE `sys_gen_table`
     `delete_marker` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '逻辑删除标记',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_gen_table_name` (`tenant_id`, `table_name`, `delete_marker`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT ='代码生成表配置';
@@ -1108,8 +1108,8 @@ CREATE TABLE `sys_gen_column`
     `sort_no`        INT             NOT NULL DEFAULT 0 COMMENT '字段顺序',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_gen_column_name` (`tenant_id`, `gen_table_id`, `column_name`),
     KEY `idx_gen_column_table` (`tenant_id`, `gen_table_id`)
@@ -1131,8 +1131,8 @@ CREATE TABLE `sys_job`
     `delete_marker`   BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '逻辑删除标记',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_job_code` (`tenant_id`, `job_code`, `delete_marker`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT ='定时任务';
@@ -1151,8 +1151,8 @@ CREATE TABLE `sys_job_log`
     `finished_at`   DATETIME(3)     NOT NULL COMMENT '结束时间',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`),
     KEY `idx_job_log_job_time` (`tenant_id`, `job_id`, `started_at`),
     KEY `idx_job_log_status_time` (`tenant_id`, `result_status`, `started_at`)
@@ -1171,10 +1171,10 @@ CREATE TABLE `structure_definition`
     `status`            VARCHAR(16)     NOT NULL DEFAULT 'DRAFT' COMMENT '状态',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`),
-    KEY           `idx_structure_definition_tenant_status` (`tenant_id`, `status`, `update_time`)
+    KEY         `idx_structure_definition_tenant_status` (`tenant_id`, `status`, `update_time`)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci COMMENT ='结构定义';
@@ -1193,8 +1193,8 @@ CREATE TABLE `structure_draft`
     `sample_digest`     VARCHAR(64)     NOT NULL COMMENT '样例摘要',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_structure_draft_definition` (`tenant_id`, `definition_id`)
 ) ENGINE = InnoDB
@@ -1216,8 +1216,8 @@ CREATE TABLE `structure_version`
     `sample_digest`     VARCHAR(64)     NOT NULL COMMENT '样例摘要',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_structure_version_no` (`tenant_id`, `definition_id`, `version_no`)
 ) ENGINE = InnoDB
@@ -1234,8 +1234,8 @@ CREATE TABLE `structure_artifact`
     `artifact_json` JSON            NOT NULL COMMENT '产物内容',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_structure_artifact_key` (`tenant_id`, `version_id`, `artifact_key`)
 ) ENGINE = InnoDB
@@ -1253,8 +1253,8 @@ CREATE TABLE `structure_publish_audit`
     `summary`       VARCHAR(512)    NULL COMMENT '摘要',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `create_by` bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `update_by` bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`),
     KEY `idx_structure_publish_audit_definition` (`tenant_id`, `definition_id`, `version_no`)
 ) ENGINE = InnoDB
@@ -1419,18 +1419,18 @@ CREATE TABLE `wf_process_instance`
     `id`              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '审批流程实例ID',
     `tenant_id`       BIGINT UNSIGNED NOT NULL COMMENT '租户ID',
     `definition_id`   BIGINT UNSIGNED NOT NULL COMMENT '流程定义ID',
-    `business_key`    VARCHAR(128) NULL COMMENT '业务键',
-    `title`           VARCHAR(128) NOT NULL COMMENT '实例标题',
+    `business_key` VARCHAR(128) NULL COMMENT '业务键',
+    `title`        VARCHAR(128) NOT NULL COMMENT '实例标题',
     `initiator_id`    BIGINT UNSIGNED NULL COMMENT '发起人ID',
-    `status`          VARCHAR(16)  NOT NULL COMMENT '实例状态',
+    `status`       VARCHAR(16)  NOT NULL COMMENT '实例状态',
     `current_task_id` BIGINT UNSIGNED NULL COMMENT '当前任务ID',
-    `payload`         JSON NULL COMMENT '业务载荷',
+    `payload`      JSON NULL COMMENT '业务载荷',
     `started_at`      DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '开始时间',
     `ended_at`        DATETIME(3)     NULL COMMENT '结束时间',
-    `create_time`     datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `update_time`     datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `create_by`       bigint(20) unsigned NOT NULL COMMENT '创建人ID',
-    `update_by`       bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `create_time`  datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time`  datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `create_by`    bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `update_by`    bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`),
     KEY `idx_wf_process_instance_status` (`tenant_id`, `status`, `started_at`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT ='审批流程实例';
@@ -1440,17 +1440,17 @@ CREATE TABLE `wf_task`
     `id`           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '审批任务ID',
     `tenant_id`    BIGINT UNSIGNED NOT NULL COMMENT '租户ID',
     `instance_id`  BIGINT UNSIGNED NOT NULL COMMENT '流程实例ID',
-    `name`         VARCHAR(128) NOT NULL COMMENT '任务名称',
+    `name`        VARCHAR(128) NOT NULL COMMENT '任务名称',
     `assignee_id`  BIGINT UNSIGNED NULL COMMENT '处理人ID',
-    `status`       VARCHAR(16)  NOT NULL COMMENT '任务状态',
-    `comment`      VARCHAR(512) NULL COMMENT '任务备注',
-    `create_time`  datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `status`      VARCHAR(16)  NOT NULL COMMENT '任务状态',
+    `comment`     VARCHAR(512) NULL COMMENT '任务备注',
+    `create_time` datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `completed_at` DATETIME(3)     NULL COMMENT '完成时间',
-    `update_time`  datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `create_by`    bigint(20) unsigned NOT NULL COMMENT '创建人ID',
-    `update_by`    bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `update_time` datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`),
-    KEY            `idx_wf_task_assignee` (`tenant_id`, `assignee_id`, `status`, `create_time`)
+    KEY           `idx_wf_task_assignee` (`tenant_id`, `assignee_id`, `status`, `create_time`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT ='审批任务';
 
 CREATE TABLE `wf_task_action`
@@ -1606,37 +1606,37 @@ CREATE TABLE `pay_notify_log`
 -- =================================================================
 CREATE TABLE `mp_account`
 (
-    `id`          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '公众号账号ID',
-    `tenant_id`   BIGINT UNSIGNED NOT NULL COMMENT '租户ID',
-    `name`        VARCHAR(128) NULL COMMENT '账号名称',
-    `app_id`      VARCHAR(128) NULL COMMENT '公众号AppID',
-    `app_secret`  VARCHAR(512) NULL COMMENT '公众号AppSecret',
-    `token`       VARCHAR(128) NULL COMMENT '消息校验Token',
-    `aes_key`     VARCHAR(256) NULL COMMENT '消息加解密密钥',
-    `status`      VARCHAR(16) NULL COMMENT '状态',
+    `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '公众号账号ID',
+    `tenant_id`  BIGINT UNSIGNED NOT NULL COMMENT '租户ID',
+    `name`       VARCHAR(128) NULL COMMENT '账号名称',
+    `app_id`     VARCHAR(128) NULL COMMENT '公众号AppID',
+    `app_secret` VARCHAR(512) NULL COMMENT '公众号AppSecret',
+    `token`      VARCHAR(128) NULL COMMENT '消息校验Token',
+    `aes_key`    VARCHAR(256) NULL COMMENT '消息加解密密钥',
+    `status`     VARCHAR(16) NULL COMMENT '状态',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `create_by`  bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `update_by`  bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`), UNIQUE KEY `uk_mp_account_app` (`tenant_id`, `app_id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT ='公众号账号';
 
 CREATE TABLE `mp_menu`
 (
-    `id`          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '公众号菜单ID',
-    `tenant_id`   BIGINT UNSIGNED NOT NULL COMMENT '租户ID',
-    `account_id`  BIGINT UNSIGNED NULL COMMENT '公众号账号ID',
-    `parent_id`   BIGINT UNSIGNED NULL COMMENT '父菜单ID',
-    `name`        VARCHAR(128) NULL COMMENT '菜单名称',
-    `menu_type`   VARCHAR(32) NULL COMMENT '菜单类型',
-    `url`         VARCHAR(512) NULL COMMENT '跳转地址',
-    `payload`     JSON NULL COMMENT '菜单载荷',
-    `sort_no`     INT NULL COMMENT '排序号',
-    `status`      VARCHAR(16) NULL COMMENT '状态',
+    `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '公众号菜单ID',
+    `tenant_id`  BIGINT UNSIGNED NOT NULL COMMENT '租户ID',
+    `account_id` BIGINT UNSIGNED NULL COMMENT '公众号账号ID',
+    `parent_id`  BIGINT UNSIGNED NULL COMMENT '父菜单ID',
+    `name`       VARCHAR(128) NULL COMMENT '菜单名称',
+    `menu_type`  VARCHAR(32) NULL COMMENT '菜单类型',
+    `url`        VARCHAR(512) NULL COMMENT '跳转地址',
+    `payload`    JSON NULL COMMENT '菜单载荷',
+    `sort_no`    INT NULL COMMENT '排序号',
+    `status`     VARCHAR(16) NULL COMMENT '状态',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `create_by`  bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `update_by`  bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT ='公众号菜单';
 
@@ -1818,20 +1818,20 @@ CREATE TABLE `mobile_page`
 
 CREATE TABLE `mobile_api_route`
 (
-    `id`          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '移动接口路由ID',
-    `tenant_id`   BIGINT UNSIGNED NOT NULL COMMENT '租户ID',
-    `app_id`      BIGINT UNSIGNED NULL COMMENT '移动应用ID',
-    `name`        VARCHAR(128) NULL COMMENT '路由名称',
-    `route_key`   VARCHAR(128) NULL COMMENT '路由标识',
-    `method`      VARCHAR(16) NULL COMMENT 'HTTP方法',
-    `path`        VARCHAR(256) NULL COMMENT '请求路径',
-    `target_url`  VARCHAR(512) NULL COMMENT '目标地址',
-    `sort_no`     INT NULL COMMENT '排序号',
-    `status`      VARCHAR(16) NULL COMMENT '状态',
+    `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '移动接口路由ID',
+    `tenant_id`  BIGINT UNSIGNED NOT NULL COMMENT '租户ID',
+    `app_id`     BIGINT UNSIGNED NULL COMMENT '移动应用ID',
+    `name`       VARCHAR(128) NULL COMMENT '路由名称',
+    `route_key`  VARCHAR(128) NULL COMMENT '路由标识',
+    `method`     VARCHAR(16) NULL COMMENT 'HTTP方法',
+    `path`       VARCHAR(256) NULL COMMENT '请求路径',
+    `target_url` VARCHAR(512) NULL COMMENT '目标地址',
+    `sort_no`    INT NULL COMMENT '排序号',
+    `status`     VARCHAR(16) NULL COMMENT '状态',
     `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `create_by`   bigint(20) unsigned NOT NULL COMMENT '创建人ID',
-    `update_by`   bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `create_by`  bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `update_by`  bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT ='移动接口路由';
 
@@ -1899,30 +1899,30 @@ CREATE INDEX `idx_flow_run_event_node`
 
 CREATE TABLE `hb_flow_trigger`
 (
-    `id`                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '流程触发器ID',
-    `tenant_id`         BIGINT UNSIGNED NOT NULL COMMENT '租户ID',
-    `flow_id`           BIGINT UNSIGNED NOT NULL COMMENT '流程定义ID',
-    `flow_version_id`   BIGINT UNSIGNED NULL COMMENT '流程版本ID',
-    `trigger_code`      VARCHAR(128) NOT NULL COMMENT '触发器编码',
-    `trigger_type`      VARCHAR(32)  NOT NULL COMMENT '触发器类型',
-    `webhook_key`       VARCHAR(128) NULL COMMENT 'Webhook键',
-    `cron_expression`   VARCHAR(128) NULL COMMENT 'Cron表达式',
-    `event_topic`       VARCHAR(128) NULL COMMENT '领域事件主题',
-    `mq_type`           VARCHAR(32) NULL COMMENT '消息队列类型',
-    `mq_topic`          VARCHAR(255) NULL COMMENT '消息主题',
-    `mq_tag`            VARCHAR(255) NULL COMMENT '消息标签',
-    `config_json`       JSON NULL COMMENT '触发器配置',
-    `status`            VARCHAR(32)  NOT NULL COMMENT '触发器状态',
+    `id`              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '流程触发器ID',
+    `tenant_id`       BIGINT UNSIGNED NOT NULL COMMENT '租户ID',
+    `flow_id`         BIGINT UNSIGNED NOT NULL COMMENT '流程定义ID',
+    `flow_version_id` BIGINT UNSIGNED NULL COMMENT '流程版本ID',
+    `trigger_code`    VARCHAR(128) NOT NULL COMMENT '触发器编码',
+    `trigger_type`    VARCHAR(32)  NOT NULL COMMENT '触发器类型',
+    `webhook_key`     VARCHAR(128) NULL COMMENT 'Webhook键',
+    `cron_expression` VARCHAR(128) NULL COMMENT 'Cron表达式',
+    `event_topic`     VARCHAR(128) NULL COMMENT '领域事件主题',
+    `mq_type`         VARCHAR(32) NULL COMMENT '消息队列类型',
+    `mq_topic`        VARCHAR(255) NULL COMMENT '消息主题',
+    `mq_tag`          VARCHAR(255) NULL COMMENT '消息标签',
+    `config_json`     JSON NULL COMMENT '触发器配置',
+    `status`          VARCHAR(32)  NOT NULL COMMENT '触发器状态',
     `last_triggered_at` DATETIME(3) NULL COMMENT '最后触发时间',
-    `create_time`       datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `update_time`       datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `create_by`         bigint(20) unsigned NOT NULL COMMENT '创建人ID',
-    `update_by`         bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `create_time`     datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time`     datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `create_by`       bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `update_by`       bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_flow_trigger_code` (`tenant_id`, `trigger_code`),
     UNIQUE KEY `uk_flow_webhook_key` (`tenant_id`, `webhook_key`),
-    KEY                 `idx_flow_trigger_flow` (`tenant_id`, `flow_id`),
-    KEY                 `idx_flow_trigger_type_status` (`tenant_id`, `trigger_type`, `status`)
+    KEY               `idx_flow_trigger_flow` (`tenant_id`, `flow_id`),
+    KEY               `idx_flow_trigger_type_status` (`tenant_id`, `trigger_type`, `status`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '流程触发器';
 
 CREATE TABLE `hb_flow_engine_mapping`
@@ -1947,66 +1947,520 @@ CREATE TABLE `hb_flow_engine_mapping`
 
 CREATE TABLE `hb_flow_wait_subscription`
 (
-    `id`                 BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '等待订阅ID',
-    `tenant_id`          BIGINT UNSIGNED NOT NULL COMMENT '租户ID',
-    `run_id`             BIGINT UNSIGNED NOT NULL COMMENT '运行ID',
+    `id`               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '等待订阅ID',
+    `tenant_id`        BIGINT UNSIGNED NOT NULL COMMENT '租户ID',
+    `run_id`           BIGINT UNSIGNED NOT NULL COMMENT '运行ID',
     `engine_instance_id` VARCHAR(128) NOT NULL COMMENT '引擎流程实例ID',
-    `execution_id`       VARCHAR(128) NOT NULL COMMENT '引擎执行ID',
-    `node_id`            VARCHAR(128) NOT NULL COMMENT '等待节点ID',
-    `wait_instance_id`   VARCHAR(128) NOT NULL COMMENT '等待实例ID',
-    `message_name`       VARCHAR(128) NULL COMMENT '消息名称',
-    `correlation_key`    VARCHAR(128) NULL COMMENT '关联键',
-    `status`             VARCHAR(32)  NOT NULL COMMENT '等待状态',
-    `expire_at`          DATETIME(3) NULL COMMENT '过期时间',
-    `create_time`        datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `update_time`        datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `create_by`          bigint(20) unsigned NOT NULL COMMENT '创建人ID',
-    `update_by`          bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `execution_id`     VARCHAR(128) NOT NULL COMMENT '引擎执行ID',
+    `node_id`          VARCHAR(128) NOT NULL COMMENT '等待节点ID',
+    `wait_instance_id` VARCHAR(128) NOT NULL COMMENT '等待实例ID',
+    `message_name`     VARCHAR(128) NULL COMMENT '消息名称',
+    `correlation_key`  VARCHAR(128) NULL COMMENT '关联键',
+    `status`           VARCHAR(32)  NOT NULL COMMENT '等待状态',
+    `expire_at`        DATETIME(3) NULL COMMENT '过期时间',
+    `create_time`      datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time`      datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `create_by`        bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `update_by`        bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_flow_wait_instance` (`tenant_id`, `wait_instance_id`),
-    KEY                  `idx_flow_wait_correlation` (`tenant_id`, `message_name`, `correlation_key`, `status`)
+    KEY                `idx_flow_wait_correlation` (`tenant_id`, `message_name`, `correlation_key`, `status`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '流程等待订阅';
 
 CREATE TABLE `hb_flow_io_command`
 (
-    `id`              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '外部IO命令ID',
-    `tenant_id`       BIGINT UNSIGNED NOT NULL COMMENT '租户ID',
-    `run_id`          BIGINT UNSIGNED NOT NULL COMMENT '运行ID',
-    `node_id`         VARCHAR(128) NOT NULL COMMENT '节点ID',
-    `command_type`    VARCHAR(64)  NOT NULL COMMENT '命令类型',
+    `id`            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '外部IO命令ID',
+    `tenant_id`     BIGINT UNSIGNED NOT NULL COMMENT '租户ID',
+    `run_id`        BIGINT UNSIGNED NOT NULL COMMENT '运行ID',
+    `node_id`       VARCHAR(128) NOT NULL COMMENT '节点ID',
+    `command_type`  VARCHAR(64)  NOT NULL COMMENT '命令类型',
     `idempotency_key` VARCHAR(128) NOT NULL COMMENT '外部幂等键',
-    `request_json`    JSON NULL COMMENT '请求摘要',
-    `response_json`   JSON NULL COMMENT '响应摘要',
-    `status`          VARCHAR(32)  NOT NULL COMMENT '命令状态',
-    `attempt_no`      INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '尝试次数',
+    `request_json`  JSON NULL COMMENT '请求摘要',
+    `response_json` JSON NULL COMMENT '响应摘要',
+    `status`        VARCHAR(32)  NOT NULL COMMENT '命令状态',
+    `attempt_no`    INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '尝试次数',
     `next_attempt_at` DATETIME(3) NULL COMMENT '下次尝试时间',
-    `lease_owner`     VARCHAR(128) NULL COMMENT '租约持有人',
-    `lease_until`     DATETIME(3) NULL COMMENT '租约截止时间',
-    `error_code`      VARCHAR(64) NULL COMMENT '错误编码',
-    `error_message`   TEXT NULL COMMENT '错误信息',
-    `create_time`     datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `update_time`     datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `create_by`       bigint(20) unsigned NOT NULL COMMENT '创建人ID',
-    `update_by`       bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `lease_owner`   VARCHAR(128) NULL COMMENT '租约持有人',
+    `lease_until`   DATETIME(3) NULL COMMENT '租约截止时间',
+    `error_code`    VARCHAR(64) NULL COMMENT '错误编码',
+    `error_message` TEXT NULL COMMENT '错误信息',
+    `create_time`   datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time`   datetime     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `create_by`     bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `update_by`     bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`),
     UNIQUE KEY `uk_flow_io_idempotency` (`tenant_id`, `idempotency_key`),
-    KEY               `idx_flow_io_ready` (`tenant_id`, `status`, `next_attempt_at`),
-    KEY               `idx_flow_io_run` (`tenant_id`, `run_id`, `node_id`)
+    KEY             `idx_flow_io_ready` (`tenant_id`, `status`, `next_attempt_at`),
+    KEY             `idx_flow_io_run` (`tenant_id`, `run_id`, `node_id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '流程外部IO命令';
 
 CREATE TABLE `hb_flow_payload`
 (
-    `id`             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Payload ID',
-    `tenant_id`      BIGINT UNSIGNED NOT NULL COMMENT '租户ID',
-    `run_id`         BIGINT UNSIGNED NULL COMMENT '运行ID',
+    `id`           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'Payload ID',
+    `tenant_id`    BIGINT UNSIGNED NOT NULL COMMENT '租户ID',
+    `run_id`       BIGINT UNSIGNED NULL COMMENT '运行ID',
     `payload_sha256` CHAR(64) NOT NULL COMMENT 'Payload摘要',
-    `payload_json`   JSON     NOT NULL COMMENT '脱敏后的Payload内容',
-    `create_time`    datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `update_time`    datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `create_by`      bigint(20) unsigned NOT NULL COMMENT '创建人ID',
-    `update_by`      bigint(20) unsigned NOT NULL COMMENT '更新人ID',
+    `payload_json` JSON     NOT NULL COMMENT '脱敏后的Payload内容',
+    `create_time`  datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time`  datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `create_by`    bigint(20) unsigned NOT NULL COMMENT '创建人ID',
+    `update_by`    bigint(20) unsigned NOT NULL COMMENT '更新人ID',
     PRIMARY KEY (`id`),
-    KEY              `idx_flow_payload_run` (`tenant_id`, `run_id`),
-    KEY              `idx_flow_payload_hash` (`tenant_id`, `payload_sha256`)
+    KEY            `idx_flow_payload_run` (`tenant_id`, `run_id`),
+    KEY            `idx_flow_payload_hash` (`tenant_id`, `payload_sha256`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '流程Payload瘦身存储';
+
+-- =================================================================
+-- V10__flow_operations_ledger.sql
+-- =================================================================
+ALTER TABLE `hb_flow_run`
+    ADD COLUMN `last_event_seq` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '运行内最后事件序号' AFTER `retry_reason`;
+
+UPDATE `hb_flow_run_event`
+SET `event_seq` = NULL;
+UPDATE `hb_flow_run_event`
+SET `event_seq` = `id`;
+
+ALTER TABLE `hb_flow_run_event`
+    MODIFY COLUMN `event_seq` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '运行内事件序号';
+
+UPDATE `hb_flow_run` r
+    LEFT JOIN (
+    SELECT `tenant_id`, `run_id`, MAX (`event_seq`) AS `max_event_seq`
+    FROM `hb_flow_run_event`
+    GROUP BY `tenant_id`, `run_id`
+    ) e
+ON e.`tenant_id` = r.`tenant_id`
+    AND e.`run_id` = r.`id`
+    SET r.`last_event_seq` = COALESCE (e.`max_event_seq`, 0);
+
+CREATE UNIQUE INDEX `uk_flow_run_engine_instance`
+    ON `hb_flow_run` (`tenant_id`, `engine_instance_id`);
+CREATE INDEX `idx_flow_run_started`
+    ON `hb_flow_run` (`tenant_id`, `started_at`, `id`);
+CREATE INDEX `idx_flow_run_status_started`
+    ON `hb_flow_run` (`tenant_id`, `status`, `started_at`, `id`);
+CREATE INDEX `idx_flow_run_flow_started`
+    ON `hb_flow_run` (`tenant_id`, `flow_id`, `started_at`, `id`);
+
+-- =================================================================
+-- V11__flow_external_io_reliability.sql
+-- =================================================================
+ALTER TABLE `hb_flow_io_command`
+    ADD COLUMN `flow_version_id` BIGINT UNSIGNED NULL COMMENT '流程版本ID' AFTER `run_id`,
+    ADD COLUMN `node_type` VARCHAR(128) NULL COMMENT '节点类型快照' AFTER `node_id`,
+    ADD COLUMN `node_version` VARCHAR(32) NULL COMMENT '节点版本快照' AFTER `node_type`,
+    ADD COLUMN `executor_id` VARCHAR(128) NULL COMMENT '执行器快照' AFTER `node_version`,
+    ADD COLUMN `node_config_json` JSON NULL COMMENT '节点配置快照' AFTER `executor_id`,
+    ADD COLUMN `engine_instance_id` VARCHAR(128) NULL COMMENT 'Flowable流程实例ID' AFTER `node_config_json`,
+    ADD COLUMN `execution_id` VARCHAR(128) NULL COMMENT 'Flowable等待执行ID' AFTER `engine_instance_id`,
+    ADD COLUMN `wait_instance_id` VARCHAR(128) NULL COMMENT '等待实例ID' AFTER `execution_id`,
+    ADD COLUMN `worker_topic` VARCHAR(128) NOT NULL DEFAULT 'flow-io-generic' COMMENT 'Worker主题' AFTER `command_type`,
+    ADD COLUMN `message_name` VARCHAR(128) NOT NULL DEFAULT 'io.node.completed' COMMENT '恢复消息名' AFTER `worker_topic`,
+    ADD COLUMN `correlation_key` VARCHAR(128) NULL COMMENT '恢复关联键' AFTER `message_name`,
+    ADD COLUMN `max_attempts` INT UNSIGNED NOT NULL DEFAULT 1 COMMENT '最大尝试次数' AFTER `attempt_no`,
+    ADD COLUMN `lease_token` VARCHAR(64) NULL COMMENT '租约fencing token' AFTER `lease_until`,
+    ADD COLUMN `lease_version` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '租约版本' AFTER `lease_token`,
+    ADD COLUMN `external_call_policy` VARCHAR(32) NOT NULL DEFAULT 'MANUAL_ONLY' COMMENT '外部调用策略' AFTER `lease_version`,
+    ADD COLUMN `timeout_at` DATETIME(3) NULL COMMENT '命令截止时间' AFTER `external_call_policy`,
+    ADD COLUMN `call_started_at` DATETIME(3) NULL COMMENT '外部调用开始时间' AFTER `timeout_at`,
+    ADD COLUMN `completed_at` DATETIME(3) NULL COMMENT '最终完成时间' AFTER `call_started_at`,
+    ADD COLUMN `result_applied_at` DATETIME(3) NULL COMMENT '结果应用时间' AFTER `completed_at`;
+
+UPDATE `hb_flow_io_command`
+SET `node_type`   = `command_type`,
+    `executor_id` = `command_type`
+WHERE `node_type` IS NULL
+   OR `executor_id` IS NULL;
+
+CREATE UNIQUE INDEX `uk_flow_io_correlation`
+    ON `hb_flow_io_command` (`tenant_id`, `correlation_key`);
+CREATE INDEX `idx_flow_io_worker_ready`
+    ON `hb_flow_io_command` (`tenant_id`, `worker_topic`, `status`, `next_attempt_at`, `id`);
+CREATE INDEX `idx_flow_io_lease`
+    ON `hb_flow_io_command` (`status`, `lease_until`, `id`);
+CREATE INDEX `idx_flow_io_execution`
+    ON `hb_flow_io_command` (`tenant_id`, `engine_instance_id`, `execution_id`);
+
+INSERT INTO `sys_job`
+(`tenant_id`, `job_code`, `job_name`, `job_group`, `invoke_target`, `cron_expression`,
+ `misfire_policy`, `concurrent`, `status`, `version`, `delete_marker`,
+ `create_time`, `update_time`, `create_by`, `update_by`)
+SELECT 1,
+       'flow-io-reconcile',
+       'Flow External I/O Lease Reconcile',
+       'FLOW',
+       'flowExternalIoReconcileJob.reconcileOnce',
+       '0/30 * * * * ?',
+       'SMART',
+       0,
+       'ENABLED',
+       0,
+       0,
+       CURRENT_TIMESTAMP,
+       CURRENT_TIMESTAMP,
+       0,
+       0 WHERE NOT EXISTS (
+    SELECT 1 FROM `sys_job`
+    WHERE `tenant_id` = 1 AND `job_code` = 'flow-io-reconcile' AND `delete_marker` = 0
+);
+
+INSERT INTO `sys_permission`
+(`tenant_id`, `permission_code`, `permission_name`, `permission_type`, `resource_type`,
+ `resource_path`, `http_method`, `description`, `status`, `sort_no`, `version`, `delete_marker`,
+ `create_by`, `create_time`, `update_by`, `update_time`)
+SELECT 1,
+       'flow:worker:execute',
+       'Flow External I/O Worker Execute',
+       'API',
+       'HTTP_API',
+       '/api/v1/flow/io-commands/**',
+       'POST',
+       'Claim and complete external Flow I/O commands',
+       'ENABLED',
+       144,
+       0,
+       0,
+       0,
+       CURRENT_TIMESTAMP,
+       0,
+       CURRENT_TIMESTAMP WHERE NOT EXISTS (
+    SELECT 1 FROM `sys_permission`
+    WHERE `tenant_id` = 1 AND `permission_code` = 'flow:worker:execute' AND `delete_marker` = 0
+);
+
+INSERT INTO `sys_role_permission`
+(`tenant_id`, `role_id`, `permission_id`, `create_by`, `create_time`, `update_by`, `update_time`)
+SELECT 1, 1, p.`id`, 0, CURRENT_TIMESTAMP, 0, CURRENT_TIMESTAMP
+FROM `sys_permission` p
+WHERE p.`tenant_id` = 1
+  AND p.`permission_code` = 'flow:worker:execute'
+  AND p.`delete_marker` = 0
+  AND NOT EXISTS (SELECT 1
+                  FROM `sys_role_permission` rp
+                  WHERE rp.`tenant_id` = 1
+                    AND rp.`role_id` = 1
+                    AND rp.`permission_id` = p.`id`);
+
+-- =================================================================
+-- V12__normalize_sys_user_password_time.sql
+-- =================================================================
+ALTER TABLE `sys_user`
+    CHANGE COLUMN `password_updated_at` `password_update_time` DATETIME(3) NULL COMMENT '密码更新时间';
+
+-- =================================================================
+-- V13__social_provider_auto_registration.sql
+-- =================================================================
+ALTER TABLE `auth_social_provider`
+    ADD COLUMN `auto_register` TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Whether successful social login may create a local user' AFTER `enabled`;
+
+-- =================================================================
+-- V14__normalize_default_admin_credential.sql
+-- =================================================================
+UPDATE `sys_user`
+SET `password_hash`        = '$2a$10$GktqfH9ULvSZcjVlVXMvreLEinbIQ8enqXRlIjYxHlYnNC6JI5/Pi',
+    `password_update_time` = CURRENT_TIMESTAMP(3),
+    `update_time`          = CURRENT_TIMESTAMP(3)
+WHERE `tenant_id` = 1
+  AND `username` = 'admin'
+  AND `delete_marker` = 0
+  AND `password_hash` = '$2a$10$CwTycUXWue0Thq9StjUM0uJ8.7o6iOJIsv4u4tIKu3sZvK7N5Sx9e';
+
+-- =================================================================
+-- V15__normalize_audit_actor_columns.sql
+-- =================================================================
+-- Align the physical schema with the String audit fields used by the generated MyBatis model.
+-- Numeric actor identifiers are converted losslessly, while service/user names remain supported.
+
+ALTER TABLE `auth_client_grant`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `auth_client_redirect_uri`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `auth_oauth_client`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `auth_session`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `auth_social_binding`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `auth_social_provider`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `flow_wait_state`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `hb_connection_credential`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `hb_flow_definition`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `hb_flow_engine_mapping`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `hb_flow_io_command`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `hb_flow_payload`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `hb_flow_run`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `hb_flow_run_event`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `hb_flow_trigger`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `hb_flow_version`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `hb_flow_wait_subscription`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `hb_node_component`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `mobile_api_route`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `mobile_app`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `mobile_app_version`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `mobile_page`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `mp_account`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `mp_auto_reply`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `mp_material`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `mp_menu`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `mp_sync_log`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `pay_channel`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `pay_notify_log`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `pay_order`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `pay_refund`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `pay_transaction`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `report_dataset`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `report_datasource`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `report_export_task`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `report_query_log`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `report_template`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `structure_artifact`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `structure_definition`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `structure_draft`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `structure_publish_audit`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `structure_version`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `sys_config`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `sys_dept`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `sys_dict_item`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `sys_dict_type`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `sys_gen_column`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `sys_gen_table`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `sys_inbox_event`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `sys_job`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `sys_job_log`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `sys_menu`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `sys_menu_permission`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `sys_notice`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `sys_oper_log`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `sys_outbox_event`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `sys_permission`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `sys_plan_feature`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `sys_post`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `sys_role`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `sys_role_dept`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `sys_role_permission`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `sys_tenant`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `sys_tenant_feature`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `sys_tenant_plan`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `sys_user`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `sys_user_post`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `sys_user_preference`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `sys_user_role`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `wf_process_definition`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `wf_process_instance`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `wf_task`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
+
+ALTER TABLE `wf_task_action`
+    MODIFY COLUMN `create_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Creator identifier',
+    MODIFY COLUMN `update_by` VARCHAR (64) NOT NULL DEFAULT '0' COMMENT 'Updater identifier';
 

@@ -742,6 +742,7 @@ public class PlatformSeedInitializer {
         provider.setScopes("");
         // 设置持久化字段，保证数据库记录具备完整业务属性。
         provider.setEnabled(true);
+        provider.setAutoRegister(true);
         // 设置持久化字段，保证数据库记录具备完整业务属性。
         provider.setStatus(PlatformRecordStatus.ENABLED.getCode());
         // 设置持久化字段，保证数据库记录具备完整业务属性。

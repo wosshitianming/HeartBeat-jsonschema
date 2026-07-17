@@ -1,5 +1,6 @@
 package top.kx.heartbeat.infrastructure.persistence.example;
 
+import org.apache.commons.lang3.StringUtils;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
@@ -30,7 +31,7 @@ public final class ExampleQuery {
 
     public static <E> E orderBy(E example, String orderByClause) {
         Objects.requireNonNull(example, "example");
-        if (orderByClause != null && !orderByClause.trim().isEmpty()) {
+        if (StringUtils.isNotBlank(orderByClause)) {
             invoke(example, "setOrderByClause", new Class<?>[]{String.class}, new Object[]{orderByClause.trim()});
         }
         return example;
@@ -64,7 +65,7 @@ public final class ExampleQuery {
 
     public static <C> C whenNotBlank(C criteria, String value, BiConsumer<C, String> consumer) {
         Objects.requireNonNull(criteria, "criteria");
-        if (value != null && !value.trim().isEmpty()) {
+        if (StringUtils.isNotBlank(value)) {
             Objects.requireNonNull(consumer, "consumer").accept(criteria, value.trim());
         }
         return criteria;

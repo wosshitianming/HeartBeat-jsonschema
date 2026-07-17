@@ -1,4 +1,5 @@
 import {useEffect, useMemo, useRef, useState} from 'react'
+import {Activity, Bell, ChevronDown, CircleHelp, RefreshCw, Settings2} from 'lucide-react'
 import AppearanceSettingsPanel from '../components/AppearanceSettingsPanel/AppearanceSettingsPanel'
 
 export default function LayoutHeader({
@@ -57,8 +58,11 @@ export default function LayoutHeader({
   return (
       <header className="hb-layout-header">
         <div className="hb-layout-brand">
-            <span aria-hidden="true"/>
-            <strong>{brand}</strong>
+            <span aria-hidden="true"><Activity size={17}/></span>
+            <div className="hb-layout-brand-copy">
+                <strong>{brand}</strong>
+                <small>管理控制台</small>
+            </div>
         </div>
           <nav className="hb-top-nav" aria-label="一级模块导航">
               {topModules.map((module) => {
@@ -88,8 +92,50 @@ export default function LayoutHeader({
                   title="刷新当前页面"
                   onClick={onRefresh}
               >
-                  <span aria-hidden="true">↻</span>
+                  <RefreshCw size={17} aria-hidden="true"/>
               </button>
+
+              <div className="hb-header-settings">
+                  <button
+                      type="button"
+                      className="hb-header-icon-button"
+                      aria-label="帮助中心"
+                      title="帮助中心"
+                      aria-expanded={openPanel === 'help'}
+                      onClick={() => setOpenPanel((value) => value === 'help' ? null : 'help')}
+                  >
+                      <CircleHelp size={17} aria-hidden="true"/>
+                  </button>
+                  {openPanel === 'help' && (
+                      <div className="hb-header-settings-popover hb-compact-popover" role="dialog"
+                           aria-label="帮助中心">
+                          <strong>需要帮助？</strong>
+                          <p>查看模块说明，或联系平台管理员处理账号与权限问题。</p>
+                          <a href="mailto:support@heartbeat.local">联系技术支持</a>
+                      </div>
+                  )}
+              </div>
+
+              <div className="hb-header-settings">
+                  <button
+                      type="button"
+                      className="hb-header-icon-button hb-notification-button"
+                      aria-label="通知中心"
+                      title="通知中心"
+                      aria-expanded={openPanel === 'notifications'}
+                      onClick={() => setOpenPanel((value) => value === 'notifications' ? null : 'notifications')}
+                  >
+                      <Bell size={17} aria-hidden="true"/>
+                      <span className="hb-notification-dot" aria-hidden="true"/>
+                  </button>
+                  {openPanel === 'notifications' && (
+                      <div className="hb-header-settings-popover hb-compact-popover" role="dialog"
+                           aria-label="通知中心">
+                          <strong>通知中心</strong>
+                          <p>系统运行正常，暂时没有需要处理的新通知。</p>
+                      </div>
+                  )}
+              </div>
 
               <div className="hb-header-settings">
                   <button
@@ -101,7 +147,7 @@ export default function LayoutHeader({
                       aria-expanded={openPanel === 'settings'}
                       onClick={() => setOpenPanel((value) => value === 'settings' ? null : 'settings')}
                   >
-                      <span aria-hidden="true">⚙</span>
+                      <Settings2 size={17} aria-hidden="true"/>
                   </button>
                   {openPanel === 'settings' && (
                       <div className="hb-header-settings-popover" role="dialog" aria-label="外观设置">
@@ -131,7 +177,11 @@ export default function LayoutHeader({
                       onClick={() => setOpenPanel((value) => value === 'user' ? null : 'user')}
                   >
                       <span className="hb-user-avatar" aria-hidden="true">{avatarText}</span>
-                      <span className="hb-user-name">{displayName}</span>
+                      <span className="hb-user-identity">
+                          <span className="hb-user-name">{displayName}</span>
+                          <small>{accountName || '在线'}</small>
+                      </span>
+                      <ChevronDown className="hb-user-chevron" size={14} aria-hidden="true"/>
                   </button>
                   {openPanel === 'user' && (
                       <div className="hb-header-settings-popover hb-user-menu-popover" role="menu">

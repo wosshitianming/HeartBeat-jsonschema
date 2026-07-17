@@ -40,11 +40,13 @@ function MenuTreeNode({ node, checkedIds, onToggle }) {
 export default function RoleMenuDialog({ open, role, busy, onClose, onSubmit }) {
   const [menuTree, setMenuTree] = useState([])
   const [checkedIds, setCheckedIds] = useState([])
+    const [submitError, setSubmitError] = useState('')
 
   useEffect(() => {
     if (!open || !role) return
     setMenuTree(role.menuTree || [])
     setCheckedIds(role.menuIds || [])
+      setSubmitError('')
   }, [open, role])
 
   if (!open || !role) return null
@@ -63,9 +65,14 @@ export default function RoleMenuDialog({ open, role, busy, onClose, onSubmit }) 
     })
   }
 
-  function handleSubmit(event) {
+    async function handleSubmit(event) {
     event.preventDefault()
-    onSubmit(checkedIds)
+        setSubmitError('')
+        try {
+            await onSubmit(checkedIds)
+        } catch (error) {
+            setSubmitError(error?.message || '菜单授权保存失败')
+        }
   }
 
   return (
@@ -80,6 +87,7 @@ export default function RoleMenuDialog({ open, role, busy, onClose, onSubmit }) 
           </div>
 
           <p className="role-menu-hint">勾选该角色可访问的菜单与按钮权限，保存后立即生效。</p>
+            {submitError && <div className="error-banner backend-dialog-error" role="alert">{submitError}</div>}
 
           <div className="role-menu-tree-wrap">
             {menuTree.length === 0 ? (

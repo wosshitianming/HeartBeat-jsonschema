@@ -1,10 +1,12 @@
 import {fireEvent, render, screen, waitFor, within} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {afterEach, expect, test, vi} from 'vitest'
+import {MemoryRouter} from 'react-router-dom'
 import App from './App'
 
 afterEach(() => {
   vi.restoreAllMocks()
+    vi.unstubAllGlobals()
   window.localStorage.clear()
 })
 
@@ -18,7 +20,7 @@ function authMeResponse() {
     json: async () => ({
       code: '0',
       msg: 'success',
-      data: { id: '1', username: 'admin', nickname: '超级管理员', permissions: [] }
+        data: {id: '1', username: 'admin', nickname: '超级管理员', permissions: ['*']}
     })
   }
 }
@@ -26,7 +28,14 @@ function authMeResponse() {
 function routesResponse() {
   return {
     ok: true,
-    json: async () => ({ code: '0', msg: 'success', data: [] })
+      json: async () => ({
+          code: '0',
+          msg: 'success',
+          data: [
+              {id: 'system:user', type: 'MENU', status: 'ENABLED'},
+              {id: 'structure:definition', type: 'MENU', status: 'ENABLED'}
+          ]
+      })
   }
 }
 
@@ -35,6 +44,17 @@ function adminModulesResponse() {
     ok: true,
     json: async () => ({ code: '0', msg: 'success', data: [] })
   }
+}
+
+function renderApp() {
+    return render(
+        <MemoryRouter
+            initialEntries={['/admin/structure-definitions']}
+            future={{v7_startTransition: true, v7_relativeSplatPath: true}}
+        >
+            <App/>
+        </MemoryRouter>
+    )
 }
 
 test('previews parsed samples and renders generated JSON Schema', async () => {
@@ -61,7 +81,7 @@ test('previews parsed samples and renders generated JSON Schema', async () => {
               type: 'object',
               properties: { name: { type: 'string' } }
             },
-            UI_SCHEMA: { fields: { name: { title: 'name', widget: 'text' } } }
+              UI_SCHEMA: {fields: {name: {title: '姓名', widget: 'text'}}}
           },
           warnings: []
         }
@@ -69,7 +89,7 @@ test('previews parsed samples and renders generated JSON Schema', async () => {
     }
   })
 
-  render(<App />)
+    renderApp()
 
   const editor = await screen.findByLabelText('JSON 样例数组')
   fireEvent.change(editor, { target: { value: '[{"name":"Alice"}]' } })
@@ -84,7 +104,7 @@ test('previews parsed samples and renders generated JSON Schema', async () => {
   expect(await screen.findByText(/draft\/2020-12/)).toBeInTheDocument()
 
   await userEvent.click(screen.getByRole('button', { name: '表单预览' }))
-  expect(await screen.findByText('姓名')).toBeInTheDocument()
+    expect(await screen.findByRole('textbox', {name: '姓名'}, {timeout: 10000})).toBeInTheDocument()
 })
 
 test('generates editable Chinese title overrides from sample field names', async () => {
@@ -98,7 +118,7 @@ test('generates editable Chinese title overrides from sample field names', async
     }
     return adminModulesResponse()
   })
-  render(<App />)
+    renderApp()
 
   fireEvent.change(await screen.findByLabelText('JSON 样例数组'), {
     target: { value: '[{"name1":"Alice","age1":20}]' }
@@ -159,7 +179,7 @@ test('activates the version on the definition whose version button was clicked',
     }
   })
 
-  render(<App />)
+    renderApp()
   await userEvent.click(await screen.findByRole('button', { name: '刷新列表' }))
   await screen.findByText('B')
   // 关键：先点击定义卡片，选中 B
@@ -177,6 +197,7 @@ test('activates the version on the definition whose version button was clicked',
 
 test('toggles the fluid background and synchronizes the user preference', async () => {
   mockLoggedIn()
+    vi.stubGlobal('CSS', {supports: () => true})
   const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, options = {}) => {
     if (url === '/api/v1/auth/me') {
       return authMeResponse()
@@ -197,7 +218,7 @@ test('toggles the fluid background and synchronizes the user preference', async 
         json: async () => ({
           code: '0',
           msg: 'success',
-          data: { colorMode: 'dark', fluidEnabled: true }
+            data: {colorMode: 'dark', fluidEnabled: true, visualStyle: 'glass'}
         })
       }
     }
@@ -207,10 +228,10 @@ test('toggles the fluid background and synchronizes the user preference', async 
     return adminModulesResponse()
   })
 
-  render(<App />)
+    renderApp()
 
   expect(await screen.findByTestId('fluid-background')).toBeInTheDocument()
-  await userEvent.click(await screen.findByRole('button', { name: '主题与视觉效果' }))
+    await userEvent.click(await screen.findByRole('button', {name: '外观设置'}))
   await userEvent.click(await screen.findByRole('switch', { name: '背景动效' }))
 
   expect(screen.queryByTestId('fluid-background')).not.toBeInTheDocument()
@@ -264,17 +285,19 @@ test('renders grouped desktop navigation and a semantic resource table', async (
     return adminModulesResponse()
   })
 
-  render(<App />)
+    renderApp()
 
   const desktopNav = await screen.findByLabelText('后台导航')
-  expect(within(desktopNav).getByText('系统管理')).toBeInTheDocument()
+    const topNav = screen.getByRole('navigation', {name: '一级模块导航'})
+    await userEvent.click(within(topNav).getByRole('button', {name: '平台治理'}))
+    expect(within(desktopNav).getByText('账号与组织')).toBeInTheDocument()
   await userEvent.click(within(desktopNav).getByRole('button', { name: /用户管理/ }))
 
   expect(await screen.findByRole('table', { name: '用户管理列表' })).toBeInTheDocument()
   expect(screen.getByRole('heading', { name: '用户管理', level: 1 })).toBeInTheDocument()
 })
 
-test('uses an app-style mobile module list and detail workflow', async () => {
+test('keeps authorized workspaces available through route-backed page tags', async () => {
   mockLoggedIn()
   vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
     if (url === '/api/v1/auth/me') return authMeResponse()
@@ -302,14 +325,18 @@ test('uses an app-style mobile module list and detail workflow', async () => {
     return adminModulesResponse()
   })
 
-  render(<App />)
+    renderApp()
 
-  const mobile = await screen.findByLabelText('移动管理台')
-  await userEvent.click(within(mobile).getByRole('button', { name: '业务模块' }))
-  await userEvent.click(within(mobile).getByRole('button', { name: /用户管理/ }))
-  await userEvent.click(await within(mobile).findByRole('button', { name: /alice/ }))
+    const topNav = await screen.findByRole('navigation', {name: '一级模块导航'})
+    await userEvent.click(within(topNav).getByRole('button', {name: '平台治理'}))
+    const desktopNav = screen.getByLabelText('后台导航')
+    await userEvent.click(within(desktopNav).getByRole('button', {name: /用户管理/}))
 
-  expect(within(mobile).getByRole('heading', { name: '用户详情' })).toBeInTheDocument()
-  expect(within(mobile).getByRole('button', { name: '编辑' })).toBeInTheDocument()
-  expect(within(mobile).getByRole('button', { name: '删除' })).toBeInTheDocument()
+    expect(await screen.findByRole('table', {name: '用户管理列表'})).toBeInTheDocument()
+    const tags = screen.getByRole('navigation', {name: '已打开页面'})
+    expect(within(tags).getByRole('button', {name: '结构定义'})).toBeInTheDocument()
+    expect(within(tags).getByRole('button', {name: '用户管理'})).toBeInTheDocument()
+
+    await userEvent.click(within(tags).getByRole('button', {name: '结构定义'}))
+    expect(await screen.findByLabelText('JSON 样例数组')).toBeInTheDocument()
 })

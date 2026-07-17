@@ -219,8 +219,226 @@ export const iamApi = {
 }
 
 export const monitorApi = {
-  server() {
-    return request('/api/v1/monitor/server')
+    server(options = {}) {
+        return request('/api/v1/monitor/server', options)
+    },
+    cache(options = {}) {
+        return request('/api/v1/monitor/cache', options)
+    },
+    druid(options = {}) {
+        return request('/api/v1/monitor/druid', options)
+    }
+}
+
+export const workflowApi = {
+    definitions(options = {}) {
+        return request('/api/v1/workflow/definitions', options)
+    },
+    definition(id, options = {}) {
+        return request(`/api/v1/workflow/definitions/${id}`, options)
+    },
+    createDefinition(payload) {
+        return request('/api/v1/workflow/definitions', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        })
+    },
+    deployDefinition(id) {
+        return request(`/api/v1/workflow/definitions/${id}/deploy`, {method: 'PUT'})
+    },
+    startInstance(id, payload) {
+        return request(`/api/v1/workflow/definitions/${id}/instances`, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        })
+    },
+    instances(options = {}) {
+        return request('/api/v1/workflow/instances', options)
+    },
+    todoTasks(options = {}) {
+        return request('/api/v1/workflow/tasks/todo', options)
+    },
+    approveTask(id, payload) {
+        return request(`/api/v1/workflow/tasks/${id}/approve`, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        })
+    },
+    rejectTask(id, payload) {
+        return request(`/api/v1/workflow/tasks/${id}/reject`, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        })
+    }
+}
+
+export const payApi = {
+    channels(options = {}) {
+        return request('/api/v1/pay/channels', options)
+    },
+    channel(id, options = {}) {
+        return request(`/api/v1/pay/channels/${id}`, options)
+    },
+    createChannel(payload) {
+        return request('/api/v1/pay/channels', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        })
+    },
+    updateChannel(id, payload) {
+        return request(`/api/v1/pay/channels/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+        })
+    },
+    orders(options = {}) {
+        return request('/api/v1/pay/orders', options)
+    },
+    order(id, options = {}) {
+        return request(`/api/v1/pay/orders/${id}`, options)
+    },
+    createOrder(payload) {
+        return request('/api/v1/pay/orders', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        })
+    },
+    notify(orderNo, payload) {
+        return request(`/api/v1/pay/orders/${encodeURIComponent(orderNo)}/notify`, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        })
+    },
+    mockNotify(orderNo, payload) {
+        return request(`/api/v1/pay/orders/${encodeURIComponent(orderNo)}/mock-notify`, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        })
+    },
+    notifyLogs(options = {}) {
+        return request('/api/v1/pay/notify-logs', options)
+    },
+    orderNotifyLogs(orderNo, options = {}) {
+        return request(`/api/v1/pay/orders/${encodeURIComponent(orderNo)}/notify-logs`, options)
+    }
+}
+
+export const reportApi = {
+    datasets(options = {}) {
+        return request('/api/v1/report/datasets', options)
+    },
+    saveDataset(payload) {
+        return request('/api/v1/report/datasets', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        })
+    },
+    templates(options = {}) {
+        return request('/api/v1/report/templates', options)
+    },
+    saveTemplate(payload) {
+        return request('/api/v1/report/templates', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        })
+    },
+    queryDataset(id, params = {}, limit) {
+        const query = new URLSearchParams()
+        if (limit !== undefined && limit !== null && limit !== '') query.set('limit', String(limit))
+        const suffix = query.toString() ? `?${query.toString()}` : ''
+        return request(`/api/v1/report/datasets/${id}/query${suffix}`, {
+            method: 'POST',
+            body: JSON.stringify({params})
+        })
+    },
+    async exportDataset(id, params = {}, limit) {
+        const query = new URLSearchParams()
+        if (limit !== undefined && limit !== null && limit !== '') query.set('limit', String(limit))
+        const suffix = query.toString() ? `?${query.toString()}` : ''
+        const response = await fetch(`/api/v1/report/datasets/${id}/export.csv${suffix}`, {
+            method: 'POST',
+            headers: {...sessionHeaders(), 'Content-Type': 'application/json'},
+            body: JSON.stringify({params})
+        })
+        if (!response.ok) {
+            throw new Error(`报表导出失败 (${response.status})`)
+        }
+        return response.blob()
+    }
+}
+
+export const mpApi = {
+    accounts(options = {}) {
+        return request('/api/v1/mp/accounts', options)
+    },
+    account(id, options = {}) {
+        return request(`/api/v1/mp/accounts/${id}`, options)
+    },
+    saveAccount(payload) {
+        return request('/api/v1/mp/accounts', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        })
+    },
+    menus(accountId, options = {}) {
+        return request(`/api/v1/mp/accounts/${accountId}/menus`, options)
+    },
+    saveMenu(payload) {
+        return request('/api/v1/mp/menus', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        })
+    },
+    syncMenu(accountId) {
+        return request(`/api/v1/mp/accounts/${accountId}/menus/sync`, {method: 'POST'})
+    },
+    materials(accountId, options = {}) {
+        return request(`/api/v1/mp/accounts/${accountId}/materials`, options)
+    },
+    saveMaterial(payload) {
+        return request('/api/v1/mp/materials', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        })
+    },
+    autoReplies(accountId, options = {}) {
+        return request(`/api/v1/mp/accounts/${accountId}/auto-replies`, options)
+    },
+    saveAutoReply(payload) {
+        return request('/api/v1/mp/auto-replies', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        })
+    }
+}
+
+export const mobileApi = {
+    apps(options = {}) {
+        return request('/api/v1/mobile/apps', options)
+    },
+    saveApp(payload) {
+        return request('/api/v1/mobile/apps', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        })
+    },
+    pages(appId, options = {}) {
+        return request(`/api/v1/mobile/apps/${appId}/pages`, options)
+    },
+    savePage(payload) {
+        return request('/api/v1/mobile/pages', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        })
+    },
+    apiRoutes(appId, options = {}) {
+        return request(`/api/v1/mobile/apps/${appId}/api-routes`, options)
+    },
+    saveApiRoute(payload) {
+        return request('/api/v1/mobile/api-routes', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        })
   }
 }
 
@@ -317,11 +535,20 @@ export const toolApi = {
 }
 
 export const flowApi = {
-  components() {
-    return request('/api/v1/flow/components')
+    components(options = {}) {
+        return request('/api/v1/flow/components', options)
+    },
+    registerComponent(payload) {
+        return request('/api/v1/flow/components', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        })
   },
-  listFlows() {
-    return request('/api/v1/flows')
+    listFlows(options = {}) {
+        return request('/api/v1/flows', options)
+    },
+    flow(id, options = {}) {
+        return request(`/api/v1/flows/${id}`, options)
   },
   createFlow(payload) {
     return request('/api/v1/flows', {
@@ -344,22 +571,65 @@ export const flowApi = {
   publish(id) {
     return request(`/api/v1/flows/${id}/publish`, { method: 'POST' })
   },
-  debug(id, payload) {
+    versions(id, options = {}) {
+        return request(`/api/v1/flows/${id}/versions`, options)
+    },
+    debug(id, variables) {
     return request(`/api/v1/flows/${id}/debug`, {
+        method: 'POST',
+        body: JSON.stringify({variables: variables || {}})
+    })
+    },
+    run(id, variables) {
+        return request(`/api/v1/flows/${id}/run`, {
+            method: 'POST',
+            body: JSON.stringify({variables: variables || {}})
+        })
+    },
+    runs(id, options = {}) {
+        return request(`/api/v1/flows/${id}/runs`, options)
+    },
+    runSummary(payload = {}, options = {}) {
+        return request('/api/v1/flows/runs/summary', {
+            ...options,
       method: 'POST',
       body: JSON.stringify(payload)
     })
   },
-  runs(id) {
-    return request(`/api/v1/flows/${id}/runs`)
+    runDetail(runId, options = {}) {
+        return request(`/api/v1/flows/runs/${runId}`, options)
+    },
+    runEvents(runId, options = {}) {
+        return request(`/api/v1/flows/runs/${runId}/events`, options)
   },
-  connections() {
-    return request('/api/v1/flow/connections')
+    replayRun(runId, options = {}) {
+        return request(`/api/v1/flows/runs/${runId}/replay`, options)
+    },
+    cancelRun(runId, reason = '') {
+        return request(`/api/v1/flows/runs/${runId}/cancel`, {
+            method: 'POST',
+            body: JSON.stringify({reason})
+        })
+    },
+    connections(options = {}) {
+        return request('/api/v1/flow/connections', options)
   },
   saveConnection(payload) {
     return request('/api/v1/flow/connections', {
       method: 'POST',
       body: JSON.stringify(payload)
     })
+  },
+    updateConnection(id, payload) {
+        return request(`/api/v1/flow/connections/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+        })
+    },
+    testConnection(id) {
+        return request(`/api/v1/flow/connections/${id}/test`, {method: 'POST'})
+    },
+    deleteConnection(id) {
+        return request(`/api/v1/flow/connections/${id}`, {method: 'DELETE'})
   }
 }

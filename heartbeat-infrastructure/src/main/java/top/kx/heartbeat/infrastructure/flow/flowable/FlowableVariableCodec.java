@@ -1,11 +1,11 @@
 package top.kx.heartbeat.infrastructure.flow.flowable;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
-import org.flowable.bpmn.model.BpmnModel;
 import org.flowable.bpmn.model.FieldExtension;
 import org.flowable.bpmn.model.FlowElement;
 import org.flowable.bpmn.model.ServiceTask;
-import org.flowable.engine.RepositoryService;
 import org.flowable.engine.delegate.DelegateExecution;
 import org.springframework.stereotype.Component;
 import top.kx.heartbeat.application.flow.runtime.FlowResumeCommand;
@@ -13,10 +13,9 @@ import top.kx.heartbeat.application.flow.runtime.FlowStartCommand;
 import top.kx.heartbeat.application.flow.runtime.NodeExecutionOutcome;
 
 import javax.annotation.Resource;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 
 /**
  * Flowable 变量编解码器。
@@ -51,17 +50,20 @@ public class FlowableVariableCodec {
      */
     public static final String NEXT_PORTS = "hbNextPorts";
 
+    public static final String IO_COMMAND_ID = "hbIoCommandId";
+
+    public static final String IO_CORRELATION_KEY = "hbIoCorrelationKey";
+
+    public static final String IO_MESSAGE_NAME = "hbIoMessageName";
+
     /**
      * Payload 瘦身存储。
      */
     @Resource
     private FlowablePayloadStore payloadStore;
 
-    /**
-     * Flowable 仓储服务。
-     */
     @Resource
-    private RepositoryService repositoryService;
+    private ObjectMapper objectMapper;
 
     /**
      * 编码流程启动变量。
@@ -74,6 +76,7 @@ public class FlowableVariableCodec {
         Map<String, Object> variables = new LinkedHashMap<>();
         // 写入流程定义标识。
         variables.put(FLOW_ID, command.getFlowId());
+        variables.put("hbFlowVersionId", command.getFlowVersionId());
         // 写入运行标识。
         variables.put(RUN_ID, command.getRunId());
         // 写入租户标识。
@@ -87,7 +90,7 @@ public class FlowableVariableCodec {
         // 写入关联键。
         variables.put("hbCorrelationKey", command.getCorrelationKey());
         // 写入瘦身后的 payload。
-        variables.put(PAYLOAD, payloadStore.slim(command.getPayload()));
+        variables.put(PAYLOAD, payloadStore.slim(command.getPayload(), command.getTenantId(), command.getRunId()));
         // 返回变量映射。
         return variables;
     }
@@ -98,19 +101,17 @@ public class FlowableVariableCodec {
      * @param command 流程恢复命令
      * @return Flowable 恢复变量
      */
-    Map<String, Object> toResumeVariables(FlowResumeCommand command) {
+    Map<String, Object> toResumeVariables(FlowResumeCommand command, String trustedTenantId, String trustedRunId) {
         // 创建变量映射。
         Map<String, Object> variables = new LinkedHashMap<>();
-        // 写入租户标识。
-        variables.put(TENANT_ID, command.getTenantId());
-        // 写入运行标识。
-        variables.put(RUN_ID, command.getRunId());
-        // 写入等待实例标识。
-        variables.put("hbWaitInstanceId", command.getWaitInstanceId());
-        // 写入关联键。
-        variables.put("hbCorrelationKey", command.getCorrelationKey());
+        if (StringUtils.isNotBlank(command.getWaitInstanceId())) {
+            variables.put("hbWaitInstanceId", command.getWaitInstanceId());
+        }
+        if (StringUtils.isNotBlank(command.getCorrelationKey())) {
+            variables.put("hbCorrelationKey", command.getCorrelationKey());
+        }
         // 写入恢复 payload。
-        variables.put(PAYLOAD, payloadStore.slim(command.getPayload()));
+        variables.put(PAYLOAD, payloadStore.slim(command.getPayload(), trustedTenantId, trustedRunId));
         // 返回变量映射。
         return variables;
     }
@@ -123,15 +124,41 @@ public class FlowableVariableCodec {
      */
     @SuppressWarnings("unchecked")
     Map<String, Object> readPayload(DelegateExecution execution) {
-        // 读取 payload 变量。
-        Object payload = execution.getVariable(PAYLOAD);
-        // 判断 payload 是否为 Map。
-        if (payload instanceof Map) {
-            // 返回 payload 映射。
-            return new LinkedHashMap<>((Map<String, Object>) payload);
+        Map<String, Object> stored = readStoredPayload(execution);
+        if (!stored.isEmpty()) {
+            return payloadStore.restore(
+                    stored,
+                    variableText(execution, TENANT_ID),
+                    variableText(execution, RUN_ID));
         }
         // 返回空 payload。
         return new LinkedHashMap<>();
+    }
+
+    Map<String, Object> readPayloadForProjection(DelegateExecution execution) {
+        return payloadStore.projectionValue(readStoredPayload(execution));
+    }
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> payloadForProjection(Object payload) {
+        return payload instanceof Map
+                ? payloadStore.projectionValue(new LinkedHashMap<>((Map<String, Object>) payload))
+                : new LinkedHashMap<>();
+    }
+
+    String readPayloadReference(DelegateExecution execution) {
+        return payloadStore.referenceId(readStoredPayload(execution));
+    }
+
+    public String readRunId(DelegateExecution execution) {
+        return variableText(execution, RUN_ID);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> readStoredPayload(DelegateExecution execution) {
+        Object payload = execution.getVariable(PAYLOAD);
+        return payload instanceof Map
+                ? new LinkedHashMap<>((Map<String, Object>) payload) : new LinkedHashMap<>();
     }
 
     /**
@@ -140,13 +167,13 @@ public class FlowableVariableCodec {
      * @param execution Flowable 执行上下文
      * @return 流程变量
      */
-    Map<String, Object> readVariables(DelegateExecution execution) {
+    Map<String, Object> readVariables(DelegateExecution execution, Map<String, Object> resolvedPayload) {
         // 创建变量映射。
         Map<String, Object> variables = new LinkedHashMap<>();
         // 遍历 Flowable 变量名。
         for (String name : execution.getVariableNames()) {
-            // 写入变量值。
-            variables.put(name, execution.getVariable(name));
+            variables.put(name, PAYLOAD.equals(name)
+                    ? new LinkedHashMap<>(resolvedPayload) : execution.getVariable(name));
         }
         // 返回变量映射。
         return variables;
@@ -197,6 +224,33 @@ public class FlowableVariableCodec {
         return StringUtils.defaultIfBlank(executorId, fallback);
     }
 
+    public String resolveNodeVersion(DelegateExecution execution) {
+        return readFieldExtension(execution, "flowNodeVersion");
+    }
+
+    public String resolveRuntimeMode(DelegateExecution execution) {
+        return StringUtils.defaultIfBlank(readFieldExtension(execution, "runtimeMode"), "INLINE");
+    }
+
+    public Map<String, Object> resolveNodeConfig(DelegateExecution execution) {
+        String encoded = readFieldExtension(execution, "flowNodeConfigBase64");
+        if (StringUtils.isBlank(encoded)) {
+            return new LinkedHashMap<>();
+        }
+        try {
+            byte[] json = Base64.getDecoder().decode(encoded);
+            return objectMapper.readValue(new String(json, StandardCharsets.UTF_8),
+                    new TypeReference<Map<String, Object>>() {
+                    });
+        } catch (IllegalArgumentException | IOException ex) {
+            throw new IllegalStateException("Flowable 节点配置快照无效", ex);
+        }
+    }
+
+    public String readTenantId(DelegateExecution execution) {
+        return variableText(execution, TENANT_ID);
+    }
+
     /**
      * 读取服务任务扩展字段。
      *
@@ -205,15 +259,8 @@ public class FlowableVariableCodec {
      * @return 字段值
      */
     private String readFieldExtension(DelegateExecution execution, String fieldName) {
-        // 读取 BPMN 模型。
-        BpmnModel model = repositoryService.getBpmnModel(execution.getProcessDefinitionId());
-        // 判断 BPMN 模型是否存在。
-        if (model == null) {
-            // 返回空字段值。
-            return "";
-        }
-        // 读取当前活动元素。
-        FlowElement element = model.getFlowElement(execution.getCurrentActivityId());
+        // DelegateExecution 已携带当前活动元素，避免反向依赖正在创建的 RepositoryService。
+        FlowElement element = execution.getCurrentFlowElement();
         // 判断当前活动是否为服务任务。
         if (!(element instanceof ServiceTask)) {
             // 返回空字段值。
@@ -241,7 +288,10 @@ public class FlowableVariableCodec {
      */
     public void writeOutcome(DelegateExecution execution, NodeExecutionOutcome outcome) {
         // 写入瘦身后的 payload。
-        execution.setVariable(PAYLOAD, payloadStore.slim(outcome.getOutput()));
+        execution.setVariable(PAYLOAD, payloadStore.slim(
+                outcome.getOutput(),
+                variableText(execution, TENANT_ID),
+                variableText(execution, RUN_ID)));
         // 写入命中端口。
         execution.setVariable(NEXT_PORTS, new ArrayList<>(outcome.getNextPorts()));
         // 写入节点状态。
@@ -269,5 +319,10 @@ public class FlowableVariableCodec {
         }
         // 返回空列表。
         return new ArrayList<>();
+    }
+
+    private String variableText(DelegateExecution execution, String name) {
+        Object value = execution.getVariable(name);
+        return value == null ? null : String.valueOf(value);
     }
 }

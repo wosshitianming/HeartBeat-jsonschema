@@ -52,7 +52,7 @@ public class SecurityConfig {
                 .authorizeRequests()
                 // 预检请求放行
                 .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                // 登录、刷新、社交回调、H2 控制台放行
+                // 登录、刷新与社交回调放行
                 .antMatchers(
                         // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                         "/api/v1/auth/login",
@@ -61,11 +61,11 @@ public class SecurityConfig {
                         // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                         "/api/v1/auth/social/**",
                         // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                        "/h2-console/**",
-                        // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                         "/error"
                         // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 ).permitAll()
+                .antMatchers("/actuator/health/**", "/actuator/info").permitAll()
+                .antMatchers("/actuator/**").authenticated()
                 // 过渡期：业务 API 仍放行，由 Controller 自行解析用户
                 .antMatchers("/api/v1/**").authenticated()
                 // 其余请求放行（静态资源等）
@@ -76,10 +76,6 @@ public class SecurityConfig {
                 .exceptionHandling()
                 // 创建当前流程需要的临时对象，承载后续处理数据。
                 .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
-                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                .and()
-                // H2 控制台允许 iframe
-                .headers().frameOptions().sameOrigin()
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .and()
                 // JWT 过滤器置于用户名密码过滤器之前（须先注册，供下方租户过滤器定位）

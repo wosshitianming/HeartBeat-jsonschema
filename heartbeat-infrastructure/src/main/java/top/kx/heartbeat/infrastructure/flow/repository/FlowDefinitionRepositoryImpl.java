@@ -1,10 +1,9 @@
 package top.kx.heartbeat.infrastructure.flow.repository;
 
 import com.github.pagehelper.PageHelper;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import top.kx.heartbeat.domain.flow.model.FlowDefinition;
+import top.kx.heartbeat.domain.flow.model.FlowDefinitionStatus;
 import top.kx.heartbeat.domain.flow.model.FlowVersion;
 import top.kx.heartbeat.domain.flow.repository.FlowRepository;
 import top.kx.heartbeat.infrastructure.flow.convert.FlowConvert;
@@ -12,10 +11,12 @@ import top.kx.heartbeat.infrastructure.persistence.entity.flow.HbFlowDefinitionD
 import top.kx.heartbeat.infrastructure.persistence.entity.flow.HbFlowDefinitionDOExample;
 import top.kx.heartbeat.infrastructure.persistence.entity.flow.HbFlowVersionDOExample;
 import top.kx.heartbeat.infrastructure.persistence.entity.flow.HbFlowVersionDOWithBLOBs;
+import top.kx.heartbeat.infrastructure.persistence.mapper.flow.FlowDefinitionRuntimeMapper;
 import top.kx.heartbeat.infrastructure.persistence.mapper.flow.HbFlowDefinitionDOMapper;
 import top.kx.heartbeat.infrastructure.persistence.mapper.flow.HbFlowVersionDOMapper;
 import top.kx.heartbeat.infrastructure.tenant.TenantContext;
 
+import javax.annotation.Resource;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
@@ -39,17 +40,17 @@ import java.util.stream.Collectors;
 @Repository
 public class FlowDefinitionRepositoryImpl implements FlowRepository {
 
-    @Autowired
+    @Resource
     private HbFlowDefinitionDOMapper definitionDOMapper;
 
-    @Autowired
+    @Resource
     private HbFlowVersionDOMapper versionDOMapper;
 
-    @Autowired
+    @Resource
     private FlowConvert convert;
 
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+    @Resource
+    private FlowDefinitionRuntimeMapper runtimeMapper;
 
     /**
      * 查询全部流程定义（按更新时间倒序）
@@ -100,7 +101,10 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
             // 设置持久化字段，保证数据库记录具备完整业务属性。
             row.setUpdateTime(toDate(LocalDateTime.now()));
             // 将当前业务变更写入持久化层，保持数据状态同步。
-            definitionDOMapper.insertSelective(row);
+            int affected = definitionDOMapper.insertSelective(row);
+            if (affected != 1 || row.getId() == null) {
+                throw new IllegalStateException("流程草稿新增失败");
+            }
         } else {
             if (exist == null) {
                 throw new IllegalStateException("流程不存在或不属于当前租户: " + row.getId());
@@ -110,7 +114,10 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
             // 设置持久化字段，保证数据库记录具备完整业务属性。
             row.setUpdateTime(toDate(LocalDateTime.now()));
             // 将当前业务变更写入持久化层，保持数据状态同步。
-            definitionDOMapper.updateByExampleSelective(row, definitionById(row.getId(), tenantId));
+            int affected = definitionDOMapper.updateByExampleSelective(row, definitionById(row.getId(), tenantId));
+            if (affected != 1) {
+                throw new IllegalStateException("流程草稿更新失败: " + row.getId());
+            }
         }
         // 从仓储或 Mapper 读取业务数据，为后续处理准备上下文。
         HbFlowDefinitionDO refreshed = selectDefinition(row.getId(), tenantId);
@@ -178,32 +185,11 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
     @Override
     public void updateVersionRuntime(FlowVersion version) {
         long tenantId = tenantId();
-        // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-        jdbcTemplate.update(
-                // 计算当前分支的中间结果，供后续判断或组装使用。
-                "UPDATE hb_flow_version SET runtime_engine = ?, bpmn_xml = ?, bpmn_sha256 = ?, deployment_id = ?, process_definition_id = ?, process_definition_key = ?, compile_status = ?, compile_error = ?, deployed_at = ?, update_time = NOW() WHERE id = ? AND tenant_id = ?",
-                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                version.getRuntimeEngine(),
-                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                version.getBpmnXml(),
-                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                version.getBpmnSha256(),
-                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                version.getDeploymentId(),
-                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                version.getProcessDefinitionId(),
-                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                version.getProcessDefinitionKey(),
-                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                version.getCompileStatus(),
-                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                version.getCompileError(),
-                // 计算当前分支的中间结果，供后续判断或组装使用。
-                version.getDeployedAt() == null ? null : Date.from(version.getDeployedAt()),
-                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                parseLong(version.getId()),
-                tenantId
-        );
+        runtimeMapper.updateVersionRuntime(
+                parseLong(version.getId()), tenantId, version.getRuntimeEngine(), version.getBpmnXml(),
+                version.getBpmnSha256(), version.getDeploymentId(), version.getProcessDefinitionId(),
+                version.getProcessDefinitionKey(), version.getCompileStatus(), version.getCompileError(),
+                version.getDeployedAt() == null ? null : Date.from(version.getDeployedAt()));
     }
 
     /**
@@ -226,11 +212,23 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
         // 设置持久化字段，保证数据库记录具备完整业务属性。
         exist.setActiveVersionNo(versionNo);
         // 设置持久化字段，保证数据库记录具备完整业务属性。
-        exist.setStatus("ONLINE");
+        exist.setStatus(FlowDefinitionStatus.ONLINE.getCode());
         // 设置持久化字段，保证数据库记录具备完整业务属性。
         exist.setUpdateTime(toDate(LocalDateTime.now()));
         // 将当前业务变更写入持久化层，保持数据状态同步。
         definitionDOMapper.updateByExampleSelective(exist, definitionById(definitionId, tenantId));
+    }
+
+    @Override
+    public void deactivate(String flowId) {
+        long tenantId = tenantId();
+        Long definitionId = parseLong(flowId);
+        HbFlowDefinitionDO existing = selectDefinition(definitionId, tenantId);
+        if (existing == null) throw new IllegalArgumentException("流程不存在: " + flowId);
+        if (existing.getActiveVersionNo() == null) throw new IllegalStateException("流程尚未发布，不能执行停用操作");
+        existing.setStatus(FlowDefinitionStatus.OFFLINE.getCode());
+        existing.setUpdateTime(toDate(LocalDateTime.now()));
+        definitionDOMapper.updateByExampleSelective(existing, definitionById(definitionId, tenantId));
     }
 
     /**
@@ -245,20 +243,8 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
                                               // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                                               String activeProcessDefinitionId) {
         long tenantId = tenantId();
-        // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-        jdbcTemplate.update(
-                // 计算当前分支的中间结果，供后续判断或组装使用。
-                "UPDATE hb_flow_definition SET runtime_engine = ?, active_deployment_id = ?, active_process_definition_id = ?, update_time = NOW() WHERE id = ? AND tenant_id = ?",
-                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                runtimeEngine,
-                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                activeDeploymentId,
-                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                activeProcessDefinitionId,
-                // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
-                parseLong(flowId),
-                tenantId
-        );
+        runtimeMapper.updateActiveDeployment(
+                parseLong(flowId), tenantId, runtimeEngine, activeDeploymentId, activeProcessDefinitionId);
     }
 
     /**
@@ -322,7 +308,7 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
         example.createCriteria()
                 .andTenantIdEqualTo(tenantId())
                 .andCodeEqualTo(code);
-        List<HbFlowDefinitionDO> list = definitionDOMapper.selectByExample(example);
+        List<HbFlowDefinitionDO> list = definitionDOMapper.selectByExampleWithBLOBs(example);
         return list.isEmpty() ? Optional.empty() : Optional.of(convert.toDomain(list.get(0)));
     }
 
@@ -339,7 +325,7 @@ public class FlowDefinitionRepositoryImpl implements FlowRepository {
         if (id == null) {
             return null;
         }
-        List<HbFlowDefinitionDO> rows = definitionDOMapper.selectByExample(definitionById(id, tenantId));
+        List<HbFlowDefinitionDO> rows = definitionDOMapper.selectByExampleWithBLOBs(definitionById(id, tenantId));
         return rows.isEmpty() ? null : rows.get(0);
     }
 

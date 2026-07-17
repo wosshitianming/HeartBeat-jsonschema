@@ -9,6 +9,7 @@ import top.kx.heartbeat.application.user.UserApplicationService;
 import top.kx.heartbeat.application.user.command.ChangeEmailCommand;
 import top.kx.heartbeat.application.user.command.RegisterUserCommand;
 import top.kx.heartbeat.application.user.dto.UserDTO;
+import top.kx.heartbeat.support.MySqlIntegrationTestSupport;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -21,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @SpringBootTest
 @ActiveProfiles("local")
-class MybatisOnlyPersistenceTest {
+class MybatisOnlyPersistenceTest extends MySqlIntegrationTestSupport {
 
     @Autowired
     private ApplicationContext applicationContext;

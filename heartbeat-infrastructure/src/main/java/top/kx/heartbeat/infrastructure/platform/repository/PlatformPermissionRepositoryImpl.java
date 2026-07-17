@@ -1,13 +1,10 @@
 package top.kx.heartbeat.infrastructure.platform.repository;
 
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Repository;
 import top.kx.heartbeat.application.platform.port.PlatformPermissionRepository;
 import top.kx.heartbeat.infrastructure.persistence.entity.sys.*;
-import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysMenuPermissionDOMapper;
-import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysRoleDOMapper;
-import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysRoleDeptDOMapper;
-import top.kx.heartbeat.infrastructure.persistence.mapper.sys.SysRolePermissionDOMapper;
+import top.kx.heartbeat.infrastructure.persistence.mapper.sys.*;
 import top.kx.heartbeat.infrastructure.tenant.TenantContext;
 
 import javax.annotation.Resource;
@@ -27,9 +24,13 @@ public class PlatformPermissionRepositoryImpl implements PlatformPermissionRepos
     @Resource
     private SysMenuPermissionDOMapper menuPermissionMapper;
     @Resource
+    private SysMenuDOMapper menuMapper;
+    @Resource
     private SysRoleDeptDOMapper roleDeptMapper;
     @Resource
-    private JdbcTemplate jdbcTemplate;
+    private SysPermissionDOMapper permissionMapper;
+    @Resource
+    private SysUserRoleDOMapper userRoleMapper;
 
     /**
      * 查询列表数据，保持返回结构稳定并便于前端直接消费，通过 Mapper 完成平台管理数据访问。
@@ -43,23 +44,22 @@ public class PlatformPermissionRepositoryImpl implements PlatformPermissionRepos
         if (id == null) {
             return Collections.emptyList();
         }
-        return jdbcTemplate.queryForList(
-                "SELECT DISTINCT p.permission_code "
-                        + "FROM sys_user_role ur "
-                        + "JOIN sys_role r "
-                        + "ON r.tenant_id = ur.tenant_id AND r.id = ur.role_id "
-                        + "JOIN sys_role_permission rp "
-                        + "ON rp.tenant_id = ur.tenant_id AND rp.role_id = ur.role_id "
-                        + "JOIN sys_permission p "
-                        + "ON p.tenant_id = ur.tenant_id AND p.id = rp.permission_id "
-                        + "WHERE ur.tenant_id = ? AND ur.user_id = ? "
-                        + "AND r.status = 'ENABLED' AND r.delete_marker = 0 "
-                        + "AND p.status = 'ENABLED' AND p.delete_marker = 0 "
-                        + "ORDER BY p.permission_code",
-                String.class,
-                tenantId(),
-                id
-        );
+        List<Long> permissionIds = permissionIdsByRoleIds(roleIds(userId));
+        if (permissionIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        SysPermissionDOExample example = new SysPermissionDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andIdIn(permissionIds)
+                .andStatusEqualTo("ENABLED")
+                .andDeleteMarkerEqualTo(0L);
+        return permissionMapper.selectByExample(example).stream()
+                .map(SysPermissionDO::getPermissionCode)
+                .filter(StringUtils::isNotBlank)
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
     }
 
     /**
@@ -74,17 +74,12 @@ public class PlatformPermissionRepositoryImpl implements PlatformPermissionRepos
         if (id == null) {
             return Collections.emptyList();
         }
-        return jdbcTemplate.queryForList(
-                "SELECT DISTINCT r.role_code "
-                        + "FROM sys_user_role ur "
-                        + "JOIN sys_role r ON r.tenant_id = ur.tenant_id AND r.id = ur.role_id "
-                        + "WHERE ur.tenant_id = ? AND ur.user_id = ? "
-                        + "AND r.status = 'ENABLED' AND r.delete_marker = 0 "
-                        + "ORDER BY r.role_code",
-                String.class,
-                tenantId(),
-                id
-        );
+        return activeRoles(roleIds(userId)).stream()
+                .map(SysRoleDO::getRoleCode)
+                .filter(StringUtils::isNotBlank)
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
     }
 
     /**
@@ -99,17 +94,12 @@ public class PlatformPermissionRepositoryImpl implements PlatformPermissionRepos
         if (id == null) {
             return Collections.emptyList();
         }
-        return jdbcTemplate.queryForList(
-                "SELECT DISTINCT r.data_scope "
-                        + "FROM sys_user_role ur "
-                        + "JOIN sys_role r ON r.tenant_id = ur.tenant_id AND r.id = ur.role_id "
-                        + "WHERE ur.tenant_id = ? AND ur.user_id = ? "
-                        + "AND r.status = 'ENABLED' AND r.delete_marker = 0 "
-                        + "ORDER BY r.data_scope",
-                String.class,
-                tenantId(),
-                id
-        );
+        return activeRoles(roleIds(userId)).stream()
+                .map(SysRoleDO::getDataScope)
+                .filter(StringUtils::isNotBlank)
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
     }
 
     /**
@@ -220,7 +210,7 @@ public class PlatformPermissionRepositoryImpl implements PlatformPermissionRepos
         // 使用流式转换批量映射数据，减少中间状态暴露。
         List<Long> parsedMenuIds = menuIds.stream()
                 // 使用流式转换批量映射数据，减少中间状态暴露。
-                .map(this::longValue)
+                .map(this::resolveMenuId)
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .filter(Objects::nonNull)
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
@@ -285,17 +275,31 @@ public class PlatformPermissionRepositoryImpl implements PlatformPermissionRepos
             // 返回已经完成封装的业务结果。
             return Collections.emptySet();
         }
-        return new LinkedHashSet<>(jdbcTemplate.queryForList(
-                "SELECT DISTINCT r.id "
-                        + "FROM sys_user_role ur "
-                        + "JOIN sys_role r ON r.tenant_id = ur.tenant_id AND r.id = ur.role_id "
-                        + "WHERE ur.tenant_id = ? AND ur.user_id = ? "
-                        + "AND r.status = 'ENABLED' AND r.delete_marker = 0 "
-                        + "ORDER BY r.id",
-                Long.class,
-                tenantId(),
-                id
-        ));
+        SysUserRoleDOExample example = new SysUserRoleDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andUserIdEqualTo(id);
+        Set<Long> assignedRoleIds = userRoleMapper.selectByExample(example).stream()
+                .map(SysUserRoleDO::getRoleId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        return activeRoles(assignedRoleIds).stream()
+                .map(SysRoleDO::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private List<SysRoleDO> activeRoles(Set<Long> roleIds) {
+        if (roleIds == null || roleIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        SysRoleDOExample example = new SysRoleDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andIdIn(new ArrayList<>(roleIds))
+                .andStatusEqualTo("ENABLED")
+                .andDeleteMarkerEqualTo(0L);
+        return roleMapper.selectByExample(example);
     }
 
     /**
@@ -362,6 +366,29 @@ public class PlatformPermissionRepositoryImpl implements PlatformPermissionRepos
                 .collect(Collectors.toList());
     }
 
+    private Long resolveMenuId(String value) {
+        Long numericId = longValue(value);
+        if (numericId != null || value == null) {
+            return numericId;
+        }
+        String requested = value.trim();
+        if (requested.isEmpty()) {
+            return null;
+        }
+        SysMenuDOExample example = new SysMenuDOExample();
+        example.createCriteria()
+                .andTenantIdEqualTo(tenantId())
+                .andDeleteMarkerEqualTo(0L);
+        for (SysMenuDO menu : menuMapper.selectByExample(example)) {
+            String menuCode = menu.getMenuCode();
+            if (requested.equals(menuCode)
+                    || (menuCode != null && requested.equals(menuCode.replace(':', '-')))) {
+                return menu.getId();
+            }
+        }
+        return null;
+    }
+
     /**
      * 读取当前租户上下文，保证数据写入归属正确，通过 Mapper 完成平台管理数据访问。
      *
@@ -379,7 +406,7 @@ public class PlatformPermissionRepositoryImpl implements PlatformPermissionRepos
      */
     private Long longValue(Object value) {
         // 先处理空值或缺省场景，避免后续业务流程出现空指针。
-        if (value == null || String.valueOf(value).trim().isEmpty()) {
+        if (value == null || StringUtils.isBlank(String.valueOf(value))) {
             // 返回已经完成封装的业务结果。
             return null;
         }

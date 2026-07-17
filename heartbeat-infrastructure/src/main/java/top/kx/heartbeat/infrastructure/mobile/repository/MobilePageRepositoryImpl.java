@@ -25,7 +25,8 @@ import java.util.stream.Collectors;
 @Repository
 public class MobilePageRepositoryImpl implements MobilePageRepository {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Resource
+    private ObjectMapper objectMapper;
 
     @Resource
     private MobilePageDOMapper pageDOMapper;

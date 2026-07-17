@@ -19,6 +19,8 @@ export default function ResourceTable({
   records,
   selectedRow,
   editable,
+                                          canEdit = editable,
+                                          canDelete = editable,
   onSelect,
   onEdit,
   onDelete
@@ -104,8 +106,9 @@ export default function ResourceTable({
                                   >
                                       {isSelected(record) ? '已选择' : '选择'}
                                   </button>
-                                  {editable && (
+                                  {(canEdit || canDelete) && (
                                       <>
+                                          {canEdit && (
                                           <button
                                               className="table-link"
                                               type="button"
@@ -116,6 +119,8 @@ export default function ResourceTable({
                                           >
                                               编辑
                                           </button>
+                                          )}
+                                          {canDelete && (
                                           <button
                                               className="table-link danger-text"
                                               type="button"
@@ -126,6 +131,7 @@ export default function ResourceTable({
                                           >
                                               删除
                                           </button>
+                                          )}
                                       </>
                                   )}
                               </div>

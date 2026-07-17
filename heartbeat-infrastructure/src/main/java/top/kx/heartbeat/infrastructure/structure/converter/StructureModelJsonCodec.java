@@ -1,11 +1,11 @@
 package top.kx.heartbeat.infrastructure.structure.converter;
 
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import top.kx.heartbeat.domain.structure.model.InferenceWarning;
 import top.kx.heartbeat.domain.structure.model.StructureNode;
@@ -216,7 +216,7 @@ public class StructureModelJsonCodec {
     }
 
     private JsonNode tryRead(String value) {
-        if (value == null || value.trim().isEmpty()) {
+        if (StringUtils.isBlank(value)) {
             return null;
         }
         try {
@@ -227,7 +227,7 @@ public class StructureModelJsonCodec {
     }
 
     private JsonNode read(String value) {
-        if (value == null || value.trim().isEmpty()) {
+        if (StringUtils.isBlank(value)) {
             throw new IllegalStateException("结构 JSON 不能为空");
         }
         try {

@@ -1,12 +1,20 @@
 package top.kx.heartbeat.interfaces.flow;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import top.kx.heartbeat.application.common.response.RecordResponse;
+import top.kx.heartbeat.application.common.vo.PageResultVO;
 import top.kx.heartbeat.application.flow.FlowApplicationService;
+import top.kx.heartbeat.application.flow.FlowRunOperationsService;
+import top.kx.heartbeat.application.flow.param.FlowRunQueryParam;
+import top.kx.heartbeat.application.flow.param.FlowRunSummaryParam;
 import top.kx.heartbeat.application.flow.request.FlowCancelRequest;
 import top.kx.heartbeat.application.flow.request.FlowInputRequest;
+import top.kx.heartbeat.application.flow.request.FlowRetryRequest;
 import top.kx.heartbeat.application.flow.runtime.FlowDebugResult;
+import top.kx.heartbeat.application.flow.vo.FlowOperationsSummaryVO;
+import top.kx.heartbeat.application.flow.vo.FlowRunListItemVO;
 import top.kx.heartbeat.domain.flow.model.FlowDefinition;
 import top.kx.heartbeat.domain.flow.model.FlowRun;
 import top.kx.heartbeat.domain.flow.model.FlowRunEvent;
@@ -28,6 +36,9 @@ public class FlowController {
 
     @Resource
     private FlowApplicationService flowApplicationService;
+
+    @Resource
+    private FlowRunOperationsService flowRunOperationsService;
 
     /**
      * 查询列表数据，保持返回结构稳定并便于前端直接消费，并统一委托流程执行应用服务完成处理。
@@ -125,7 +136,7 @@ public class FlowController {
      * @return 处理后的业务结果。
      */
     @PostMapping("/{id}/debug")
-    @PreAuthorize("@permissionGuard.has('flow:studio:list')")
+    @PreAuthorize("@permissionGuard.has('flow:definition:edit')")
     public Result<FlowDebugResult> debug(@PathVariable String id,
                                          @RequestBody(required = false) FlowInputRequest input) {
         return Result.success(flowApplicationService.debug(id, variables(input)));
@@ -139,7 +150,7 @@ public class FlowController {
      * @return 处理后的业务结果。
      */
     @PostMapping("/{id}/run")
-    @PreAuthorize("@permissionGuard.has('flow:studio:list')")
+    @PreAuthorize("@permissionGuard.has('flow:definition:publish')")
     public Result<FlowRun> run(@PathVariable String id,
                                @RequestBody(required = false) FlowInputRequest input) {
         return Result.success(flowApplicationService.run(id, variables(input)));
@@ -155,6 +166,18 @@ public class FlowController {
     @PreAuthorize("@permissionGuard.has('flow:studio:list')")
     public Result<List<FlowRun>> runs(@PathVariable String id) {
         return Result.success(flowApplicationService.runs(id));
+    }
+
+    @PostMapping("/runs/page")
+    @PreAuthorize("@permissionGuard.has('flow:studio:list')")
+    public Result<PageResultVO<FlowRunListItemVO>> runPage(@RequestBody(required = false) FlowRunQueryParam param) {
+        return Result.success(flowRunOperationsService.page(param));
+    }
+
+    @PostMapping("/runs/summary")
+    @PreAuthorize("@permissionGuard.has('flow:studio:list')")
+    public Result<FlowOperationsSummaryVO> runSummary(@RequestBody(required = false) FlowRunSummaryParam param) {
+        return Result.success(flowRunOperationsService.summary(param));
     }
 
     /**
@@ -193,6 +216,13 @@ public class FlowController {
         return Result.success(flowApplicationService.replay(runId));
     }
 
+    @PostMapping("/runs/{runId}/retry")
+    @PreAuthorize("@permissionGuard.has('flow:definition:publish')")
+    public Result<FlowRun> retry(@PathVariable String runId,
+                                 @RequestBody(required = false) FlowRetryRequest request) {
+        return Result.success(flowRunOperationsService.retry(runId, request));
+    }
+
     /**
      * 推进流程状态流转，并保持业务动作语义清晰，并统一委托流程执行应用服务完成处理。
      *
@@ -204,7 +234,7 @@ public class FlowController {
     @PreAuthorize("@permissionGuard.has('flow:definition:publish')")
     public Result<Boolean> cancel(@PathVariable String runId,
                                   @RequestBody(required = false) FlowCancelRequest input) {
-        String reason = input == null || input.getReason() == null || input.getReason().trim().isEmpty()
+        String reason = input == null || StringUtils.isBlank(input.getReason())
                 ? "用户取消流程运行"
                 : input.getReason().trim();
         flowApplicationService.cancel(runId, reason);
@@ -224,15 +254,19 @@ public class FlowController {
         return Result.success(flowApplicationService.activate(id, versionNo));
     }
 
+    @PostMapping("/{id}/deactivate")
+    @PreAuthorize("@permissionGuard.has('flow:definition:publish')")
+    public Result<FlowDefinition> deactivate(@PathVariable String id) {
+        return Result.success(flowApplicationService.deactivate(id));
+    }
+
     /**
      * 处理当前业务用例，保持调用方不感知内部实现细节，并统一委托流程执行应用服务完成处理。
      *
      * @param input 业务处理所需参数。
      * @return 处理后的业务结果。
      */
-    @SuppressWarnings("unchecked")
     private Map<String, Object> variables(FlowInputRequest input) {
-        Object variables = input == null ? null : input.getVariables();
-        return variables instanceof Map ? (Map<String, Object>) variables : Collections.emptyMap();
+        return input == null || input.getVariables() == null ? Collections.emptyMap() : input.getVariables();
     }
 }

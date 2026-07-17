@@ -7,6 +7,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import top.kx.heartbeat.application.mobile.MobileService;
 import top.kx.heartbeat.infrastructure.tenant.TenantContext;
+import top.kx.heartbeat.support.MySqlIntegrationTestSupport;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -16,7 +17,7 @@ import java.util.Map;
         "heartbeat.security.dev-header-enabled=false"
 })
 @ActiveProfiles("local")
-class MobilePublicationTest {
+class MobilePublicationTest extends MySqlIntegrationTestSupport {
 
     @Autowired
     private MobileService mobileService;

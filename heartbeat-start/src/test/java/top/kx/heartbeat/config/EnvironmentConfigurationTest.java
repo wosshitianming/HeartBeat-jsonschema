@@ -18,7 +18,7 @@ class EnvironmentConfigurationTest {
     private static final List<String> ALL_PROFILES =
             Arrays.asList("local", "dev", "test", "pre", "gray", "prod");
     private static final List<String> MYSQL_PROFILES =
-            Arrays.asList("dev", "test", "pre", "gray", "prod");
+            Arrays.asList("local", "dev", "test", "pre", "gray", "prod");
 
     @Test
     void commonConfigurationProvidesServerAndMiddlewareDefaults() throws IOException {
@@ -40,10 +40,8 @@ class EnvironmentConfigurationTest {
         assertNotNull(environment.getProperty("heartbeat.middleware.mqtt.host"));
         assertEquals("false", environment.getProperty("management.health.redis.enabled"));
         assertNull(environment.getProperty("management.health.rabbit.enabled"));
-        assertEquals(
-                "top.kx.heartbeat.infrastructure.persistence.entity",
-                environment.getProperty("mybatis-flex.type-aliases-package")
-        );
+        assertNull(environment.getProperty("mybatis-flex.type-aliases-package"));
+        assertNull(environment.getProperty("mybatis.type-aliases-package"));
         assertNull(environment.getProperty("spring.data.redis.host"));
     }
 
@@ -74,20 +72,23 @@ class EnvironmentConfigurationTest {
                     load("application.properties", "application-" + profile + ".properties");
 
             assertTrue(environment.getProperty("spring.datasource.druid.url").startsWith("jdbc:mysql:"));
-            assertEquals("false", environment.getProperty("heartbeat.security.dev-auto-login"));
-            assertEquals("false", environment.getProperty("heartbeat.security.dev-header-enabled"));
+            if (!"local".equals(profile)) {
+                assertEquals("false", environment.getProperty("heartbeat.security.dev-auto-login"));
+                assertEquals("false", environment.getProperty("heartbeat.security.dev-header-enabled"));
+            }
             assertNull(environment.getProperty("spring.jpa.hibernate.ddl-auto"));
             assertNull(environment.getProperty("spring.jpa.open-in-view"));
         }
     }
 
     @Test
-    void localProfileKeepsH2ForLocalRunsAndAutomatedTests() throws IOException {
+    void localProfileUsesMysqlAndFlyway() throws IOException {
         ConfigurableEnvironment environment = load("application.properties", "application-local.properties");
 
-        assertTrue(environment.getProperty("spring.datasource.druid.url").startsWith("jdbc:h2:mem:"));
-        assertEquals("org.h2.Driver", environment.getProperty("spring.datasource.driver-class-name"));
-        assertEquals("always", environment.getProperty("spring.sql.init.mode"));
+        assertTrue(environment.getProperty("spring.datasource.druid.url").startsWith("jdbc:mysql:"));
+        assertEquals("com.mysql.cj.jdbc.Driver", environment.getProperty("spring.datasource.driver-class-name"));
+        assertEquals("never", environment.getProperty("spring.sql.init.mode"));
+        assertEquals("true", environment.getProperty("spring.flyway.enabled"));
         assertEquals("true", environment.getProperty("heartbeat.security.dev-auto-login"));
         assertEquals("true", environment.getProperty("heartbeat.security.dev-header-enabled"));
         assertNull(environment.getProperty("spring.jpa.hibernate.ddl-auto"));

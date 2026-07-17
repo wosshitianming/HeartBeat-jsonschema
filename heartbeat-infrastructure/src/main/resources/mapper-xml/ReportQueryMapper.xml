@@ -3,7 +3,11 @@
 <mapper namespace="top.kx.heartbeat.infrastructure.persistence.mapper.ReportQueryMapper">
 
     <select id="executeReportQuery" resultType="map">
-        ${sql}
+        SELECT *
+        FROM (
+                 ${sql}
+                 ) hb_report_query
+            LIMIT #{limit}
     </select>
 
 </mapper>

@@ -10,6 +10,7 @@ import top.kx.heartbeat.application.pay.request.PayChannelRequest;
 import top.kx.heartbeat.infrastructure.persistence.entity.pay.PayChannelDO;
 import top.kx.heartbeat.infrastructure.persistence.entity.pay.PayChannelDOExample;
 import top.kx.heartbeat.infrastructure.persistence.mapper.pay.PayChannelDOMapper;
+import top.kx.heartbeat.infrastructure.security.SecretCryptoService;
 import top.kx.heartbeat.infrastructure.tenant.TenantContext;
 
 import javax.annotation.Resource;
@@ -25,10 +26,14 @@ import java.util.stream.Collectors;
 @Repository
 public class PayChannelRepositoryImpl implements PayChannelRepository {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Resource
+    private ObjectMapper objectMapper;
 
     @Resource
     private PayChannelDOMapper channelMapper;
+
+    @Resource
+    private SecretCryptoService secretCryptoService;
 
     /**
      * 查询列表数据，保持返回结构稳定并便于前端直接消费，通过 Mapper 完成公众号管理数据访问。
@@ -132,7 +137,8 @@ public class PayChannelRepositoryImpl implements PayChannelRepository {
         // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setAppId(value(safeRequest.getAppId(), value(row.getAppId(), "")));
         // 设置持久化字段，保证数据库记录具备完整业务属性。
-        row.setAppSecret(value(safeRequest.getAppSecret(), value(row.getAppSecret(), "")));
+        row.setAppSecret(secretCryptoService.encryptIfPlain(
+                value(safeRequest.getAppSecret(), value(row.getAppSecret(), ""))));
         // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setStatus(value(safeRequest.getStatus(), value(row.getStatus(), "ACTIVE")));
         // 设置持久化字段，保证数据库记录具备完整业务属性。
@@ -178,6 +184,7 @@ public class PayChannelRepositoryImpl implements PayChannelRepository {
      * @return 处理后的业务结果。
      */
     private DomainRecord record(PayChannelDO row) {
+        migratePlainSecret(row);
         // 创建有序字段容器，保证响应或领域记录的字段顺序稳定。
         Map<String, Object> values = new LinkedHashMap<>();
         // 写入对外字段，保持调用方依赖的响应结构稳定。
@@ -191,7 +198,7 @@ public class PayChannelRepositoryImpl implements PayChannelRepository {
         // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("appId", row.getAppId());
         // 写入对外字段，保持调用方依赖的响应结构稳定。
-        values.put("appSecret", row.getAppSecret());
+        values.put("appSecret", secretCryptoService.decryptIfCipher(row.getAppSecret()));
         // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("status", row.getStatus());
         // 写入对外字段，保持调用方依赖的响应结构稳定。
@@ -204,6 +211,19 @@ public class PayChannelRepositoryImpl implements PayChannelRepository {
         values.put("updateTime", stringValue(row.getUpdateTime()));
         // 返回已经完成封装的业务结果。
         return DomainRecord.of(values);
+    }
+
+    private void migratePlainSecret(PayChannelDO row) {
+        if (row == null || StringUtils.isBlank(row.getAppSecret())
+                || secretCryptoService.isEncrypted(row.getAppSecret())) {
+            return;
+        }
+        String encrypted = secretCryptoService.encryptIfPlain(row.getAppSecret());
+        PayChannelDO patch = new PayChannelDO();
+        patch.setId(row.getId());
+        patch.setAppSecret(encrypted);
+        channelMapper.updateByPrimaryKeySelective(patch);
+        row.setAppSecret(encrypted);
     }
 
     /**

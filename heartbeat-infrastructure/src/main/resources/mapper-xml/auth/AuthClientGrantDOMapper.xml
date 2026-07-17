@@ -239,7 +239,7 @@
         grant_type = #{record.grantType,jdbcType=VARCHAR},
       </if>
       <if test="record.createBy != null">
-        create_by = #{record.createBy,jdbcType=BIGINT},
+          create_by = #{record.createBy,jdbcType=VARCHAR},
       </if>
       <if test="record.createTime != null">
         create_time = #{record.createTime,jdbcType=TIMESTAMP},
@@ -248,7 +248,7 @@
         update_time = #{record.updateTime,jdbcType=TIMESTAMP},
       </if>
       <if test="record.updateBy != null">
-        update_by = #{record.updateBy,jdbcType=BIGINT},
+          update_by = #{record.updateBy,jdbcType=VARCHAR},
       </if>
     </set>
     <if test="_parameter != null">
@@ -265,10 +265,10 @@
     tenant_id = #{record.tenantId,jdbcType=BIGINT},
     oauth_client_id = #{record.oauthClientId,jdbcType=BIGINT},
     grant_type = #{record.grantType,jdbcType=VARCHAR},
-    create_by = #{record.createBy,jdbcType=BIGINT},
+      create_by = #{record.createBy,jdbcType=VARCHAR},
     create_time = #{record.createTime,jdbcType=TIMESTAMP},
     update_time = #{record.updateTime,jdbcType=TIMESTAMP},
-    update_by = #{record.updateBy,jdbcType=BIGINT}
+      update_by = #{record.updateBy,jdbcType=VARCHAR}
     <if test="_parameter != null">
       <include refid="Update_By_Example_Where_Clause" />
     </if>

@@ -1,0 +1,640 @@
+.flow-operations-page {
+    min-width: 0;
+}
+
+.flow-component-contract {
+    margin-top: 14px;
+    overflow: hidden;
+    border: 1px solid var(--hb-border);
+    border-radius: 7px;
+    background: var(--hb-surface);
+}
+
+.flow-component-contract-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--hb-border);
+}
+
+.flow-component-contract-title {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    min-width: 0;
+}
+
+.flow-component-contract-icon {
+    display: grid;
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border: 1px solid var(--hb-border);
+    border-radius: 6px;
+    color: var(--hb-accent);
+    background: var(--hb-surface-muted);
+}
+
+.flow-component-contract-title > div {
+    min-width: 0;
+}
+
+.flow-component-contract-title span,
+.flow-component-contract-title h2,
+.flow-component-contract-title p {
+    display: block;
+}
+
+.flow-component-contract-title > div > span {
+    color: var(--hb-text-faint);
+    font-size: 10px;
+    font-weight: 650;
+}
+
+.flow-component-contract-title h2 {
+    margin: 2px 0 3px;
+    overflow: hidden;
+    color: var(--hb-text);
+    font-size: 15px;
+    letter-spacing: 0;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.flow-component-contract-title p {
+    margin: 0;
+    overflow: hidden;
+    color: var(--hb-text-soft);
+    font-size: 11px;
+    line-height: 1.55;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.flow-component-contract-header > button {
+    display: grid;
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    place-items: center;
+    border: 0;
+    border-radius: 5px;
+    padding: 0;
+    color: var(--hb-text-soft);
+    background: transparent;
+}
+
+.flow-component-contract-header > button:hover {
+    color: var(--hb-text);
+    background: var(--hb-surface-hover);
+}
+
+.flow-component-contract-meta {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-bottom: 1px solid var(--hb-border);
+    background: var(--hb-surface-muted);
+}
+
+.flow-component-contract-meta > div {
+    min-width: 0;
+    padding: 10px 14px;
+}
+
+.flow-component-contract-meta > div + div {
+    border-left: 1px solid var(--hb-border);
+}
+
+.flow-component-contract-meta span,
+.flow-component-contract-meta strong,
+.flow-component-contract-meta code {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.flow-component-contract-meta span {
+    margin-bottom: 4px;
+    color: var(--hb-text-faint);
+    font-size: 9px;
+}
+
+.flow-component-contract-meta strong,
+.flow-component-contract-meta code {
+    color: var(--hb-text);
+    font-size: 11px;
+    font-weight: 650;
+}
+
+.flow-component-contract-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+    min-height: 230px;
+}
+
+.flow-component-contract-body > section {
+    min-width: 0;
+    padding: 13px 15px 15px;
+}
+
+.flow-component-contract-body > section + section {
+    border-left: 1px solid var(--hb-border);
+}
+
+.flow-component-contract-body h3 {
+    margin: 0 0 10px;
+    color: var(--hb-text);
+    font-size: 11px;
+    letter-spacing: 0;
+}
+
+.flow-component-contract-ports > div {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.flow-component-port-group {
+    min-width: 0;
+}
+
+.flow-component-port-group > header {
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 5px;
+    min-height: 28px;
+    border-bottom: 1px solid var(--hb-border);
+    color: var(--hb-text-soft);
+}
+
+.flow-component-port-group > header strong {
+    font-size: 10px;
+}
+
+.flow-component-port-group > header span {
+    color: var(--hb-text-faint);
+    font-size: 9px;
+}
+
+.flow-component-port {
+    display: grid;
+    grid-template-columns: minmax(70px, auto) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    min-height: 36px;
+    border-bottom: 1px solid var(--hb-border);
+    font-size: 10px;
+}
+
+.flow-component-port code,
+.flow-component-port span,
+.flow-component-port small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.flow-component-port code {
+    color: var(--hb-accent);
+}
+
+.flow-component-port span {
+    color: var(--hb-text);
+}
+
+.flow-component-port small {
+    color: var(--hb-text-faint);
+}
+
+.flow-component-port-empty {
+    padding: 18px 0;
+    color: var(--hb-text-faint);
+    font-size: 10px;
+}
+
+.flow-component-contract-schema pre {
+    height: 176px;
+    margin: 0;
+    overflow: auto;
+    border: 1px solid var(--hb-border);
+    border-radius: 5px;
+    padding: 10px 11px;
+    color: var(--hb-text-soft);
+    background: var(--hb-code-surface, var(--hb-surface-muted));
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 10px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.flow-component-capabilities {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    min-height: 42px;
+    border-top: 1px solid var(--hb-border);
+    padding: 7px 15px;
+    color: var(--hb-text-faint);
+    font-size: 10px;
+}
+
+.flow-component-capabilities code {
+    border: 1px solid var(--hb-border);
+    border-radius: 4px;
+    padding: 3px 6px;
+    color: var(--hb-text-soft);
+    background: var(--hb-surface-muted);
+}
+
+.flow-connection-test {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    border: 1px solid var(--hb-border);
+    border-left: 3px solid var(--hb-warning);
+    padding: 10px 12px;
+    background: var(--hb-surface-muted);
+}
+
+.flow-connection-test[data-success="true"] {
+    border-left-color: var(--hb-success);
+}
+
+.flow-connection-test > div {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+.flow-connection-test strong,
+.flow-connection-test span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.flow-connection-test strong {
+    color: var(--hb-text);
+    font-size: 13px;
+}
+
+.flow-connection-test span {
+    color: var(--hb-text-soft);
+    font-size: 12px;
+}
+
+.flow-run-selector {
+    display: grid;
+    grid-template-columns: minmax(240px, 360px) minmax(0, 1fr);
+    align-items: end;
+    gap: 18px;
+    margin-bottom: 12px;
+    border-top: 1px solid var(--hb-border);
+    border-bottom: 1px solid var(--hb-border);
+    padding: 12px 14px;
+    background: var(--hb-surface-muted);
+}
+
+.flow-run-selector label,
+.flow-run-selector > div {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+}
+
+.flow-run-selector label > span,
+.flow-run-selector > div > span {
+    color: var(--hb-text-faint);
+    font-size: 11px;
+}
+
+.flow-run-selector select {
+    width: 100%;
+    height: 38px;
+    border: 1px solid var(--hb-border);
+    border-radius: 6px;
+    padding: 0 10px;
+    color: var(--hb-text);
+    background: var(--hb-surface);
+}
+
+.flow-run-selector strong,
+.flow-run-selector > div > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.flow-run-selector strong {
+    color: var(--hb-text);
+    font-size: 15px;
+}
+
+.flow-run-inspector {
+    margin-top: 14px;
+    overflow: hidden;
+    border: 1px solid var(--hb-border);
+    border-radius: 7px;
+    background: var(--hb-surface);
+}
+
+.flow-run-inspector-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--hb-border);
+}
+
+.flow-run-inspector-header > div {
+    min-width: 0;
+}
+
+.flow-run-inspector-header span {
+    display: block;
+    margin-bottom: 3px;
+    color: var(--hb-text-faint);
+    font-size: 11px;
+}
+
+.flow-run-inspector-header h2 {
+    margin: 0;
+    overflow: hidden;
+    color: var(--hb-text);
+    font-size: 17px;
+    letter-spacing: 0;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.flow-run-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-bottom: 1px solid var(--hb-border);
+}
+
+.flow-run-detail-grid > div {
+    min-width: 0;
+    padding: 12px 14px;
+}
+
+.flow-run-detail-grid > div + div {
+    border-left: 1px solid var(--hb-border);
+}
+
+.flow-run-detail-grid > div:nth-child(5) {
+    border-left: 0;
+}
+
+.flow-run-detail-grid > div:nth-child(n + 5) {
+    border-top: 1px solid var(--hb-border);
+}
+
+.flow-run-detail-grid span,
+.flow-run-detail-grid strong {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.flow-run-detail-grid span {
+    margin-bottom: 5px;
+    color: var(--hb-text-faint);
+    font-size: 10px;
+}
+
+.flow-run-detail-grid strong {
+    color: var(--hb-text);
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.flow-run-error {
+    border-bottom: 1px solid color-mix(in srgb, var(--hb-danger) 24%, var(--hb-border));
+    padding: 10px 14px;
+    color: var(--hb-danger);
+    background: color-mix(in srgb, var(--hb-danger) 6%, transparent);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.flow-inspector-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--hb-border);
+    background: var(--hb-surface-muted);
+}
+
+.flow-inspector-tabs button {
+    min-height: 32px;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    padding: 0 11px;
+    color: var(--hb-text-soft);
+    background: transparent;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.flow-inspector-tabs button:hover {
+    color: var(--hb-text);
+    background: var(--hb-surface-hover);
+}
+
+.flow-inspector-tabs button.active {
+    border-color: var(--hb-border);
+    color: var(--hb-accent);
+    background: var(--hb-surface);
+}
+
+.flow-event-list {
+    max-height: 560px;
+    overflow: auto;
+}
+
+.flow-event-item {
+    padding: 14px 16px;
+}
+
+.flow-event-item + .flow-event-item {
+    border-top: 1px solid var(--hb-border);
+}
+
+.flow-event-item > header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.flow-event-item > header > div {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.flow-event-item > header strong {
+    overflow: hidden;
+    color: var(--hb-text);
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.flow-event-item > header span,
+.flow-event-item > header time {
+    color: var(--hb-text-faint);
+    font-size: 10px;
+    white-space: nowrap;
+}
+
+.flow-event-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin-top: 7px;
+    color: var(--hb-text-soft);
+    font-size: 11px;
+}
+
+.flow-event-error {
+    margin: 9px 0 0;
+    color: var(--hb-danger);
+    font-size: 12px;
+}
+
+.flow-event-json-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.flow-event-json-grid > div {
+    min-width: 0;
+}
+
+.flow-event-json-grid span {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--hb-text-faint);
+    font-size: 10px;
+}
+
+.flow-event-json-grid pre {
+    max-height: 220px;
+    margin: 0;
+    overflow: auto;
+    border: 1px solid var(--hb-border);
+    border-radius: 5px;
+    padding: 9px 10px;
+    color: var(--hb-text-soft);
+    background: var(--hb-code-surface, var(--hb-surface-muted));
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 11px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.flow-events-empty {
+    padding: 30px 16px;
+    color: var(--hb-text-faint);
+    text-align: center;
+    font-size: 12px;
+}
+
+@media (max-width: 1080px) {
+    .flow-component-contract-meta {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .flow-component-contract-meta > div:nth-child(3) {
+        border-left: 0;
+    }
+
+    .flow-component-contract-meta > div:nth-child(n + 3) {
+        border-top: 1px solid var(--hb-border);
+    }
+
+    .flow-component-contract-body {
+        grid-template-columns: 1fr;
+    }
+
+    .flow-component-contract-body > section + section {
+        border-top: 1px solid var(--hb-border);
+        border-left: 0;
+    }
+
+    .flow-run-detail-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .flow-run-detail-grid > div:nth-child(odd) {
+        border-left: 0;
+    }
+
+    .flow-run-detail-grid > div:nth-child(n + 3) {
+        border-top: 1px solid var(--hb-border);
+    }
+}
+
+@media (max-width: 720px) {
+    .flow-component-contract-ports > div,
+    .flow-run-selector,
+    .flow-event-json-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .flow-run-inspector-header {
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 520px) {
+    .flow-component-contract-header {
+        gap: 10px;
+        padding-inline: 12px;
+    }
+
+    .flow-component-contract-title p {
+        white-space: normal;
+    }
+
+    .flow-component-contract-meta {
+        grid-template-columns: 1fr;
+    }
+
+    .flow-component-contract-meta > div + div,
+    .flow-component-contract-meta > div:nth-child(3) {
+        border-top: 1px solid var(--hb-border);
+        border-left: 0;
+    }
+
+    .flow-run-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .flow-run-detail-grid > div + div,
+    .flow-run-detail-grid > div:nth-child(n + 3) {
+        border-top: 1px solid var(--hb-border);
+        border-left: 0;
+    }
+
+    .flow-event-item > header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}

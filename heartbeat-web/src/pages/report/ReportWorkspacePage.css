@@ -1,0 +1,121 @@
+.report-workspace-page {
+    display: grid;
+    min-width: 0;
+}
+
+.report-workspace-error {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border: 1px solid color-mix(in srgb, var(--hb-danger) 25%, transparent);
+    border-radius: 7px;
+    color: var(--hb-danger);
+    background: color-mix(in srgb, var(--hb-danger) 8%, var(--hb-surface));
+    font-size: 13px;
+}
+
+.report-sql-cell {
+    display: block;
+    max-width: 280px;
+    overflow: hidden;
+    color: var(--hb-text-soft);
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.report-dataset-reference {
+    display: grid;
+    min-width: 0;
+    gap: 2px;
+}
+
+.report-dataset-reference strong,
+.report-dataset-reference small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.report-dataset-reference strong {
+    color: var(--hb-text);
+    font-size: 13px;
+}
+
+.report-dataset-reference small {
+    color: var(--hb-text-faint);
+    font-size: 11px;
+}
+
+.report-query-result {
+    display: grid;
+    min-width: 0;
+    gap: 12px;
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--hb-border);
+}
+
+.report-query-result > header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.report-query-result h2 {
+    margin: 3px 0 5px;
+    color: var(--hb-text);
+    font-size: 18px;
+    letter-spacing: 0;
+}
+
+.report-query-result header p:last-child {
+    margin: 0;
+    color: var(--hb-text-soft);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.report-query-result-actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 10px;
+}
+
+.report-query-result .backend-data-table {
+    min-width: max(720px, 100%);
+}
+
+.report-workspace-page .backend-action-cell {
+    min-width: 184px;
+}
+
+.report-workspace-page .backend-record-dialog {
+    width: min(760px, calc(100vw - 32px));
+}
+
+.report-workspace-page .backend-json-input,
+.report-workspace-page #backend-field-querySql {
+    min-height: 180px;
+}
+
+@media (max-width: 760px) {
+    .report-query-result > header,
+    .report-workspace-error {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .report-query-result-actions {
+        flex-wrap: wrap;
+    }
+
+    .report-workspace-page .backend-action-cell {
+        min-width: 172px;
+    }
+}

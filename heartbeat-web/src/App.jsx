@@ -1,20 +1,20 @@
 import {lazy, Suspense, useCallback, useEffect, useMemo, useState} from 'react'
 import {useLocation, useNavigate} from 'react-router-dom'
-import {adminApi, authApi, iamApi, structureApi, toolApi} from './api'
+import {adminApi, authApi, iamApi, structureApi} from './api'
 import {
-  buildResourcePayload,
-  columnsForResource,
-  firstMenuInTree,
-  flattenMenuRows,
-  flattenRouteModules,
-  isResourceReadOnly,
-  recordFromResource,
-  resolveTopModuleId,
-  resolveTopModuleIdForPath,
-  resourceFromModule,
-  sideMenusForTop,
-  splitTopSideMenus,
-  toResourceFormValues
+    buildResourcePayload,
+    columnsForResource,
+    firstMenuInTree,
+    flattenMenuRows,
+    flattenRouteModules,
+    isResourceReadOnly,
+    recordFromResource,
+    resolveTopModuleId,
+    resolveTopModuleIdForPath,
+    resourceFromModule,
+    sideMenusForTop,
+    splitTopSideMenus,
+    toResourceFormValues
 } from './application/admin/adminModuleService'
 import {appPathForMenu, findMenuByAppPath, findMenuById} from './domain/admin/navigationPolicy'
 import {detectBackdropSupport, effectiveSurfaceMode} from './domain/admin/performancePolicy'
@@ -23,19 +23,17 @@ import {readWorkspaceState, writeWorkspaceState} from './infrastructure/browser/
 import ResourceDialog from './components/admin/ResourceDialog'
 import RoleMenuDialog from './components/admin/RoleMenuDialog'
 import ResourceTable from './components/admin/ResourceTable'
+import DedicatedModuleHost, {isDedicatedModule} from './components/admin/DedicatedModuleHost'
 import FluidBackground from './components/FluidBackground/FluidBackground'
 import AdminLayout from './layout/AdminLayout'
 import useAppearanceTheme from './appearance/useAppearanceTheme'
 import {safeStorageGet, safeStorageRemove, safeStorageSet} from './infrastructure/browser/safeStorage'
+import {normalizeAdminRoutes} from './domain/admin/navigationCatalog'
+import {hasPermission} from './domain/admin/permissionPolicy'
 import './styles.css'
 import './theme/heartbeat-admin.css'
 
 const SchemaForm = lazy(() => import('./components/SchemaForm'))
-const DashboardPage = lazy(() => import('./pages/DashboardPage'))
-const PayCashierPage = lazy(() => import('./pages/pay/PayCashierPage'))
-const FlowStudioPage = lazy(() => import('./pages/flow/FlowStudioPage'))
-const CodeGenPage = lazy(() => import('./pages/tool/CodeGenPage'))
-const ServerMonitorPage = lazy(() => import('./pages/monitor/ServerMonitorPage'))
 
 function LazyModuleFallback({label = 'Loading module...'}) {
     return (
@@ -112,7 +110,13 @@ function saveAuthSession(result) {
 }
 
 function authResultUser(result) {
-    return result?.user?.fields || result?.user || null
+    const user = result?.user?.fields || result?.user || null
+    if (!user) return null
+    return {
+        ...user,
+        permissions: user.permissions || result?.permissions || [],
+        roles: user.roles || result?.roles || []
+    }
 }
 
 const COMMON_FIELD_TITLES = {
@@ -451,43 +455,37 @@ const fallbackAdminModules = [
   }
 ]
 
-const fallbackSideMenus = [
-  {
-    id: 'system',
-    name: '系统管理',
-    type: 'DIR',
-    children: [
-      { id: 'system-user', name: '用户管理', type: 'MENU', permission: 'system:user:list' },
-      { id: 'system-menu', name: '菜单管理', type: 'MENU', permission: 'system:menu:list' },
-      { id: 'system-role', name: '角色管理', type: 'MENU', permission: 'system:role:list' }
-    ]
-  },
-  {
-    id: 'data',
-    name: '数据配置',
-    type: 'DIR',
-    children: [
-      { id: 'structure', name: '结构展示配置', type: 'MENU', permission: 'structure:definition:list' },
-      { id: 'flow', name: '流程编排', type: 'MENU', permission: 'flow:studio:list' }
-    ]
-  },
-    {
-        id: 'monitor',
-        name: '运维监控',
-        type: 'DIR',
-        children: [
-            {id: 'monitor-server', name: '服务监控', type: 'MENU', permission: 'monitor:server:list'}
-        ]
-    },
-    {
-        id: 'tool',
-        name: '基础工具',
-        type: 'DIR',
-        children: [
-            {id: 'tool-gen', name: '代码生成', type: 'MENU', permission: 'tool:gen:list'}
-        ]
-  }
-]
+const fallbackAdminRoutes = [
+    'dashboard',
+    'system:tenant',
+    'system:user',
+    'system:dept',
+    'system:post',
+    'system:role',
+    'system:menu',
+    'system:dict',
+    'system:config',
+    'system:notice',
+    'system:oauth',
+    'system:social',
+    'monitor:operlog',
+    'monitor:loginlog',
+    'monitor:online',
+    'structure:definition',
+    'flow:studio',
+    'flow:definition',
+    'flow:component',
+    'biz:workflow',
+    'biz:pay',
+    'biz:mp',
+    'biz:report',
+    'biz:mobile',
+    'monitor:server',
+    'monitor:cache',
+    'monitor:druid',
+    'tool:job',
+    'tool:gen'
+].map((menuCode) => ({menuCode, menuType: 'MENU', status: 'ENABLED', visible: true}))
 
 function tagFromLegacyMenu(tag) {
     if (tag.key && tag.path) return tag
@@ -511,6 +509,16 @@ function normalizeWorkspaceTags(tags = []) {
 function menuIdFromAdminPath(pathname = '') {
     const match = pathname.match(/^\/admin\/module\/([^/?#]+)$/)
     return match ? decodeURIComponent(match[1]) : null
+}
+
+function permissionForModuleAction(module, action) {
+    if (action.includes('分配菜单')) return 'system:role:grant'
+    const prefix = String(module?.permissionPrefix || '').replace(/:list$/, '')
+    if (!prefix) return ''
+    if (action.includes('新增') || action.includes('创建')) return `${prefix}:add`
+    if (action.includes('修改') || action.includes('编辑') || action.includes('配置')) return `${prefix}:edit`
+    if (action.includes('删除')) return `${prefix}:remove`
+    return `${prefix}:list`
 }
 
 // ----- 主应用 -----
@@ -546,9 +554,10 @@ export default function App() {
   const [adminModules, setAdminModules] = useState(fallbackAdminModules)
   const [routeTree, setRouteTree] = useState([])
     const [routeStatus, setRouteStatus] = useState('loading')
-  const [activeTopModuleKey, setActiveTopModuleKey] = useState('data')
-  const [openTags, setOpenTags] = useState([{ id: 'structure', name: '结构展示配置', closable: false }])
+    const [activeTopModuleKey, setActiveTopModuleKey] = useState('data-automation')
+    const [openTags, setOpenTags] = useState([])
   const [activeModuleKey, setActiveModuleKey] = useState('structure')
+    const [dedicatedRefreshKey, setDedicatedRefreshKey] = useState(0)
     const [workspaceRestored, setWorkspaceRestored] = useState(false)
   const [moduleData, setModuleData] = useState({})
   const [resourceDialog, setResourceDialog] = useState({ open: false, mode: 'create', row: null })
@@ -580,8 +589,8 @@ export default function App() {
       [adminModules, activeModuleKey]
   )
   const activeResource = useMemo(
-      () => resourceFromModule(activeAdminModule),
-      [activeAdminModule]
+      () => isDedicatedModule(activeModuleKey) ? null : resourceFromModule(activeAdminModule),
+      [activeAdminModule, activeModuleKey]
   )
   const activeRecords = useMemo(() => {
     if (!activeResource) return []
@@ -591,13 +600,28 @@ export default function App() {
       () => Boolean(activeResource) && !isResourceReadOnly(activeResource),
       [activeResource]
   )
+    const activePermissionBase = useMemo(
+        () => String(activeAdminModule?.permissionPrefix || '').replace(/:list$/, ''),
+        [activeAdminModule?.permissionPrefix]
+    )
+    const canEditResource = resourceEditable && hasPermission(currentUser, `${activePermissionBase}:edit`)
+    const canDeleteResource = resourceEditable && hasPermission(currentUser, `${activePermissionBase}:remove`)
+    const canMaintainResource = resourceEditable && (
+        canEditResource
+        || canDeleteResource
+        || hasPermission(currentUser, `${activePermissionBase}:add`)
+    )
   const activeColumns = useMemo(
       () => columnsForResource(activeResource, activeAdminModule),
       [activeResource, activeAdminModule]
   )
+    const fallbackNavigationTree = useMemo(
+        () => normalizeAdminRoutes(fallbackAdminRoutes, currentUser?.permissions || []),
+        [currentUser?.permissions]
+    )
     const navigationTree = useMemo(
-        () => (routeTree.length > 0 ? routeTree : fallbackSideMenus),
-        [routeTree]
+        () => (routeStatus === 'ready' ? routeTree : fallbackNavigationTree),
+        [fallbackNavigationTree, routeStatus, routeTree]
     )
     const topModules = useMemo(() => splitTopSideMenus(navigationTree), [navigationTree])
     const sideMenus = useMemo(
@@ -612,30 +636,20 @@ export default function App() {
         const menuId = menuIdFromAdminPath(pathname)
         if (menuId) {
             const menu = findMenuById(navigationTree, menuId)
-            if (menu) return menu
-            const module = adminModules.find((item) => item.key === menuId)
-            if (module) {
-                return {
-                    id: module.key,
-                    name: module.name,
-                    path: module.appPath || `/admin/module/${encodeURIComponent(module.key)}`,
-                    type: 'MENU'
-                }
-            }
+            if (menu?.type === 'MENU') return menu
         }
 
         if (pathname === '/' || pathname === '/admin') {
-            return findMenuById(navigationTree, 'structure') || {
-                id: 'structure',
-                name: '结构展示配置',
-                type: 'MENU'
-            }
+            const structureMenu = findMenuById(navigationTree, 'structure')
+            return structureMenu?.type === 'MENU' ? structureMenu : null
         }
 
         return null
-    }, [adminModules, navigationTree])
+    }, [navigationTree])
   const structureMode = false
-    const requestedGlassMode = visualStyle === 'glass' && fluidEnabled ? 'balanced' : 'flat'
+    const requestedGlassMode = visualStyle === 'glass' && fluidEnabled && activeModuleKey !== 'flow'
+        ? 'balanced'
+        : 'flat'
     const glassMode = requestedGlassMode === 'flat'
         ? 'flat'
         : effectiveSurfaceMode({
@@ -741,7 +755,10 @@ export default function App() {
           try {
               const routes = await iamApi.routes({signal: controller.signal})
               if (!mounted) return
-              const safeRoutes = Array.isArray(routes) ? routes : []
+              const safeRoutes = normalizeAdminRoutes(
+                  Array.isArray(routes) ? routes : [],
+                  currentUser?.permissions || []
+              )
               const modules = flattenRouteModules(safeRoutes)
               setRouteTree(safeRoutes)
               setAdminModules(modules.length > 0 ? modules : fallbackAdminModules)
@@ -752,16 +769,20 @@ export default function App() {
                   const items = await adminApi.modules({signal: controller.signal})
                   if (!mounted) return
                   const safeItems = Array.isArray(items) ? items : []
-                  const modules = safeItems.some((item) => item.key === 'structure')
-                      ? safeItems
-                      : [fallbackAdminModules[0], ...safeItems]
+                  const fallbackModules = flattenRouteModules(fallbackNavigationTree)
+                  const moduleByKey = new Map(fallbackModules.map((item) => [item.key, item]))
+                  safeItems.forEach((item) => {
+                      if (item?.key) moduleByKey.set(String(item.key), item)
+                  })
+                  const modules = [...moduleByKey.values()]
                   setRouteTree([])
                   setAdminModules(modules.length > 0 ? modules : fallbackAdminModules)
                   setRouteStatus('fallback')
               } catch (fallbackError) {
                   if (fallbackError?.name === 'AbortError' || !mounted) return
                   setRouteTree([])
-                  setAdminModules(fallbackAdminModules)
+                  const fallbackModules = flattenRouteModules(fallbackNavigationTree)
+                  setAdminModules(fallbackModules.length > 0 ? fallbackModules : fallbackAdminModules)
                   setRouteStatus('fallback')
               }
           }
@@ -772,7 +793,7 @@ export default function App() {
       mounted = false
         controller.abort()
     }
-  }, [authChecked, currentUser?.id])
+  }, [authChecked, currentUser?.id, currentUser?.permissions, fallbackNavigationTree])
 
   useEffect(() => {
     if (!currentUser || activeModuleKey === 'structure' || !activeResource) return
@@ -790,14 +811,21 @@ export default function App() {
 
     useEffect(() => {
         if (!currentUser || !routeReady) return
+        if (navigationTree.length === 0) return
         if (location.pathname === '/' || location.pathname === '/admin') {
-            navigate(DEFAULT_ADMIN_PATH, {replace: true})
+            const firstMenu = firstMenuInTree(navigationTree)
+            navigate(firstMenu ? appPathForMenu(firstMenu) : DEFAULT_ADMIN_PATH, {replace: true})
             return
         }
 
         const menu = resolveMenuForPath(location.pathname)
         if (!menu) {
-            setError('Unknown route')
+            const firstMenu = firstMenuInTree(navigationTree)
+            if (firstMenu) {
+                navigate(appPathForMenu(firstMenu), {replace: true})
+            } else {
+                setError('当前账号没有可访问的页面')
+            }
             return
         }
 
@@ -806,16 +834,17 @@ export default function App() {
         const topId = resolveTopModuleIdForPath(navigationTree, location.pathname)
             || resolveTopModuleId(navigationTree, menu.id)
         if (topId) setActiveTopModuleKey(topId)
-        setOpenTags((previous) => upsertTagForLocation(
-            normalizeWorkspaceTags(previous),
-            location,
-            {
+        setOpenTags((previous) => {
+            const authorizedTags = normalizeWorkspaceTags(previous).filter((tag) => (
+                findMenuByAppPath(navigationTree, tag.path)
+            ))
+            return upsertTagForLocation(authorizedTags, location, {
                 menuId: menu.id,
                 name: menu.name,
                 title: menu.name,
                 closable: menu.id !== 'structure'
-            }
-        ))
+            })
+        })
         setSelectedResourceRow(null)
     }, [
         currentUser,
@@ -825,6 +854,13 @@ export default function App() {
         resolveMenuForPath,
         routeReady
     ])
+
+    useEffect(() => {
+        if (!currentUser || !routeReady) return
+        setOpenTags((previous) => normalizeWorkspaceTags(previous).filter((tag) => (
+            Boolean(findMenuByAppPath(navigationTree, tag.path))
+        )))
+    }, [currentUser, navigationTree, routeReady])
 
     // UI 覆盖配置
   const uiOverrides = useMemo(() => {
@@ -854,13 +890,14 @@ export default function App() {
     }
   }
 
-  async function run(action, work) {
+    async function run(action, work, rethrow = false) {
     setBusy(action)
     setError('')
     try {
       return await work()
     } catch (err) {
         setError(err.message || '操作失败')
+        if (rethrow) throw err
       return null
     } finally {
       setBusy('')
@@ -942,7 +979,8 @@ export default function App() {
         if ((closingTag.key || closingTag.id) === activeTagKey) {
             const currentIndex = normalized.indexOf(closingTag)
             const target = next[Math.max(0, currentIndex - 1)] || next[currentIndex] || next[0]
-            navigate(target?.path || DEFAULT_ADMIN_PATH, {replace: true})
+            const firstMenu = firstMenuInTree(navigationTree)
+            navigate(target?.path || (firstMenu ? appPathForMenu(firstMenu) : DEFAULT_ADMIN_PATH), {replace: true})
       }
       return next
     })
@@ -967,22 +1005,12 @@ export default function App() {
     return rows
   }
 
-  async function handleJobAction(action) {
-    if (!selectedResourceRow?.id) {
-        setError('请先选择任务')
-      return
-    }
-    const jobId = selectedResourceRow.id
-    await run(`job-${action}`, async () => {
-      if (action === 'run') await toolApi.runJob(jobId)
-      if (action === 'pause') await toolApi.pauseJob(jobId)
-      if (action === 'resume') await toolApi.resumeJob(jobId)
-      if (action === 'refresh') await toolApi.refreshJobs()
-      await loadModuleResource('jobs')
-    })
-  }
-
   async function handleModuleAction(action) {
+      const requiredPermission = permissionForModuleAction(activeAdminModule, action)
+      if (requiredPermission && !hasPermission(currentUser, requiredPermission)) {
+          setError('当前账号没有执行此操作的权限')
+          return
+      }
       if (action.includes('刷新')) {
       if (!activeResource) {
           setError('当前模块未绑定资源接口')
@@ -1073,7 +1101,7 @@ export default function App() {
     await run('role-menu-save', async () => {
       await iamApi.assignRoleMenus(roleId, menuIds)
       closeRoleMenuDialog()
-    })
+    }, true)
   }
 
   async function submitResourceDialog(values) {
@@ -1093,7 +1121,7 @@ export default function App() {
       }
       closeResourceDialog()
       await loadModuleResource(activeResource)
-    })
+    }, true)
   }
 
   async function deleteResourceRow(row) {
@@ -1205,8 +1233,12 @@ export default function App() {
   }
 
   async function handleRefresh() {
-    if (activeModuleKey !== 'structure' && activeResource) {
-      await run('refresh', () => loadModuleResource(activeResource))
+      if (activeModuleKey !== 'structure') {
+          if (activeResource) {
+              await run('refresh', () => loadModuleResource(activeResource))
+          } else if (isDedicatedModule(activeModuleKey)) {
+              setDedicatedRefreshKey((value) => value + 1)
+          }
       return
     }
     await run('refresh', () => refreshDefinitions(selected))
@@ -1393,6 +1425,31 @@ export default function App() {
         )
     }
 
+    if (routeReady && navigationTree.length === 0) {
+        return (
+            <>
+                <FluidBackground
+                    enabled={fluidBackgroundEnabled}
+                    visualStyle={liquidGlassEnabled ? 'glass' : visualStyle}
+                    accentColor={accentColor}
+                    colorScheme={colorScheme}
+                    reducedMotion={surfaceEnvironment.reducedMotion}
+                />
+                <div className="login-page">
+                    <div className="login-card">
+                        <span className="brand-orb"/>
+                        <p className="eyebrow">HEARTBEAT ADMIN</p>
+                        <h1>暂无可用菜单</h1>
+                        <p>当前账号已登录，但尚未分配后台菜单权限。请联系管理员完成角色授权。</p>
+                        <button className="button ghost" type="button" onClick={handleLogout} disabled={Boolean(busy)}>
+                            退出登录
+                        </button>
+                    </div>
+                </div>
+            </>
+        )
+    }
+
   return (
       <>
         <FluidBackground
@@ -1430,23 +1487,14 @@ export default function App() {
             onRefresh={handleRefresh}
             onLogout={handleLogout}
         >
-            <Suspense fallback={<LazyModuleFallback/>}>
-                {activeModuleKey === 'home-dashboard' && (
-                    <DashboardPage currentUser={currentUser}/>
-                )}
-                {activeModuleKey === 'biz-pay-cashier' && (
-                    <PayCashierPage/>
-                )}
-                {activeModuleKey === 'flow' && (
-                    <FlowStudioPage busy={busy} onBusy={setBusy} onError={setError}/>
-                )}
-                {activeModuleKey === 'tool-gen' && (
-                    <CodeGenPage busy={busy} onBusy={setBusy} onError={setError}/>
-                )}
-                {activeModuleKey === 'monitor-server' && (
-                    <ServerMonitorPage busy={busy} onBusy={setBusy} onError={setError}/>
-                )}
-            </Suspense>
+            <DedicatedModuleHost
+                moduleKey={activeModuleKey}
+                refreshKey={dedicatedRefreshKey}
+                currentUser={currentUser}
+                busy={busy}
+                onBusy={setBusy}
+                onError={setError}
+            />
           {activeModuleKey === 'structure' && (
                 <>
         <header className="structure-page-header" id="structure-workbench">
@@ -1792,11 +1840,7 @@ export default function App() {
         </section>
                 </>
           )}
-          {activeModuleKey !== 'home-dashboard'
-              && activeModuleKey !== 'biz-pay-cashier'
-              && activeModuleKey !== 'flow'
-              && activeModuleKey !== 'tool-gen'
-              && activeModuleKey !== 'monitor-server'
+            {!isDedicatedModule(activeModuleKey)
               && activeModuleKey !== 'structure' && (
                 <section className="module-dashboard hb-page-card">
                   <header className="module-page-header">
@@ -1812,15 +1856,9 @@ export default function App() {
                   </header>
 
                   <div className="module-toolbar panel">
-                    {activeModuleKey === 'tool-job' && (
-                        <>
-                          <button className="button ghost" disabled={Boolean(busy)} onClick={() => handleJobAction('run')}>执行</button>
-                          <button className="button ghost" disabled={Boolean(busy)} onClick={() => handleJobAction('pause')}>暂停</button>
-                          <button className="button ghost" disabled={Boolean(busy)} onClick={() => handleJobAction('resume')}>恢复</button>
-                          <button className="button ghost" disabled={Boolean(busy)} onClick={() => handleJobAction('refresh')}>刷新调度</button>
-                        </>
-                    )}
-                    {(activeAdminModule.actions || []).map((action) => (
+                      {(activeAdminModule.actions || []).filter((action) => (
+                          hasPermission(currentUser, permissionForModuleAction(activeAdminModule, action))
+                      )).map((action) => (
                         <button
                             className={action.includes('新增') ? 'button primary' : 'button ghost'}
                             key={action}
@@ -1855,7 +1893,8 @@ export default function App() {
                         <span className="step">列表</span>
                         <h2>{activeAdminModule.name}列表</h2>
                       </div>
-                      <span className="status-pill">{activeResource ? (resourceEditable ? '可维护' : '只读') : '未接入'}</span>
+                        <span
+                            className="status-pill">{activeResource ? (canMaintainResource ? '可维护' : '只读') : '未接入'}</span>
                     </div>
                     <ResourceTable
                         key={activeResource}
@@ -1864,6 +1903,8 @@ export default function App() {
                         records={activeRecords}
                         selectedRow={selectedResourceRow}
                         editable={resourceEditable}
+                        canEdit={canEditResource}
+                        canDelete={canDeleteResource}
                         onSelect={setSelectedResourceRow}
                         onEdit={(record) => {
                           setSelectedResourceRow(record)

@@ -19,8 +19,8 @@
     <result column="logged_at" jdbcType="TIMESTAMP" property="loggedAt" />
     <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
     <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
-    <result column="create_by" jdbcType="VARCHAR" property="createBy"/>
-    <result column="update_by" jdbcType="VARCHAR" property="updateBy"/>
+      <result column="create_by" jdbcType="BIGINT" property="createBy"/>
+      <result column="update_by" jdbcType="BIGINT" property="updateBy"/>
   </resultMap>
   <sql id="Example_Where_Clause">
     <!--
@@ -158,7 +158,7 @@
     #{userId,jdbcType=BIGINT}, #{username,jdbcType=VARCHAR}, #{loginType,jdbcType=VARCHAR},
     #{loginIp,jdbcType=VARCHAR}, #{userAgent,jdbcType=VARCHAR}, #{resultStatus,jdbcType=VARCHAR},
     #{failureReason,jdbcType=VARCHAR}, #{loggedAt,jdbcType=TIMESTAMP}, #{createTime,jdbcType=TIMESTAMP},
-    #{updateTime,jdbcType=TIMESTAMP}, #{createBy,jdbcType=VARCHAR}, #{updateBy,jdbcType=VARCHAR}
+        #{updateTime,jdbcType=TIMESTAMP}, #{createBy,jdbcType=BIGINT}, #{updateBy,jdbcType=BIGINT}
       )
   </insert>
     <insert id="insertSelective" parameterType="top.kx.heartbeat.infrastructure.persistence.entity.sys.SysLoginLogDO"
@@ -256,10 +256,10 @@
         #{updateTime,jdbcType=TIMESTAMP},
       </if>
       <if test="createBy != null">
-        #{createBy,jdbcType=VARCHAR},
+          #{createBy,jdbcType=BIGINT},
       </if>
       <if test="updateBy != null">
-        #{updateBy,jdbcType=VARCHAR},
+          #{updateBy,jdbcType=BIGINT},
       </if>
     </trim>
   </insert>
@@ -320,10 +320,10 @@
         update_time = #{row.updateTime,jdbcType=TIMESTAMP},
       </if>
       <if test="row.createBy != null">
-        create_by = #{row.createBy,jdbcType=VARCHAR},
+          create_by = #{row.createBy,jdbcType=BIGINT},
       </if>
       <if test="row.updateBy != null">
-        update_by = #{row.updateBy,jdbcType=VARCHAR},
+          update_by = #{row.updateBy,jdbcType=BIGINT},
       </if>
     </set>
     <if test="example != null">
@@ -349,8 +349,8 @@
       logged_at = #{row.loggedAt,jdbcType=TIMESTAMP},
       create_time = #{row.createTime,jdbcType=TIMESTAMP},
       update_time = #{row.updateTime,jdbcType=TIMESTAMP},
-    create_by = #{row.createBy,jdbcType=VARCHAR},
-    update_by = #{row.updateBy,jdbcType=VARCHAR}
+      create_by = #{row.createBy,jdbcType=BIGINT},
+      update_by = #{row.updateBy,jdbcType=BIGINT}
     <if test="example != null">
       <include refid="Update_By_Example_Where_Clause" />
     </if>
@@ -399,10 +399,10 @@
         update_time = #{updateTime,jdbcType=TIMESTAMP},
       </if>
       <if test="createBy != null">
-        create_by = #{createBy,jdbcType=VARCHAR},
+          create_by = #{createBy,jdbcType=BIGINT},
       </if>
       <if test="updateBy != null">
-        update_by = #{updateBy,jdbcType=VARCHAR},
+          update_by = #{updateBy,jdbcType=BIGINT},
       </if>
     </set>
     where id = #{id,jdbcType=BIGINT}
@@ -425,8 +425,8 @@
       logged_at = #{loggedAt,jdbcType=TIMESTAMP},
       create_time = #{createTime,jdbcType=TIMESTAMP},
       update_time = #{updateTime,jdbcType=TIMESTAMP},
-    create_by = #{createBy,jdbcType=VARCHAR},
-    update_by = #{updateBy,jdbcType=VARCHAR}
+      create_by = #{createBy,jdbcType=BIGINT},
+      update_by = #{updateBy,jdbcType=BIGINT}
     where id = #{id,jdbcType=BIGINT}
   </update>
 </mapper>

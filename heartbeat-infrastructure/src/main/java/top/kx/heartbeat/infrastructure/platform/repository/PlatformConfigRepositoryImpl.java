@@ -1,5 +1,6 @@
 package top.kx.heartbeat.infrastructure.platform.repository;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Repository;
 import top.kx.heartbeat.application.common.model.DomainRecord;
 import top.kx.heartbeat.application.platform.port.PlatformConfigRepository;
@@ -320,7 +321,7 @@ public class PlatformConfigRepositoryImpl implements PlatformConfigRepository {
         // 进入可能失败的处理区间，后续异常会统一转换为业务可理解的结果。
         try {
             // 返回已经完成封装的业务结果。
-            return value == null || value.trim().isEmpty() ? null : Long.parseLong(value.trim());
+            return StringUtils.isBlank(value) ? null : Long.parseLong(value.trim());
         } catch (NumberFormatException ignored) {
             // 返回已经完成封装的业务结果。
             return null;

@@ -9,6 +9,7 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import top.kx.heartbeat.domain.tool.QuartzJobScheduler;
+import top.kx.heartbeat.support.MySqlIntegrationTestSupport;
 
 import java.util.Arrays;
 
@@ -22,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.*;
         "heartbeat.middleware.quartz.enabled=false"
 })
 @ActiveProfiles("local")
-class MiddlewareToggleContextTest {
+class MiddlewareToggleContextTest extends MySqlIntegrationTestSupport {
 
     @Autowired
     private ApplicationContext applicationContext;

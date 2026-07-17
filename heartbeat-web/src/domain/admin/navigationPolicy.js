@@ -9,7 +9,24 @@ export const SPECIAL_APP_PATHS = {
     'biz-pay-cashier': '/admin/pay/cashier'
 }
 
+const APP_PATH_ALIASES = {
+    '/admin/structure-definitions': 'structure',
+    '/admin/flows/studio': 'flow',
+    '/admin/pay': 'biz-pay-order',
+    '/admin/workflow': 'biz-workflow-definition',
+    '/admin/mp': 'biz-mp-account',
+    '/admin/report': 'biz-report-dataset',
+    '/admin/mobile': 'biz-mobile-app',
+    '/admin/system/dict': 'system-dict-type'
+}
+
 const MENU_ID_PATTERN = /^\/admin\/module\/([^/?#]+)$/
+
+function pathnameOnly(path) {
+    const value = String(path || '').trim()
+    const boundary = value.search(/[?#]/)
+    return boundary < 0 ? value : value.slice(0, boundary)
+}
 
 export function isVisibleMenu(menu = {}) {
     return menu.visible !== false && menu.hidden !== true
@@ -20,12 +37,12 @@ export function isDisabledMenu(menu = {}) {
 }
 
 export function isNavigableMenu(menu = {}) {
-    return Boolean(menu?.id) && menu.type !== 'BUTTON' && isVisibleMenu(menu) && !isDisabledMenu(menu)
+    return Boolean(menu?.id) && menu.type === 'MENU' && isVisibleMenu(menu) && !isDisabledMenu(menu)
 }
 
 export function normalizeAppPath(path) {
     if (!path) return ''
-    const normalized = normalizePath(path)
+    const normalized = normalizePath(pathnameOnly(path))
     if (normalized.startsWith('/admin')) return normalized
     return normalizePath(`/admin${normalized}`)
 }
@@ -85,9 +102,13 @@ export function findMenuByAppPath(nodes = [], pathname) {
     const direct = flattenMenus(nodes).find((menu) => appPathForMenu(menu) === normalizedPath)
     if (direct) return direct
 
+    const aliasMenuId = APP_PATH_ALIASES[normalizedPath]
+    if (aliasMenuId) return findMenuById(nodes, aliasMenuId)
+
     const menuIdMatch = normalizedPath.match(MENU_ID_PATTERN)
     if (menuIdMatch) {
-        return findMenuById(nodes, decodeURIComponent(menuIdMatch[1]))
+        const menu = findMenuById(nodes, decodeURIComponent(menuIdMatch[1]))
+        return isNavigableMenu(menu) ? menu : null
     }
 
     return flattenMenus(nodes).find((menu) => {

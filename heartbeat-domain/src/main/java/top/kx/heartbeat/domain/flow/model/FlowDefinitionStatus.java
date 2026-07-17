@@ -15,7 +15,11 @@ public enum FlowDefinitionStatus {
     /**
      * 已保存状态。
      */
-    SAVED("SAVED", "已保存");
+    SAVED("SAVED", "已保存"),
+
+    ONLINE("ONLINE", "已启用"),
+
+    OFFLINE("OFFLINE", "已停用");
 
     /**
      * 状态编码。

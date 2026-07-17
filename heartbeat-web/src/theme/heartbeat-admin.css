@@ -229,6 +229,15 @@ textarea:focus-visible,
     font-size: 13px;
 }
 
+.dialog-field-hint {
+    display: block;
+    margin-top: 2px;
+    color: var(--hb-text-faint);
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.5;
+}
+
 /* Shell */
 .hb-admin-layout {
     position: relative;
@@ -547,18 +556,56 @@ textarea:focus-visible,
     display: flex;
     align-items: center;
     gap: 6px;
+    width: 100%;
     min-height: 28px;
+    border: 0;
+    border-radius: 6px;
+    padding-right: 8px;
     color: var(--hb-text-faint);
+    background: transparent;
+    text-align: left;
     font-size: 11px;
     font-weight: 700;
     text-transform: none;
 }
 
+.hb-side-group-title:hover {
+    color: var(--hb-text-soft);
+    background: var(--hb-surface-hover);
+}
+
 .hb-side-group-marker {
+    flex: 0 0 auto;
     width: 4px;
     height: 4px;
     border-radius: 50%;
     background: var(--hb-text-faint);
+}
+
+.hb-side-group-title > span:nth-child(2) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.hb-side-group-chevron {
+    margin-left: auto;
+    font-size: 13px;
+    transition: transform 160ms ease;
+}
+
+.hb-side-group-title[aria-expanded="false"] .hb-side-group-chevron {
+    transform: rotate(-90deg);
+}
+
+.hb-side-group-children {
+    display: grid;
+    gap: 3px;
+}
+
+.hb-side-group-children[hidden] {
+    display: none;
 }
 
 .hb-side-menu button {
@@ -1596,41 +1643,6 @@ textarea:focus-visible,
     font-size: 12px;
 }
 
-.hb-cashier-card {
-    width: min(440px, 100%);
-    margin: 24px auto;
-    padding: 26px;
-    border: 1px solid var(--hb-border);
-    border-radius: var(--hb-radius);
-    background: var(--hb-surface);
-    text-align: center;
-}
-
-.hb-cashier-card h1 {
-    margin-bottom: 8px;
-    font-size: 22px;
-    letter-spacing: 0;
-}
-
-.hb-cashier-amount {
-    margin: 14px 0;
-    color: var(--hb-accent);
-    font-size: 34px;
-    font-weight: 750;
-}
-
-.hb-cashier-qr {
-    display: grid;
-    width: 180px;
-    height: 180px;
-    margin: 18px auto;
-    place-items: center;
-    border: 1px dashed var(--hb-border-strong);
-    border-radius: 7px;
-    color: var(--hb-text-faint);
-    background: var(--hb-surface-muted);
-}
-
 .flow-studio-grid {
   display: grid;
     grid-template-columns: 250px minmax(0, 1fr) 300px;
@@ -1925,6 +1937,26 @@ textarea:focus-visible,
     }
 
     .hb-side-group-title {
+        width: auto;
+        min-height: 34px;
+        padding: 5px 9px !important;
+        border: 1px solid var(--hb-border);
+        color: var(--hb-text-soft);
+        background: var(--hb-surface-muted);
+        font-size: 12px;
+    }
+
+    .hb-side-group-marker,
+    .hb-side-group-chevron {
+        display: none;
+    }
+
+    .hb-side-group-children {
+        display: flex;
+        gap: 6px;
+    }
+
+    .hb-side-group-children[hidden] {
         display: none;
     }
 

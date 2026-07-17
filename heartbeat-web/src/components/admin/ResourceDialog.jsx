@@ -4,6 +4,7 @@ import {getResourceDefinition} from '../../domain/admin/resourceDefinitions'
 export default function ResourceDialog({open, mode, resource, values, busy = false, onClose, onSubmit}) {
   const definition = getResourceDefinition(resource)
   const [formValues, setFormValues] = useState(values || definition.emptyValues)
+    const [submitError, setSubmitError] = useState('')
     const dialogRef = useRef(null)
     const onCloseRef = useRef(onClose)
     const busyRef = useRef(busy)
@@ -11,6 +12,7 @@ export default function ResourceDialog({open, mode, resource, values, busy = fal
 
   useEffect(() => {
     setFormValues(values || definition.emptyValues)
+      setSubmitError('')
   }, [definition.emptyValues, resource, values])
 
     useEffect(() => {
@@ -73,6 +75,8 @@ export default function ResourceDialog({open, mode, resource, values, busy = fal
         submittingRef.current = true
         try {
             await onSubmit(formValues)
+        } catch (error) {
+            setSubmitError(error?.message || '保存失败，请检查表单内容')
         } finally {
             submittingRef.current = false
         }
@@ -122,6 +126,8 @@ export default function ResourceDialog({open, mode, resource, values, busy = fal
                   标有 <span aria-hidden="true">*</span> 的项目为必填项
               </p>
 
+              {submitError && <div className="error-banner backend-dialog-error" role="alert">{submitError}</div>}
+
           <div className="resource-form-grid">
               {fields.map((field) => {
                   const fieldId = `resource-field-${field.name}`
@@ -129,7 +135,7 @@ export default function ResourceDialog({open, mode, resource, values, busy = fal
                       <label
                           key={field.name}
                           htmlFor={fieldId}
-                          className={field.type === 'textarea' ? 'full-field' : ''}
+                          className={field.type === 'textarea' || field.fullWidth ? 'full-field' : ''}
                       >
                     <span className="dialog-field-label">
                       {field.label}
@@ -140,13 +146,16 @@ export default function ResourceDialog({open, mode, resource, values, busy = fal
                                   id={fieldId}
                                   value={formValues[field.name] ?? ''}
                                   required={field.required}
-                                  disabled={busy}
+                                  disabled={busy || field.disabled}
                                   aria-required={field.required || undefined}
                                   onChange={(event) => updateValue(field.name, event.target.value)}
                               >
-                                  {(field.options || []).map((option) => (
-                                      <option key={option} value={option}>{option}</option>
-                                  ))}
+                                  {(field.options || []).map((option) => {
+                                      const value = typeof option === 'object' ? option.value : option
+                                      const label = typeof option === 'object' ? option.label : option
+                                      return <option key={value} value={value}
+                                                     disabled={Boolean(option?.disabled)}>{label}</option>
+                                  })}
                               </select>
                           ) : field.type === 'textarea' ? (
                               <textarea
@@ -155,7 +164,7 @@ export default function ResourceDialog({open, mode, resource, values, busy = fal
                                   value={formValues[field.name] ?? ''}
                                   placeholder={field.placeholder}
                                   required={field.required}
-                                  disabled={busy}
+                                  disabled={busy || field.disabled}
                                   aria-required={field.required || undefined}
                                   onChange={(event) => updateValue(field.name, event.target.value)}
                               />
@@ -166,12 +175,13 @@ export default function ResourceDialog({open, mode, resource, values, busy = fal
                                   value={formValues[field.name] ?? ''}
                                   placeholder={field.placeholder}
                                   required={field.required}
-                                  disabled={busy}
+                                  disabled={busy || field.disabled}
                                   aria-required={field.required || undefined}
                                   autoComplete={field.type === 'password' ? 'new-password' : undefined}
                                   onChange={(event) => updateValue(field.name, event.target.value)}
                               />
                           )}
+                          {field.hint && <small className="dialog-field-hint">{field.hint}</small>}
                       </label>
                   )
               })}

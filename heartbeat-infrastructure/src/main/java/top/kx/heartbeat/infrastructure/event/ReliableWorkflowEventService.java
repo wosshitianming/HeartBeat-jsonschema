@@ -145,7 +145,7 @@ public class ReliableWorkflowEventService {
         example.createCriteria()
                 .andTenantIdEqualTo(tenantId)
                 .andCorrelationKeyEqualTo(correlationKey);
-        return first(waitStateMapper.selectByExample(example));
+        return first(waitStateMapper.selectByExampleWithBLOBs(example));
     }
 
     private SysInboxEventDO selectInbox(String consumerCode, String eventId) {

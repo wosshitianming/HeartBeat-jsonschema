@@ -14,13 +14,16 @@ public class PlatformSocialProviderRequest {
     @JsonAlias("name")
     private String providerName;
     private String providerType;
+    @JsonAlias("appId")
     private String clientId;
     private String appKey;
+    @JsonAlias("appSecret")
     private String appSecretCipher;
     private String authorizeUrl;
     private String tokenUrl;
     private String userInfoUrl;
     private String scopes;
     private Boolean enabled;
+    private Boolean autoRegister;
     private String status;
 }

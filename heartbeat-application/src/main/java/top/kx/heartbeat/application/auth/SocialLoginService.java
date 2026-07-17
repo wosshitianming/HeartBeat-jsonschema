@@ -223,7 +223,10 @@ public class SocialLoginService {
             // 设置持久化字段，保证数据库记录具备完整业务属性。
             userRequest.setAvatarUrl(profile.getOrDefault("avatar", ""));
             // 设置持久化字段，保证数据库记录具备完整业务属性。
-            userRequest.setPasswordHash(openId);
+            userRequest.setPasswordHash(passwordEncoder.encode(
+                    "social-only-" + UUID.randomUUID() + "-" + UUID.randomUUID()));
+            userRequest.setPasswordAlgo("BCRYPT");
+            userRequest.setPasswordUpdateTime(new Date());
             // 计算当前步骤所需的中间值，供后续业务判断使用。
             Map<String, Object> user = platformUserRepository.createSocialUser(userRequest).toMap();
             // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
@@ -371,10 +374,7 @@ public class SocialLoginService {
         if (StringUtils.isBlank(rawPassword) || StringUtils.isBlank(passwordHash)) {
             return false;
         }
-        if (passwordHash.startsWith("$2")) {
-            return passwordEncoder.matches(rawPassword, passwordHash);
-        }
-        return rawPassword.equals(passwordHash);
+        return passwordHash.startsWith("$2") && passwordEncoder.matches(rawPassword, passwordHash);
     }
 
     /**

@@ -1,5 +1,6 @@
 package top.kx.heartbeat.infrastructure.flow.repository;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Repository;
 import top.kx.heartbeat.domain.flow.model.ConnectionCredential;
 import top.kx.heartbeat.domain.flow.repository.ConnectionCredentialRepository;
@@ -168,7 +169,7 @@ public class ConnectionCredentialRepositoryImpl implements ConnectionCredentialR
      */
     private Long parseLong(String value) {
         // 判断字符串是否为空。
-        if (value == null || value.trim().isEmpty()) {
+        if (StringUtils.isBlank(value)) {
             // 返回空主键。
             return null;
         }

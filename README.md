@@ -5,14 +5,14 @@
 
 ## 技术栈
 
-| 组件 | 版本 |
-| --- | --- |
-| Spring Boot | 2.7.18 |
-| Java | 8 |
-| 持久化 | MyBatis + MyBatis Generator |
-| 数据库 | MySQL 8.0（生产） / H2（本地） |
-| 构建 | Maven 多模块 |
-| 工具 | Lombok、MapStruct |
+| 组件          | 版本                          |
+|-------------|-----------------------------|
+| Spring Boot | 2.7.18                      |
+| Java        | 8                           |
+| 持久化         | MyBatis + MyBatis Generator |
+| 数据库         | MySQL 8.0                   |
+| 构建          | Maven 多模块                   |
+| 工具          | Lombok、MapStruct            |
 
 ## 模块与分层
 
@@ -59,15 +59,17 @@ interfaces ──▶ application ──▶ domain ◀── infrastructure
 
 ## 快速开始
 
-### 本地运行（H2 内存库，零外部依赖）
+### 本地运行（MySQL）
 
 ```bash
 mvn clean package -DskipTests
+MYSQL_HOST=127.0.0.1 MYSQL_DB=heartbeat_local \
+MYSQL_USERNAME=heartbeat_app MYSQL_PASSWORD='<database-password>' \
 java -jar heartbeat-start/target/heartbeat.jar --spring.profiles.active=local
 ```
 
-默认激活 `dev` profile；本地零依赖运行时显式启用 `local`，使用 H2 内存库并自动建表。
-启动后访问 `http://localhost:7001`，H2 控制台为 `http://localhost:7001/h2-console`（JDBC URL：`jdbc:h2:mem:heartbeat`）。
+默认激活 `dev` profile；本地运行时显式启用 `local`，并通过 Flyway 自动迁移 MySQL 表结构。
+启动前必须提供数据库账号和密码；启动后访问 `http://localhost:7001`。
 
 ### 可选中间件开关
 
@@ -103,10 +105,10 @@ ROCKETMQ_PRODUCER_GROUP=heartbeat-prod
 | `gray` | `heartbeat_gray` |
 | `prod` | `heartbeat` |
 
-SQL 维护源位于 `heartbeat-start/src/main/resources/db/mysql/`：
+SQL 维护源位于 `heartbeat-start/src/main/resources/db/migration/mysql/`，聚合产物位于 `db/mysql/`：
 
 - `00-create-databases.sql`：创建五套环境数据库。
-- `db/migration/mysql/V1`～`V8`：Flyway 正式数据库契约。
+- `db/migration/mysql/V1`～`V15`：Flyway 正式数据库契约。
 - `heartbeat-enterprise-all.sql`：由 Flyway 迁移聚合的一键安装脚本，不包含建库语句。
 
 Windows PowerShell 下可这样初始化：
@@ -116,10 +118,10 @@ cmd /c "mysql --default-character-set=utf8mb4 -u root -p < heartbeat-start\src\m
 cmd /c "mysql --default-character-set=utf8mb4 -u root -p heartbeat_dev < heartbeat-start\src\main\resources\db\mysql\heartbeat-enterprise-all.sql"
 ```
 
-修改模块脚本后，使用以下命令重新生成完整脚本及旧兼容入口：
+修改 Flyway 脚本后，使用以下命令重新生成完整脚本：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File heartbeat-start\src\main\resources\db\build-sql-bundles.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build-enterprise-sql.ps1
 ```
 
 `pre`、`gray`、`prod` 使用 Quartz JDBC JobStore，需要安装 `QRTZ_*` 表；完整脚本已包含这些表。`local`、`dev`、`test` 默认使用内存 JobStore。
@@ -130,7 +132,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File heartbeat-start\src\main\res
 java -jar heartbeat-start/target/heartbeat.jar \
   --spring.profiles.active=prod \
   --MYSQL_HOST=127.0.0.1 --MYSQL_DB=heartbeat \
-  --MYSQL_USERNAME=root --MYSQL_PASSWORD=yourpwd
+  --MYSQL_USERNAME=heartbeat_app --MYSQL_PASSWORD='<database-password>' \
+  --JWT_SECRET='<at-least-32-random-bytes>'
 ```
 
 生产环境不会自动建表，请先执行 `db/mysql/heartbeat-enterprise-all.sql`，或交给 Flyway 执行 `db/migration/mysql`。

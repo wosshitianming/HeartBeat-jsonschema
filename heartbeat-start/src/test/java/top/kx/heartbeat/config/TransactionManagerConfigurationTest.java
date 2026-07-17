@@ -6,6 +6,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.PlatformTransactionManager;
+import top.kx.heartbeat.support.MySqlIntegrationTestSupport;
 
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
@@ -14,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
  */
 @SpringBootTest
 @ActiveProfiles("local")
-class TransactionManagerConfigurationTest {
+class TransactionManagerConfigurationTest extends MySqlIntegrationTestSupport {
 
     @Autowired
     private PlatformTransactionManager transactionManager;

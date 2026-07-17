@@ -1,5 +1,6 @@
 package top.kx.heartbeat.infrastructure.workflow.repository;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Repository;
 import top.kx.heartbeat.application.common.model.DomainRecord;
 import top.kx.heartbeat.application.workflow.port.WorkflowTaskRepository;
@@ -195,7 +196,7 @@ public class WorkflowTaskRepositoryImpl implements WorkflowTaskRepository {
         // 进入可能失败的处理区间，后续异常会统一转换为业务可理解的结果。
         try {
             // 返回已经完成封装的业务结果。
-            return value == null || value.trim().isEmpty() ? defaultValue : Long.parseLong(value.trim());
+            return StringUtils.isBlank(value) ? defaultValue : Long.parseLong(value.trim());
         } catch (NumberFormatException ignored) {
             // 返回已经完成封装的业务结果。
             return defaultValue;

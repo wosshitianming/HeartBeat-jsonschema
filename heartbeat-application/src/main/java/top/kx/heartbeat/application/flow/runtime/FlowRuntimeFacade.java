@@ -1,13 +1,8 @@
 package top.kx.heartbeat.application.flow.runtime;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import top.kx.heartbeat.domain.flow.model.FlowIdempotencyScope;
-import top.kx.heartbeat.domain.flow.model.FlowRuntimeEngine;
-import top.kx.heartbeat.domain.flow.model.FlowRun;
-import top.kx.heartbeat.domain.flow.model.FlowRunStatus;
-import top.kx.heartbeat.domain.flow.model.FlowVersion;
+import top.kx.heartbeat.domain.flow.model.*;
 
 import javax.annotation.Resource;
 import java.time.Instant;
@@ -42,7 +37,7 @@ public class FlowRuntimeFacade {
     /**
      * 生产态运行时端口。
      */
-    @Autowired(required = false)
+    @Resource
     private FlowProductionRuntimePort productionRuntimePort;
 
     /**
@@ -57,7 +52,10 @@ public class FlowRuntimeFacade {
         FlowRuntimeEngine engine = FlowRuntimeEngine.fromCode(runtimeEngine);
         // 判断是否使用 Flowable 引擎。
         if (!FlowRuntimeEngine.FLOWABLE.equals(engine)) {
-            // 本地调试引擎不执行生产部署。
+            // 本地运行时无需部署 BPMN，但仍需留下可激活的运行时元数据。
+            version.setRuntimeEngine(engine.getCode());
+            version.setProcessDefinitionKey(compileResult.getProcessDefinitionKey());
+            version.setDeployedAt(Instant.now());
             return version;
         }
         // 获取生产态运行时端口。
@@ -94,6 +92,10 @@ public class FlowRuntimeFacade {
         }
         // 使用生产态运行时端口启动流程。
         return requiredProductionRuntimePort().start(command);
+    }
+
+    public FlowRuntimeEngine productionEngine() {
+        return FlowRuntimeEngine.fromCode(runtimeEngine);
     }
 
     /**

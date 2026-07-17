@@ -109,6 +109,37 @@ public final class TenantContext {
     }
 
     /**
+     * 在指定租户作用域内执行动作，并完整恢复原租户或平台级上下文。
+     */
+    public static <T> T runAsTenant(String tenantId, Supplier<T> action) {
+        if (StringUtils.isBlank(tenantId)) {
+            throw new IllegalArgumentException("tenant id must not be blank");
+        }
+        try {
+            return runAsTenant(Long.parseLong(tenantId.trim()), action);
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException("tenant id must be a long value", ex);
+        }
+    }
+
+    /**
+     * 在指定租户作用域内执行动作，并完整恢复原租户或平台级上下文。
+     */
+    public static <T> T runAsTenant(long tenantId, Supplier<T> action) {
+        Long previousTenantId = TENANT_HOLDER.get();
+        Boolean previousPlatformScope = PLATFORM_SCOPE_HOLDER.get();
+        try {
+            setTenantId(tenantId);
+            return action.get();
+        } finally {
+            if (previousTenantId == null) TENANT_HOLDER.remove();
+            else TENANT_HOLDER.set(previousTenantId);
+            if (previousPlatformScope == null) PLATFORM_SCOPE_HOLDER.remove();
+            else PLATFORM_SCOPE_HOLDER.set(previousPlatformScope);
+        }
+    }
+
+    /**
      * 以平台级作用域执行动作。
      *
      * @param action 平台级动作。

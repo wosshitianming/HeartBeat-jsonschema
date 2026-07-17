@@ -1,308 +1,972 @@
-import {useEffect, useMemo, useState} from 'react'
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
+import {reconnectEdge} from '@xyflow/react'
+import {FilePlus2, PanelLeftOpen, SlidersHorizontal} from 'lucide-react'
+import {useLocation} from 'react-router-dom'
+import '@xyflow/react/dist/style.css'
 import {flowApi} from '../../api'
+import {hasPermission} from '../../domain/admin/permissionPolicy'
+import FlowEditorToolbar from '../../components/flow/FlowEditorToolbar'
+import FlowExecutionDock from '../../components/flow/FlowExecutionDock'
+import NodeInspector from '../../components/flow/NodeInspector'
+import NodeLibrary from '../../components/flow/NodeLibrary'
+import FlowCanvas from './studio/FlowCanvas'
+import {
+    buildManifestIndex,
+    canvasToFlowDsl,
+    createStableId,
+    decorateCanvasNodes,
+    flowDslToCanvas,
+    resolveManifest,
+    validateConnection
+} from './flowCanvasAdapter'
+import './FlowStudioPage.css'
 
-const initialPayload = JSON.stringify({ status: 'PAID', orderNo: 'HB20260623001', amount: 99.9 }, null, 2)
+const initialPayload = JSON.stringify({status: 'PAID', orderNo: 'HB20260712001', amount: 99.9}, null, 2)
 
 function createInitialFlow() {
   return {
-    name: '订单支付同步流程',
+      name: '新建自动化流程',
     code: `flow_${Date.now()}`,
-    description: 'Open Flow Studio MVP 示例流程',
+      description: '',
     status: 'DRAFT',
     variables: {},
-    nodes: [
-      {
-        id: 'manual_1',
-        type: 'trigger.manual',
-        version: '1.0.0',
-        position: { x: 120, y: 160 },
-        config: {}
-      }
-    ],
+      nodes: [],
     edges: [],
-    settings: { timeoutMs: 30000 }
+      settings: {timeoutMs: 30000, editor: {}}
   }
 }
 
-function firstPort(component, direction) {
-  const ports = component?.ports?.[direction] || []
-  return ports[0]?.id || (direction === 'outputs' ? 'out' : 'in')
+function normalizeFlow(value) {
+    const fallback = createInitialFlow()
+    return {
+        ...fallback,
+        ...(value || {}),
+        variables: value?.variables || {},
+        nodes: Array.isArray(value?.nodes) ? value.nodes : [],
+        edges: Array.isArray(value?.edges) ? value.edges : [],
+        settings: {...fallback.settings, ...(value?.settings || {})}
+    }
 }
 
-function JsonBlock({ value }) {
-  return <pre className="flow-json-block">{JSON.stringify(value ?? {}, null, 2)}</pre>
+function cloneDocument(value) {
+    return JSON.parse(JSON.stringify(value))
 }
 
-export default function FlowStudioPage({ busy, onBusy, onError }) {
+function editableTarget(target) {
+    if (!target) return false
+    const tag = target.tagName?.toLowerCase()
+    return target.isContentEditable || tag === 'input' || tag === 'textarea' || tag === 'select'
+}
+
+function compactCanvasLayout() {
+    return typeof window !== 'undefined' && window.matchMedia?.('(max-width: 620px)').matches
+}
+
+function singlePanelCanvasLayout() {
+    return typeof window !== 'undefined' && window.matchMedia?.('(max-width: 1450px)').matches
+}
+
+function businessDocumentSignature(value) {
+    const editor = {...(value?.settings?.editor || {})}
+    delete editor.viewport
+    return JSON.stringify({
+        ...(value || {}),
+        settings: {...(value?.settings || {}), editor}
+    })
+}
+
+function schemaDefaults(schema) {
+    if (!schema || typeof schema !== 'object') return {}
+    if (schema.default !== undefined) return cloneDocument(schema.default)
+    if (schema.type !== 'object' && !schema.properties) return {}
+    return Object.entries(schema.properties || {}).reduce((result, [key, property]) => {
+        if (property?.default !== undefined) result[key] = cloneDocument(property.default)
+        return result
+    }, {})
+}
+
+function executionState(events = []) {
+    const states = new Map()
+    for (const event of events) {
+        if (!event?.nodeId || event.nodeId === '__process__') continue
+        const type = String(event.eventType || '').toUpperCase()
+        let status = 'running'
+        if (type.includes('FAIL') || type.includes('ERROR') || event.errorMessage) status = 'failed'
+        else if (type.includes('WAIT')) status = 'waiting'
+        else if (type.includes('SUCCESS') || type.includes('COMPLETE')) status = 'success'
+        else if (type.includes('CANCEL')) status = 'canceled'
+        states.set(event.nodeId, {
+            status,
+            elapsedMs: event.elapsedMs,
+            eventType: event.eventType,
+            errorMessage: event.errorMessage,
+            input: event.input,
+            output: event.output
+        })
+    }
+    return states
+}
+
+export default function FlowStudioPage({permissions = [], busy, onBusy, onError}) {
+    const location = useLocation()
+    const requestedFlowId = useMemo(
+        () => new URLSearchParams(location.search).get('flowId')?.trim() || '',
+        [location.search]
+    )
+    const canEdit = hasPermission(permissions, 'flow:definition:edit')
+    const canPublish = hasPermission(permissions, 'flow:definition:publish')
   const [components, setComponents] = useState([])
   const [flows, setFlows] = useState([])
   const [flow, setFlow] = useState(createInitialFlow)
-  const [selectedNodeId, setSelectedNodeId] = useState('manual_1')
-  const [nodeConfigText, setNodeConfigText] = useState('{}')
+    const [canvasNodes, setCanvasNodes] = useState([])
+    const [canvasEdges, setCanvasEdges] = useState([])
+    const [selectedNodeId, setSelectedNodeId] = useState('')
+    const [selectedEdgeIds, setSelectedEdgeIds] = useState([])
+    const [inspectorValue, setInspectorValue] = useState({})
   const [payloadText, setPayloadText] = useState(initialPayload)
   const [compileReport, setCompileReport] = useState(null)
   const [debugResult, setDebugResult] = useState(null)
+    const [libraryOpen, setLibraryOpen] = useState(true)
+    const [inspectorOpen, setInspectorOpen] = useState(true)
+    const [dockOpen, setDockOpen] = useState(false)
+    const [mobileCanvasLayout, setMobileCanvasLayout] = useState(compactCanvasLayout)
+    const [singlePanelLayout, setSinglePanelLayout] = useState(singlePanelCanvasLayout)
+    const [dirty, setDirty] = useState(false)
+    const [historyVersion, setHistoryVersion] = useState(0)
+    const [pendingConnection, setPendingConnection] = useState(null)
+
+    const flowRef = useRef(flow)
+    const graphRef = useRef({nodes: [], edges: []})
+    const manifestIndexRef = useRef(buildManifestIndex([]))
+    const savedSnapshotRef = useRef(businessDocumentSignature(flow))
+    const historyRef = useRef({past: [], future: []})
+    const clipboardRef = useRef(null)
+    const pasteOffsetRef = useRef(0)
+    const viewportRef = useRef(null)
+    const reactFlowRef = useRef(null)
+    const selectedNodeIdRef = useRef('')
+    const inspectorValueRef = useRef({})
+    const inspectorDirtyRef = useRef(false)
+    const displayNodeCacheRef = useRef(new Map())
+
+    const manifestIndex = useMemo(() => buildManifestIndex(components), [components])
+    const debugByNode = useMemo(() => executionState(debugResult?.events || []), [debugResult])
+    const payloadIsValid = useMemo(() => {
+        try {
+            const value = JSON.parse(payloadText || '{}')
+            return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+        } catch {
+            return false
+        }
+    }, [payloadText])
+
+    useEffect(() => {
+        manifestIndexRef.current = manifestIndex
+    }, [manifestIndex])
+
+    useEffect(() => {
+        const updateLayout = () => {
+            setMobileCanvasLayout(compactCanvasLayout())
+            setSinglePanelLayout(singlePanelCanvasLayout())
+        }
+        updateLayout()
+        window.addEventListener('resize', updateLayout)
+        return () => window.removeEventListener('resize', updateLayout)
+    }, [])
+
+    const setGraph = useCallback((nodes, edges) => {
+        graphRef.current = {nodes, edges}
+        setCanvasNodes(nodes)
+        setCanvasEdges(edges)
+    }, [])
+
+    const invalidateDerivedResults = useCallback(() => {
+        setCompileReport(null)
+        setDebugResult(null)
+    }, [])
+
+    const invalidateRedo = useCallback(() => {
+        if (!historyRef.current.future.length) return
+        historyRef.current.future = []
+        setHistoryVersion((value) => value + 1)
+    }, [])
+
+    const createGraph = useCallback((document, index = manifestIndexRef.current, selectedIds = []) => {
+        const graph = flowDslToCanvas(document, index)
+        const selected = new Set(selectedIds)
+        return {
+            nodes: (graph.nodes || []).map((node) => ({...node, selected: selected.has(node.id)})),
+            edges: graph.edges || []
+        }
+    }, [])
+
+    const updateDirty = useCallback((document) => {
+        setDirty(businessDocumentSignature(document) !== savedSnapshotRef.current)
+    }, [])
+
+    const applyDocument = useCallback((document, options = {}) => {
+        const normalized = normalizeFlow(document)
+        const selectedIds = options.selectedIds || []
+        if (options.record !== false) {
+            const current = cloneDocument(flowRef.current)
+            const past = historyRef.current.past
+            if (!past.length || JSON.stringify(past[past.length - 1]) !== JSON.stringify(current)) {
+                past.push(current)
+                if (past.length > 50) past.shift()
+            }
+            historyRef.current.future = []
+            setHistoryVersion((value) => value + 1)
+        }
+        flowRef.current = normalized
+        setFlow(normalized)
+        const graph = createGraph(normalized, options.index || manifestIndexRef.current, selectedIds)
+        setGraph(graph.nodes, graph.edges)
+        const primary = selectedIds[0] || ''
+        selectedNodeIdRef.current = primary
+        inspectorDirtyRef.current = false
+        inspectorValueRef.current = cloneDocument(normalized.nodes.find((node) => node.id === primary)?.config || {})
+        setInspectorValue(inspectorValueRef.current)
+        setSelectedNodeId(primary)
+        setSelectedEdgeIds([])
+        invalidateDerivedResults()
+        updateDirty(normalized)
+        return normalized
+    }, [createGraph, invalidateDerivedResults, setGraph, updateDirty])
+
+    const loadDocument = useCallback((document, index = manifestIndexRef.current) => {
+        const normalized = normalizeFlow(document)
+        flowRef.current = normalized
+        setFlow(normalized)
+        const graph = createGraph(normalized, index)
+        setGraph(graph.nodes, graph.edges)
+        historyRef.current = {past: [], future: []}
+        setHistoryVersion((value) => value + 1)
+        savedSnapshotRef.current = businessDocumentSignature(normalized)
+        setDirty(false)
+        selectedNodeIdRef.current = ''
+        inspectorValueRef.current = {}
+        inspectorDirtyRef.current = false
+        setInspectorValue({})
+        setSelectedNodeId('')
+        setSelectedEdgeIds([])
+        setCompileReport(null)
+        setDebugResult(null)
+        setPendingConnection(null)
+        viewportRef.current = normalized.settings?.editor?.viewport || null
+        requestAnimationFrame(() => {
+            if (viewportRef.current) reactFlowRef.current?.setViewport(viewportRef.current, {duration: 180})
+            else reactFlowRef.current?.fitView({padding: 0.22, duration: 220, maxZoom: 1.1})
+        })
+    }, [createGraph, setGraph])
 
   useEffect(() => {
     let mounted = true
     Promise.all([flowApi.components(), flowApi.listFlows()])
-        .then(([componentItems, flowItems]) => {
+        .then(async ([componentItems, flowItems]) => {
           if (!mounted) return
-          setComponents(componentItems || [])
-          setFlows(flowItems || [])
-          if (flowItems?.[0]) {
-            setFlow(flowItems[0])
-            setSelectedNodeId(flowItems[0].nodes?.[0]?.id || '')
-          }
+            const manifests = componentItems || []
+            const items = flowItems || []
+            const targetFlowId = requestedFlowId || items[0]?.id
+            const document = targetFlowId ? await flowApi.flow(targetFlowId) : createInitialFlow()
+            if (!mounted) return
+            setComponents(manifests)
+            setFlows(items)
+            const index = buildManifestIndex(manifests)
+            manifestIndexRef.current = index
+            loadDocument(document, index)
         })
         .catch((error) => onError?.(error.message || '流程编排数据加载失败'))
     return () => {
       mounted = false
     }
-  }, [onError])
-
-  const componentByType = useMemo(() => {
-    return components.reduce((map, component) => {
-      map[component.type] = component
-      return map
-    }, {})
-  }, [components])
-
-  const groupedComponents = useMemo(() => {
-    return components.reduce((groups, component) => {
-      const category = component.category || '其他'
-      groups[category] = groups[category] || []
-      groups[category].push(component)
-      return groups
-    }, {})
-  }, [components])
-
-  const selectedNode = flow.nodes.find((node) => node.id === selectedNodeId)
+  }, [loadDocument, onError, requestedFlowId])
 
   useEffect(() => {
-    setNodeConfigText(JSON.stringify(selectedNode?.config || {}, null, 2))
-  }, [selectedNodeId])
+      const warnBeforeLeave = (event) => {
+          if (!dirty) return
+          event.preventDefault()
+          event.returnValue = ''
+      }
+      window.addEventListener('beforeunload', warnBeforeLeave)
+      return () => window.removeEventListener('beforeunload', warnBeforeLeave)
+  }, [dirty])
 
-  function updateFlow(patch) {
-    setFlow((current) => ({ ...current, ...patch }))
-  }
+    useEffect(() => {
+        const graph = createGraph(flowRef.current, manifestIndex)
+        const selectedIds = graphRef.current.nodes.filter((node) => node.selected).map((node) => node.id)
+        graph.nodes = graph.nodes.map((node) => ({...node, selected: selectedIds.includes(node.id)}))
+        setGraph(graph.nodes, graph.edges)
+    }, [createGraph, manifestIndex, setGraph])
 
-  function addNode(component) {
-    const index = flow.nodes.length + 1
-    const node = {
-      id: `${component.type.replace(/[^a-z0-9]/gi, '_')}_${index}`,
-      type: component.type,
-      version: component.version || '1.0.0',
-      position: { x: 120 + index * 210, y: 150 + (index % 3) * 86 },
-      config: {}
+    const currentDocument = useCallback(() => {
+        let document = canvasToFlowDsl(flowRef.current, graphRef.current.nodes, graphRef.current.edges)
+        if (inspectorDirtyRef.current && selectedNodeIdRef.current) {
+            document = {
+                ...document,
+                nodes: document.nodes.map((node) => node.id === selectedNodeIdRef.current
+                    ? {...node, config: cloneDocument(inspectorValueRef.current)}
+                    : node)
+            }
+        }
+        const viewport = viewportRef.current
+        if (!viewport) return document
+        return {
+            ...document,
+            settings: {
+                ...(document.settings || {}),
+                editor: {...(document.settings?.editor || {}), viewport}
+            }
     }
-    const edges = [...flow.edges]
-    if (selectedNode) {
-      const sourceComponent = componentByType[selectedNode.type]
-      edges.push({
-        id: `edge_${Date.now()}`,
-        source: selectedNode.id,
-        sourcePort: firstPort(sourceComponent, 'outputs'),
-        target: node.id,
-        targetPort: firstPort(component, 'inputs')
-      })
-    }
-    setFlow({ ...flow, nodes: [...flow.nodes, node], edges })
-    setSelectedNodeId(node.id)
-  }
+    }, [])
 
-  function saveNodeConfig() {
-    try {
-      const config = JSON.parse(nodeConfigText || '{}')
-      setFlow({
-        ...flow,
-        nodes: flow.nodes.map((node) => node.id === selectedNodeId ? { ...node, config } : node)
-      })
-      onError?.('')
-    } catch (error) {
-      onError?.(`节点配置不是合法 JSON：${error.message}`)
-    }
-  }
+    const commitGraph = useCallback((selectedIds = []) => {
+        const document = currentDocument()
+        return applyDocument(document, {selectedIds})
+    }, [applyDocument, currentDocument])
 
-  async function run(action, work) {
+    const flushInspectorConfig = useCallback((selectedIds = []) => {
+        if (!inspectorDirtyRef.current || !selectedNodeIdRef.current) return false
+        applyDocument(currentDocument(), {selectedIds})
+        return true
+    }, [applyDocument, currentDocument])
+
+    const selectedNode = useMemo(
+        () => flow.nodes.find((node) => node.id === selectedNodeId) || null,
+        [flow.nodes, selectedNodeId]
+    )
+    const selectedManifest = useMemo(
+        () => selectedNode ? resolveManifest(manifestIndex, selectedNode.type, selectedNode.version) : null,
+        [manifestIndex, selectedNode]
+    )
+
+    useEffect(() => {
+        const nextValue = cloneDocument(selectedNode?.config || {})
+        inspectorValueRef.current = nextValue
+        inspectorDirtyRef.current = false
+        setInspectorValue(nextValue)
+    }, [selectedNodeId, selectedNode?.config])
+
+    useEffect(() => {
+        if (!singlePanelLayout || !libraryOpen || !inspectorOpen) return
+        if (selectedNodeIdRef.current) setLibraryOpen(false)
+        else setInspectorOpen(false)
+    }, [inspectorOpen, libraryOpen, singlePanelLayout])
+
+    useEffect(() => {
+        if (!mobileCanvasLayout) return
+        if (dockOpen) {
+            setLibraryOpen(false)
+            setInspectorOpen(false)
+            return
+        }
+        if (flow.id || !canEdit) setLibraryOpen(false)
+    }, [canEdit, dockOpen, flow.id, mobileCanvasLayout])
+
+    const handleInspectorValueChange = useCallback((nextValue) => {
+        const normalized = cloneDocument(nextValue || {})
+        inspectorValueRef.current = normalized
+        inspectorDirtyRef.current = JSON.stringify(normalized) !== JSON.stringify(selectedNode?.config || {})
+        setInspectorValue(normalized)
+        invalidateRedo()
+        invalidateDerivedResults()
+        updateDirty(currentDocument())
+    }, [currentDocument, invalidateDerivedResults, invalidateRedo, selectedNode?.config, updateDirty])
+
+    const openLibrary = useCallback(() => {
+        if (singlePanelLayout) setInspectorOpen(false)
+        if (mobileCanvasLayout) setDockOpen(false)
+        setLibraryOpen(true)
+    }, [mobileCanvasLayout, singlePanelLayout])
+
+    const openInspector = useCallback(() => {
+        if (singlePanelLayout) setLibraryOpen(false)
+        if (mobileCanvasLayout) setDockOpen(false)
+        setInspectorOpen(true)
+    }, [mobileCanvasLayout, singlePanelLayout])
+
+    const handleDockOpenChange = useCallback((nextOpen) => {
+        if (nextOpen && mobileCanvasLayout) {
+            setLibraryOpen(false)
+            setInspectorOpen(false)
+    }
+        setDockOpen(nextOpen)
+    }, [mobileCanvasLayout])
+
+    const handleQuickAdd = useCallback((nodeId, sourcePort) => {
+        const compatibleComponents = components.filter((component) => (component?.ports?.inputs || []).length > 0)
+        if (!compatibleComponents.length) {
+            onError?.('当前没有可连接的后续节点组件')
+            return
+        }
+        setPendingConnection({source: nodeId, sourceHandle: sourcePort})
+        openLibrary()
+    }, [components, onError, openLibrary])
+
+    const libraryComponents = useMemo(
+        () => pendingConnection
+            ? components.filter((component) => (component?.ports?.inputs || []).length > 0)
+            : components,
+        [components, pendingConnection]
+    )
+
+    const displayNodes = useMemo(() => {
+        const decorated = decorateCanvasNodes(canvasNodes, {
+            manifestIndex,
+            debugByNode,
+            canEdit,
+            onQuickAdd: handleQuickAdd
+        }, displayNodeCacheRef.current)
+        displayNodeCacheRef.current = decorated.cache
+        return decorated.nodes
+    }, [canvasNodes, canEdit, debugByNode, handleQuickAdd, manifestIndex])
+
+    const runAction = useCallback(async (action, work) => {
     onBusy?.(action)
     try {
-      return await work()
+        const result = await work()
+        onError?.('')
+        return result
     } catch (error) {
       onError?.(error.message || '流程操作失败')
       return null
     } finally {
       onBusy?.('')
     }
-  }
+    }, [onBusy, onError])
 
-  async function saveDraft() {
-    return run('flow-save', async () => {
-      const saved = flow.id ? await flowApi.saveDraft(flow.id, flow) : await flowApi.createFlow(flow)
-      setFlow(saved)
-      setFlows((items) => [saved, ...items.filter((item) => item.id !== saved.id)])
-      return saved
-    })
-  }
+    const persistDraft = useCallback(async () => {
+        const document = currentDocument()
+        const saved = document.id
+            ? await flowApi.saveDraft(document.id, document)
+            : await flowApi.createFlow(document)
+        const normalized = normalizeFlow(saved)
+        flowRef.current = normalized
+        setFlow(normalized)
+        const selectedIds = graphRef.current.nodes.filter((node) => node.selected).map((node) => node.id)
+        const graph = createGraph(normalized, manifestIndexRef.current, selectedIds)
+        setGraph(graph.nodes, graph.edges)
+        setFlows((items) => [normalized, ...items.filter((item) => item.id !== normalized.id)])
+        savedSnapshotRef.current = businessDocumentSignature(normalized)
+        inspectorDirtyRef.current = false
+        setDirty(false)
+        return normalized
+    }, [createGraph, currentDocument, setGraph])
 
-  async function compileFlow() {
-    await run('flow-compile', async () => {
-      const report = await flowApi.compile(flow.id, flow)
-      setCompileReport(report)
-    })
-  }
+    const saveDraft = useCallback(() => runAction('flow-save', persistDraft), [persistDraft, runAction])
 
-  async function publishFlow() {
-    if (!flow.id) {
-      await saveDraft()
-      return
-    }
-    await run('flow-publish', async () => {
-      await flowApi.publish(flow.id)
-      const items = await flowApi.listFlows()
-      setFlows(items || [])
-    })
-  }
+    const compileFlow = useCallback(() => runAction('flow-compile', async () => {
+        const document = currentDocument()
+        setCompileReport(null)
+        const report = await flowApi.compile(document.id, document)
+        setCompileReport(report)
+        handleDockOpenChange(true)
+        return report
+    }), [currentDocument, handleDockOpenChange, runAction])
 
-  async function debugFlow() {
-    let flowForDebug = flow
-    if (!flow.id) {
-      flowForDebug = await saveDraft()
-      if (!flowForDebug) return
-    }
-    await run('flow-debug', async () => {
-      const payload = JSON.parse(payloadText || '{}')
-      const result = await flowApi.debug(flowForDebug.id, payload)
-      setDebugResult(result)
+    const publishFlow = useCallback(() => runAction('flow-publish', async () => {
+        let document = currentDocument()
+        if (canEdit) document = await persistDraft()
+        if (!document?.id) throw new Error('请先保存流程草稿')
+        await flowApi.publish(document.id)
+        const items = await flowApi.listFlows()
+        setFlows(items || [])
+        const published = (items || []).find((item) => item.id === document.id)
+            || await flowApi.flow(document.id)
+        loadDocument(published, manifestIndexRef.current)
+        return published
+    }), [canEdit, currentDocument, loadDocument, persistDraft, runAction])
+
+    const debugFlow = useCallback(() => runAction('flow-debug', async () => {
+        if (!canEdit) throw new Error('当前账号没有流程调试权限')
+        setDebugResult(null)
+        let document = currentDocument()
+        if (canEdit) document = await persistDraft()
+        if (!document?.id) throw new Error('请先保存流程草稿')
+        const payload = JSON.parse(payloadText || '{}')
+        if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+            throw new Error('调试输入必须是 JSON 对象')
+        }
+        const result = await flowApi.debug(document.id, payload)
+        setDebugResult(result)
+        handleDockOpenChange(true)
+        return result
+    }), [canEdit, currentDocument, handleDockOpenChange, payloadText, persistDraft, runAction])
+
+    const normalizeConnection = useCallback((connection) => {
+        const sourceNode = graphRef.current.nodes.find((node) => node.id === connection?.source)
+        const targetNode = graphRef.current.nodes.find((node) => node.id === connection?.target)
+        const sourceDomain = sourceNode?.data?.node
+        const targetDomain = targetNode?.data?.node
+        const sourceManifest = resolveManifest(manifestIndexRef.current, sourceDomain?.type, sourceDomain?.version)
+        const targetManifest = resolveManifest(manifestIndexRef.current, targetDomain?.type, targetDomain?.version)
+        return {
+            ...connection,
+            sourceHandle: connection?.sourceHandle || sourceManifest?.ports?.outputs?.[0]?.id || null,
+            targetHandle: connection?.targetHandle || targetManifest?.ports?.inputs?.[0]?.id || null
+        }
+    }, [])
+
+    const connectionIsValid = useCallback((connection) => {
+        const result = validateConnection(
+            normalizeConnection(connection),
+            graphRef.current.nodes,
+            graphRef.current.edges,
+            manifestIndexRef.current
+        )
+        return typeof result === 'boolean' ? result : result?.valid !== false
+    }, [normalizeConnection])
+
+    const handleConnect = useCallback((connection) => {
+        const normalizedConnection = normalizeConnection(connection)
+        if (!canEdit || !connectionIsValid(normalizedConnection)) return
+        const edge = {
+            id: createStableId('edge'),
+            source: normalizedConnection.source,
+            target: normalizedConnection.target,
+            sourceHandle: normalizedConnection.sourceHandle,
+            targetHandle: normalizedConnection.targetHandle,
+            type: 'smoothstep'
+        }
+        graphRef.current = {...graphRef.current, edges: [...graphRef.current.edges, edge]}
+        setCanvasEdges(graphRef.current.edges)
+        commitGraph([normalizedConnection.target])
+    }, [canEdit, commitGraph, connectionIsValid, normalizeConnection])
+
+    const handleReconnect = useCallback((oldEdge, connection) => {
+        const normalizedConnection = normalizeConnection({...connection, replacingEdgeId: oldEdge.id})
+        if (!canEdit || !connectionIsValid(normalizedConnection)) return
+        const edges = reconnectEdge(oldEdge, normalizedConnection, graphRef.current.edges)
+        graphRef.current = {...graphRef.current, edges}
+        setCanvasEdges(edges)
+        commitGraph([normalizedConnection.target])
+    }, [canEdit, commitGraph, connectionIsValid, normalizeConnection])
+
+    const handleNodeDragStop = useCallback((event, node, draggedNodes = []) => {
+        if (!canEdit) return
+        const movedNodes = draggedNodes.length ? draggedNodes : [node]
+        const movedById = new Map(movedNodes.map((item) => [item.id, item]))
+        let positionChanged = false
+        const nodes = graphRef.current.nodes.map((item) => {
+            const moved = movedById.get(item.id)
+            if (!moved) return item
+            const nextPosition = {...moved.position}
+            if (item.position?.x === nextPosition.x && item.position?.y === nextPosition.y) return item
+            positionChanged = true
+            return {
+                ...item,
+                position: nextPosition,
+                selected: moved.selected ?? item.selected,
+                data: item.data?.node
+                    ? {...item.data, node: {...item.data.node, position: nextPosition}}
+                    : item.data
+            }
+        })
+        if (!positionChanged) return
+        graphRef.current = {...graphRef.current, nodes}
+        const document = normalizeFlow(currentDocument())
+        const past = historyRef.current.past
+        past.push(flowRef.current)
+        if (past.length > 50) past.shift()
+        historyRef.current.future = []
+        setHistoryVersion((value) => value + 1)
+        flowRef.current = document
+        setFlow(document)
+        setCanvasNodes(nodes)
+        inspectorDirtyRef.current = false
+        invalidateDerivedResults()
+        updateDirty(document)
+    }, [canEdit, currentDocument, invalidateDerivedResults, updateDirty])
+
+    const handleDelete = useCallback(({nodes: deletedNodes = [], edges: deletedEdges = []}) => {
+        if (!canEdit) return
+        const nodeIds = new Set(deletedNodes.map((node) => node.id))
+        const edgeIds = new Set(deletedEdges.map((edge) => edge.id))
+        const nodes = graphRef.current.nodes.filter((node) => !nodeIds.has(node.id))
+        const edges = graphRef.current.edges.filter((edge) => !edgeIds.has(edge.id)
+            && !nodeIds.has(edge.source)
+            && !nodeIds.has(edge.target))
+        setGraph(nodes, edges)
+        const selectedIds = selectedNodeId && !nodeIds.has(selectedNodeId) ? [selectedNodeId] : []
+        commitGraph(selectedIds)
+    }, [canEdit, commitGraph, selectedNodeId, setGraph])
+
+    const handleSelectionChange = useCallback(({nodes, edges}) => {
+        const nextSelectedNodeIds = (nodes || []).map((node) => node.id)
+        const selectedNodeIds = new Set(nextSelectedNodeIds)
+        const selectedEdgeIds = new Set((edges || []).map((edge) => edge.id))
+        const nextNodeId = nextSelectedNodeIds[0] || ''
+        if (nextNodeId !== selectedNodeIdRef.current) flushInspectorConfig(nextSelectedNodeIds)
+        graphRef.current = {
+            nodes: graphRef.current.nodes.map((node) => node.selected === selectedNodeIds.has(node.id)
+                ? node
+                : {...node, selected: selectedNodeIds.has(node.id)}),
+            edges: graphRef.current.edges.map((edge) => edge.selected === selectedEdgeIds.has(edge.id)
+                ? edge
+                : {...edge, selected: selectedEdgeIds.has(edge.id)})
+        }
+        selectedNodeIdRef.current = nextNodeId
+        setSelectedNodeId(nextNodeId)
+        setSelectedEdgeIds([...selectedEdgeIds])
+    }, [flushInspectorConfig])
+
+    const handleCanvasNodeClick = useCallback((event, node) => {
+        if (node.id !== selectedNodeIdRef.current) flushInspectorConfig([node.id])
+        selectedNodeIdRef.current = node.id
+        setSelectedNodeId(node.id)
+        openInspector()
+    }, [flushInspectorConfig, openInspector])
+
+    const clearSelection = useCallback(() => {
+        flushInspectorConfig()
+        const nodes = graphRef.current.nodes.map((node) => ({...node, selected: false}))
+        const edges = graphRef.current.edges.map((edge) => ({...edge, selected: false}))
+        setGraph(nodes, edges)
+        selectedNodeIdRef.current = ''
+        setSelectedNodeId('')
+        setSelectedEdgeIds([])
+    }, [flushInspectorConfig, setGraph])
+
+    const addNode = useCallback((componentOrType, position) => {
+        if (!canEdit) return
+        flushInspectorConfig()
+        const componentRef = typeof componentOrType === 'string'
+            ? {type: componentOrType}
+            : componentOrType
+        const component = components.find((item) => item.type === componentRef?.type
+                && (!componentRef?.version || item.version === componentRef.version))
+            || (componentRef?.ports ? componentRef : null)
+        if (!component) return
+        if (pendingConnection && !(component.ports?.inputs || []).length) {
+            onError?.('该组件没有输入端口，无法作为后续节点')
+            return
+        }
+        const sourceNode = pendingConnection
+            ? flowRef.current.nodes.find((node) => node.id === pendingConnection.source)
+            : null
+        const index = flowRef.current.nodes.length
+        const resolvedPosition = position || (sourceNode
+            ? {x: sourceNode.position.x + 256, y: sourceNode.position.y}
+            : {x: 112 + (index % 4) * 256, y: 96 + Math.floor(index / 4) * 128})
+        const node = {
+            id: createStableId(component.type.split('.').pop() || 'node'),
+            type: component.type,
+            version: component.version || '1.0.0',
+            position: {x: Math.round(resolvedPosition.x), y: Math.round(resolvedPosition.y)},
+            config: schemaDefaults(component.configSchema)
+        }
+        const next = cloneDocument(flowRef.current)
+        next.nodes.push(node)
+        if (pendingConnection && sourceNode) {
+            const input = component.ports?.inputs?.[0]
+            if (input) {
+                next.edges.push({
+                    id: createStableId('edge'),
+                    source: pendingConnection.source,
+                    sourcePort: pendingConnection.sourceHandle,
+                    target: node.id,
+                    targetPort: input.id
+                })
+            }
+        }
+        applyDocument(next, {selectedIds: [node.id]})
+        setPendingConnection(null)
+        openInspector()
+    }, [applyDocument, canEdit, components, flushInspectorConfig, onError, openInspector, pendingConnection])
+
+    const handleLibraryDragStart = useCallback((event, component) => {
+        event.dataTransfer.effectAllowed = 'copy'
+        event.dataTransfer.setData('application/heartbeat-flow-component', JSON.stringify({
+            type: component.type,
+            version: component.version
+        }))
+    }, [])
+
+    const applyNodeConfig = useCallback((value) => {
+        if (!selectedNode || !canEdit) return
+        const nextConfig = value ?? inspectorValueRef.current
+        const next = cloneDocument(flowRef.current)
+        next.nodes = next.nodes.map((node) => node.id === selectedNode.id
+            ? {...node, config: cloneDocument(nextConfig || {})}
+            : node)
+        applyDocument(next, {selectedIds: [selectedNode.id]})
+    }, [applyDocument, canEdit, selectedNode])
+
+    const updateFlowName = useCallback((name) => {
+        const next = {...flowRef.current, name}
+        flowRef.current = next
+        setFlow(next)
+        invalidateRedo()
+        invalidateDerivedResults()
+        updateDirty(currentDocument())
+    }, [currentDocument, invalidateDerivedResults, invalidateRedo, updateDirty])
+
+    const undo = useCallback(() => {
+        flushInspectorConfig([selectedNodeIdRef.current].filter(Boolean))
+        const previous = historyRef.current.past.pop()
+        if (!previous) return
+        historyRef.current.future.unshift(cloneDocument(flowRef.current))
+        applyDocument(previous, {record: false})
+        setHistoryVersion((value) => value + 1)
+    }, [applyDocument, flushInspectorConfig])
+
+    const redo = useCallback(() => {
+        const next = historyRef.current.future.shift()
+        if (!next) return
+        historyRef.current.past.push(cloneDocument(flowRef.current))
+        applyDocument(next, {record: false})
+        setHistoryVersion((value) => value + 1)
+    }, [applyDocument])
+
+    const selectedSnapshot = useCallback(() => {
+        const document = currentDocument()
+        const selectedIds = new Set(graphRef.current.nodes.filter((node) => node.selected).map((node) => node.id))
+        if (!selectedIds.size && selectedNodeId) selectedIds.add(selectedNodeId)
+        return {
+            nodes: document.nodes.filter((node) => selectedIds.has(node.id)),
+            edges: document.edges.filter((edge) => selectedIds.has(edge.source) && selectedIds.has(edge.target))
+        }
+    }, [currentDocument, selectedNodeId])
+
+    const pasteSnapshot = useCallback((snapshot) => {
+        if (!canEdit || !snapshot?.nodes?.length) return
+        pasteOffsetRef.current = (pasteOffsetRef.current % 5) + 1
+        const offset = pasteOffsetRef.current * 32
+        const idMap = new Map()
+        const nodes = snapshot.nodes.map((node) => {
+            const id = createStableId(node.type.split('.').pop() || 'node')
+            idMap.set(node.id, id)
+            return {...cloneDocument(node), id, position: {x: node.position.x + offset, y: node.position.y + offset}}
     })
-  }
+        const edges = snapshot.edges.map((edge) => ({
+            ...cloneDocument(edge),
+            id: createStableId('edge'),
+            source: idMap.get(edge.source),
+            target: idMap.get(edge.target)
+        }))
+        const next = currentDocument()
+        next.nodes = [...next.nodes, ...nodes]
+        next.edges = [...next.edges, ...edges]
+        applyDocument(next, {selectedIds: nodes.map((node) => node.id)})
+    }, [applyDocument, canEdit, currentDocument])
+
+    const selectAll = useCallback(() => {
+        const selectedIds = graphRef.current.nodes.map((node) => node.id)
+        flushInspectorConfig(selectedIds)
+        const nodes = graphRef.current.nodes.map((node) => ({...node, selected: true}))
+        setGraph(nodes, graphRef.current.edges)
+        selectedNodeIdRef.current = nodes[0]?.id || ''
+        setSelectedNodeId(selectedNodeIdRef.current)
+    }, [flushInspectorConfig, setGraph])
+
+    useEffect(() => {
+        const handleKeyDown = (event) => {
+            const command = event.metaKey || event.ctrlKey
+            const key = event.key.toLowerCase()
+            if (command && key === 's') {
+                event.preventDefault()
+                if (canEdit && !busy) saveDraft()
+                return
+            }
+            if (editableTarget(event.target)) return
+            if (command && key === 'z') {
+                event.preventDefault()
+                if (event.shiftKey) redo()
+                else undo()
+            } else if (command && key === 'y') {
+                event.preventDefault()
+                redo()
+            } else if (command && key === 'a') {
+                event.preventDefault()
+                selectAll()
+            } else if (command && key === 'c') {
+                const snapshot = selectedSnapshot()
+                if (snapshot.nodes.length) clipboardRef.current = snapshot
+            } else if (command && key === 'v') {
+                event.preventDefault()
+                pasteSnapshot(clipboardRef.current)
+            } else if (command && key === 'd') {
+                event.preventDefault()
+                pasteSnapshot(selectedSnapshot())
+            } else if (!command && key === 'f') {
+                event.preventDefault()
+                reactFlowRef.current?.fitView({padding: 0.22, duration: 220})
+            } else if (event.key === 'Escape') {
+                clearSelection()
+                setPendingConnection(null)
+            }
+        }
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [busy, canEdit, clearSelection, pasteSnapshot, redo, saveDraft, selectAll, selectedSnapshot, undo])
+
+    const switchFlow = useCallback(async (id) => {
+        if (!id || id === flowRef.current.id) return
+        if (dirty && !window.confirm('当前流程有未保存改动，确定切换吗？')) return
+        await runAction('flow-load', async () => {
+            const document = await flowApi.flow(id)
+            loadDocument(document, manifestIndexRef.current)
+        })
+    }, [dirty, loadDocument, runAction])
+
+    const newFlow = useCallback(() => {
+        if (dirty && !window.confirm('当前流程有未保存改动，确定新建吗？')) return
+        loadDocument(createInitialFlow(), manifestIndexRef.current)
+        openLibrary()
+    }, [dirty, loadDocument, openLibrary])
+
+    const handleCanvasReady = useCallback((instance) => {
+        reactFlowRef.current = instance
+        if (viewportRef.current) instance.setViewport(viewportRef.current)
+    }, [])
+
+    const handleMoveEnd = useCallback((_event, viewport) => {
+        viewportRef.current = viewport
+    }, [])
+
+    const fitCanvas = useCallback(() => {
+        reactFlowRef.current?.fitView({padding: 0.22, duration: 220})
+    }, [])
+
+    const closeLibrary = useCallback(() => {
+        setPendingConnection(null)
+        setLibraryOpen(false)
+    }, [])
+
+    const closeInspector = useCallback(() => {
+        setInspectorOpen(false)
+    }, [])
+
+    const dockFlowSnapshot = useMemo(
+        () => currentDocument(),
+        [currentDocument, flow, inspectorValue]
+    )
+
+    const canUndo = historyRef.current.past.length > 0
+    const canRedo = historyRef.current.future.length > 0
+    void historyVersion
 
   return (
-      <section className="flow-studio hb-page-card">
-        <header className="module-page-header">
-          <div>
-            <p className="page-breadcrumb">数据配置 / Open Flow Studio</p>
-            <h1>开放式流程编排</h1>
-            <p>组件库开放注册，画布保存为 HeartBeat Flow DSL，并支持本地调试执行。</p>
+      <section className={`flow-editor-page${dockOpen ? ' dock-open' : ''}`}>
+          <header className="flow-editor-header">
+              <div className="flow-editor-document-switcher">
+                  <select
+                      value={flow.id || '__new__'}
+                      onChange={(event) => switchFlow(event.target.value)}
+                      aria-label="选择流程"
+                  >
+                      {!flow.id && <option value="__new__">新建流程</option>}
+                      {flows.map((item) => <option key={item.id} value={item.id}>{item.name || item.code}</option>)}
+                  </select>
+                  <button type="button" onClick={newFlow} disabled={!canEdit} title="新建流程" aria-label="新建流程">
+                      <FilePlus2 size={17} aria-hidden="true"/>
+                  </button>
           </div>
-          <div className="module-page-meta">
-            <span className="status-pill">{flow.status || 'DRAFT'}</span>
-            <code>{flow.code}</code>
-          </div>
+              <FlowEditorToolbar
+                  flowName={flow.name || ''}
+                  status={flow.status || 'DRAFT'}
+                  dirty={dirty}
+                  busy={busy}
+                  canEdit={canEdit}
+                  canRun={canEdit && payloadIsValid}
+                  canPublish={canPublish && (Boolean(flow.id) || canEdit)}
+                  canUndo={canUndo}
+                  canRedo={canRedo}
+                  onNameChange={updateFlowName}
+                  onUndo={undo}
+                  onRedo={redo}
+                  onSave={saveDraft}
+                  onCompile={compileFlow}
+                  onRun={debugFlow}
+                  onPublish={publishFlow}
+                  onFitView={fitCanvas}
+              />
         </header>
 
-        <div className="flow-action-bar panel">
-          <input value={flow.name || ''} onChange={(event) => updateFlow({ name: event.target.value })} aria-label="流程名称" />
-          <button className="button ghost" disabled={Boolean(busy)} onClick={compileFlow}>编译校验</button>
-          <button className="button ghost" disabled={Boolean(busy)} onClick={saveDraft}>保存草稿</button>
-          <button className="button primary" disabled={Boolean(busy)} onClick={publishFlow}>发布版本</button>
-        </div>
-
-        <section className="flow-studio-grid">
-          <aside className="flow-palette panel">
-            <h2>组件库</h2>
-            {Object.entries(groupedComponents).map(([category, items]) => (
-                <div className="flow-palette-group" key={category}>
-                  <strong>{category}</strong>
-                  {items.map((component) => (
-                      <button type="button" key={component.type} onClick={() => addNode(component)}>
-                        <span>{component.icon || 'node'}</span>
-                        <div>
-                          <b>{component.name}</b>
-                          <small>{component.type}</small>
-                        </div>
-                      </button>
-                  ))}
-                </div>
-            ))}
-          </aside>
-
-          <main className="flow-canvas panel">
-            <svg className="flow-edge-layer" viewBox="0 0 1200 640" preserveAspectRatio="none">
-              {flow.edges.map((edge) => {
-                const source = flow.nodes.find((node) => node.id === edge.source)
-                const target = flow.nodes.find((node) => node.id === edge.target)
-                if (!source || !target) return null
-                const x1 = source.position.x + 160
-                const y1 = source.position.y + 34
-                const x2 = target.position.x
-                const y2 = target.position.y + 34
-                return (
-                    <path
-                        key={edge.id}
-                        d={`M ${x1} ${y1} C ${x1 + 80} ${y1}, ${x2 - 80} ${y2}, ${x2} ${y2}`}
-                        className="flow-edge-path"
-                    />
-                )
-              })}
-            </svg>
-            {flow.nodes.map((node) => {
-              const component = componentByType[node.type]
-              const active = node.id === selectedNodeId
-              return (
+          <div className="flow-editor-workspace">
+              {libraryOpen ? (
+                  <aside className="flow-editor-library-shell">
+                      <NodeLibrary
+                          components={libraryComponents}
+                          disabled={!canEdit}
+                          onAddNode={addNode}
+                          onDragStart={handleLibraryDragStart}
+                          onClose={closeLibrary}
+                      />
+                  </aside>
+              ) : (
                   <button
-                      key={node.id}
                       type="button"
-                      className={active ? 'flow-node active' : 'flow-node'}
-                      style={{ left: node.position.x, top: node.position.y }}
-                      onClick={() => setSelectedNodeId(node.id)}
+                      className="flow-editor-side-toggle library-toggle"
+                      onClick={openLibrary}
+                      title="打开节点库"
+                      aria-label="打开节点库"
                   >
-                    <span>{component?.category || 'Node'}</span>
-                    <strong>{component?.name || node.type}</strong>
-                    <small>{node.id}</small>
+                      <PanelLeftOpen size={18} aria-hidden="true"/>
                   </button>
-              )
-            })}
+              )}
+
+              <main className="flow-editor-graph-shell">
+                  <FlowCanvas
+                      nodes={displayNodes}
+                      edges={canvasEdges}
+                      canEdit={canEdit}
+                      onConnect={handleConnect}
+                      onReconnect={handleReconnect}
+                      onSelectionChange={handleSelectionChange}
+                      onNodeClick={handleCanvasNodeClick}
+                      onPaneClick={clearSelection}
+                      onDelete={handleDelete}
+                      onNodeDragStop={handleNodeDragStop}
+                      onAddAtPosition={addNode}
+                      onOpenLibrary={openLibrary}
+                      onMoveEnd={handleMoveEnd}
+                      onReady={handleCanvasReady}
+                      isValidConnection={connectionIsValid}
+                  />
+                  {!canEdit && <div className="flow-editor-readonly">只读模式</div>}
           </main>
 
-          <aside className="flow-inspector panel">
-            <h2>节点属性</h2>
-            {selectedNode ? (
-                <>
-                  <p><strong>{componentByType[selectedNode.type]?.name || selectedNode.type}</strong></p>
-                  <small>{selectedNode.type}@{selectedNode.version}</small>
-                  <textarea value={nodeConfigText} onChange={(event) => setNodeConfigText(event.target.value)} />
-                  <button className="button secondary" onClick={saveNodeConfig}>应用配置</button>
-                  <details>
-                    <summary>组件 Manifest</summary>
-                    <JsonBlock value={componentByType[selectedNode.type]} />
-                  </details>
-                </>
-            ) : (
-                <p className="muted">请选择一个节点。</p>
-            )}
-          </aside>
-        </section>
+              {selectedNode && inspectorOpen ? (
+                  <aside className="flow-editor-inspector-shell">
+                      <NodeInspector
+                          node={!selectedNode.version && selectedManifest
+                              ? {...selectedNode, version: selectedManifest.version}
+                              : selectedNode}
+                          manifest={selectedManifest}
+                          value={inspectorValue}
+                          onChange={handleInspectorValueChange}
+                          onApply={applyNodeConfig}
+                          onClose={closeInspector}
+                          readOnly={!canEdit}
+                      />
+                  </aside>
+              ) : selectedNode ? (
+                  <button
+                      type="button"
+                      className="flow-editor-side-toggle inspector-toggle"
+                      onClick={openInspector}
+                      title="打开节点属性"
+                      aria-label="打开节点属性"
+                  >
+                      <SlidersHorizontal size={18} aria-hidden="true"/>
+                  </button>
+              ) : null}
+          </div>
 
-        <section className="flow-debug-grid">
-          <article className="panel">
-            <div className="panel-heading">
-              <h2>调试输入</h2>
-              <button className="button primary" disabled={Boolean(busy)} onClick={debugFlow}>运行调试</button>
-            </div>
-            <textarea className="flow-debug-input" value={payloadText} onChange={(event) => setPayloadText(event.target.value)} />
-          </article>
-          <article className="panel">
-            <h2>执行轨迹</h2>
-            {debugResult ? (
-                <div className="flow-run-events">
-                  <strong>Run: {debugResult.runId}</strong>
-                  {debugResult.events.map((event) => (
-                      <div className="flow-run-event" key={event.id}>
-                        <span>{event.nodeId}</span>
-                        <b>{event.eventType}</b>
-                        <small>{event.elapsedMs}ms</small>
-                      </div>
-                  ))}
-                </div>
-            ) : <p className="muted">运行调试后展示每个节点输入、输出和耗时。</p>}
-          </article>
-          <article className="panel">
-            <h2>DSL / 编译报告</h2>
-            {compileReport && <JsonBlock value={compileReport} />}
-            <JsonBlock value={flow} />
-          </article>
-        </section>
+          <FlowExecutionDock
+              open={dockOpen}
+              onOpenChange={handleDockOpenChange}
+              payloadText={payloadText}
+              onPayloadChange={setPayloadText}
+              debugResult={debugResult}
+              compileReport={compileReport}
+              flow={dockFlowSnapshot}
+              onRun={debugFlow}
+              busy={busy}
+              readOnly={!canEdit}
+              selectedNodeId={selectedNodeId}
+              selectedEdgeIds={selectedEdgeIds}
+          />
       </section>
   )
 }

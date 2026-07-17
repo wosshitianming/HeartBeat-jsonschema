@@ -1,5 +1,6 @@
 package top.kx.heartbeat.infrastructure.persistence.example;
 
+import org.apache.commons.lang3.StringUtils;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -30,7 +31,7 @@ public final class ExampleBuilder<E, C> {
     }
 
     public ExampleBuilder<E, C> whenNotBlank(String value, BiConsumer<C, String> consumer) {
-        if (value != null && !value.trim().isEmpty()) {
+        if (StringUtils.isNotBlank(value)) {
             Objects.requireNonNull(consumer, "consumer").accept(criteria, value.trim());
         }
         return this;

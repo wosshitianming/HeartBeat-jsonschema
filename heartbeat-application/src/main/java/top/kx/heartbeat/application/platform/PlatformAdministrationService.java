@@ -1,6 +1,7 @@
 package top.kx.heartbeat.application.platform;
 
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,8 @@ import top.kx.heartbeat.domain.security.DataScope;
 import top.kx.heartbeat.domain.user.model.valueobject.UserStatus;
 
 import javax.annotation.Resource;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.Instant;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -96,6 +99,12 @@ public class PlatformAdministrationService {
 
     @Resource
     private PasswordEncoder passwordEncoder;
+
+    @Value("${heartbeat.security.allow-default-admin-password:false}")
+    private boolean allowDefaultAdminPassword;
+
+    @Value("${heartbeat.bootstrap.initial-admin-password:}")
+    private String initialAdminPassword;
 
     /**
      * 处理当前业务用例，保持调用方不感知内部实现细节，协调平台管理相关仓储和领域规则。
@@ -324,8 +333,11 @@ public class PlatformAdministrationService {
         String password = stringValue(safeRequest.getPassword());
         // 按用户名查询用户记录。
         Optional<Map<String, Object>> userOptional = optionalMap(platformUserRepository.findUserByUsername(username));
+        boolean credentialAllowed = !userOptional.isPresent()
+                || rotateDefaultAdminCredentialIfRequired(userOptional.get(), password);
         // 用户不存在或密码不匹配时记录失败日志并中断登录。
-        if (!userOptional.isPresent() || !matches(password, stringValue(userOptional.get().get("passwordHash")))) {
+        if (!userOptional.isPresent() || !credentialAllowed
+                || !matches(password, stringValue(userOptional.get().get("passwordHash")))) {
             // 写入失败登录日志。
             loginAuditService.record(username, LoginResultStatus.FAIL.getCode(), "用户名或密码错误");
             // 抛出用户名或密码错误异常。
@@ -918,13 +930,59 @@ public class PlatformAdministrationService {
      * @return 处理后的业务结果。
      */
     private boolean matches(String rawPassword, String passwordHash) {
-        // BCrypt 摘要交给 Spring PasswordEncoder 校验。
-        if (passwordHash.startsWith("$2")) {
-            // 返回 BCrypt 密码校验结果。
-            return passwordEncoder.matches(rawPassword, passwordHash);
+        return StringUtils.isNotBlank(rawPassword)
+                && StringUtils.isNotBlank(passwordHash)
+                && passwordHash.startsWith("$2")
+                && passwordEncoder.matches(rawPassword, passwordHash);
+    }
+
+    private boolean rotateDefaultAdminCredentialIfRequired(Map<String, Object> user, String submittedPassword) {
+        String passwordHash = stringValue(user.get("passwordHash"));
+        if (!isSeededDefaultAdmin(user, passwordHash) || allowDefaultAdminPassword) {
+            return true;
         }
-        // 兼容历史明文密码数据。
-        return rawPassword.equals(passwordHash);
+        String configuredPassword = StringUtils.trimToNull(initialAdminPassword);
+        if (!isStrongInitialAdminPassword(configuredPassword)
+                || !constantTimeEquals(configuredPassword, submittedPassword)) {
+            return false;
+        }
+
+        String encoded = passwordEncoder.encode(configuredPassword);
+        PlatformUserRequest update = new PlatformUserRequest();
+        update.setPasswordHash(encoded);
+        update.setPasswordAlgo("BCRYPT");
+        update.setPasswordUpdateTime(new Date());
+        platformUserRepository.updateUser(stringValue(user.get("id")), update);
+        user.put("passwordHash", encoded);
+        user.put("passwordAlgo", "BCRYPT");
+        return true;
+    }
+
+    private boolean isSeededDefaultAdmin(Map<String, Object> user, String passwordHash) {
+        return "1".equals(stringValue(user.get("tenantId")))
+                && "1".equals(stringValue(user.get("id")))
+                && "admin".equalsIgnoreCase(stringValue(user.get("username")))
+                && passwordHash.startsWith("$2")
+                && passwordEncoder.matches("admin123", passwordHash);
+    }
+
+    private boolean isStrongInitialAdminPassword(String password) {
+        if (password == null || password.length() < 12) {
+            return false;
+        }
+        String normalized = password.toLowerCase(Locale.ROOT);
+        return !"admin123".equals(normalized)
+                && !normalized.contains("change-me")
+                && !normalized.contains("changeme");
+    }
+
+    private boolean constantTimeEquals(String left, String right) {
+        if (left == null || right == null) {
+            return false;
+        }
+        return MessageDigest.isEqual(
+                left.getBytes(StandardCharsets.UTF_8),
+                right.getBytes(StandardCharsets.UTF_8));
     }
 
     /**

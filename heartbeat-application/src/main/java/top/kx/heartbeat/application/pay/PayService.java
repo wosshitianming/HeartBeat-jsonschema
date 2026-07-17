@@ -23,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 编排支付业务应用用例，承接接口层请求并协调仓储与领域能力。
@@ -45,7 +46,9 @@ public class PayService {
      * @return 处理后的业务结果。
      */
     public List<RecordResponse> listChannels() {
-        return RecordResponse.fromMaps(maps(payChannelRepository.listChannels()));
+        return payChannelRepository.listChannels().stream()
+                .map(this::maskedChannel)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -55,9 +58,7 @@ public class PayService {
      * @return 处理后的业务结果。
      */
     public RecordResponse getChannel(String id) {
-        Map<String, Object> channel = new LinkedHashMap<>(payChannelRepository.getChannel(id).toMap());
-        channel.put("appSecret", mask(stringValue(channel.get("appSecret"))));
-        return RecordResponse.from(channel);
+        return maskedChannel(payChannelRepository.getChannel(id));
     }
 
     /**
@@ -68,7 +69,7 @@ public class PayService {
      */
     @Transactional
     public RecordResponse createChannel(PayChannelRequest request) {
-        return RecordResponse.from(payChannelRepository.createChannel(request));
+        return maskedChannel(payChannelRepository.createChannel(request));
     }
 
     /**
@@ -80,7 +81,7 @@ public class PayService {
      */
     @Transactional
     public RecordResponse updateChannel(String id, PayChannelRequest request) {
-        return RecordResponse.from(payChannelRepository.updateChannel(id, request));
+        return maskedChannel(payChannelRepository.updateChannel(id, request));
     }
 
     /**
@@ -227,12 +228,13 @@ public class PayService {
             return "";
         }
         // 根据当前业务条件选择对应处理路径。
-        if (value.length() <= 4) {
-            // 返回已经完成封装的业务结果。
-            return "****";
-        }
-        // 返回已经完成封装的业务结果。
-        return value.substring(0, 2) + "****" + value.substring(value.length() - 2);
+        return "******";
+    }
+
+    private RecordResponse maskedChannel(DomainRecord record) {
+        Map<String, Object> channel = new LinkedHashMap<>(record.toMap());
+        channel.put("appSecret", mask(stringValue(channel.get("appSecret"))));
+        return RecordResponse.from(channel);
     }
 
     /**

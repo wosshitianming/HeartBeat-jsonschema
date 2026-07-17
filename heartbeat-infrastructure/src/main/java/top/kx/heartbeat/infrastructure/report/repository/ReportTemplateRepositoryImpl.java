@@ -25,7 +25,8 @@ import java.util.stream.Collectors;
 @Repository
 public class ReportTemplateRepositoryImpl implements ReportTemplateRepository {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Resource
+    private ObjectMapper objectMapper;
 
     @Resource
     private ReportTemplateDOMapper templateDOMapper;

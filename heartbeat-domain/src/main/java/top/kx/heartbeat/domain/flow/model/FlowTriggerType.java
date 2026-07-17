@@ -35,7 +35,9 @@ public enum FlowTriggerType {
     /**
      * 本地调试触发。
      */
-    DEBUG("DEBUG", "本地调试触发");
+    DEBUG("DEBUG", "本地调试触发"),
+
+    RETRY("RETRY", "失败执行重试");
 
     /**
      * 触发类型编码。

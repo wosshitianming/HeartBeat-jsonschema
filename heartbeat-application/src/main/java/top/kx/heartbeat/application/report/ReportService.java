@@ -1,6 +1,7 @@
 package top.kx.heartbeat.application.report;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.kx.heartbeat.application.common.model.DomainRecord;
@@ -38,6 +39,9 @@ public class ReportService {
     @Resource
     private ReportQueryRepository queryRepository;
 
+    @Value("${heartbeat.report.dynamic-sql.enabled:false}")
+    private boolean dynamicSqlEnabled;
+
     /**
      * 查询列表数据，保持返回结构稳定并便于前端直接消费，协调报表管理相关仓储和领域规则。
      *
@@ -55,6 +59,7 @@ public class ReportService {
      */
     @Transactional
     public RecordResponse saveDataset(ReportDatasetRequest request) {
+        assertDynamicSqlEnabled();
         assertReadonlySql(request.getQuerySql());
         return RecordResponse.from(datasetRepository.saveDataset(request));
     }
@@ -136,6 +141,7 @@ public class ReportService {
      * @return 处理后的业务结果。
      */
     private List<Map<String, Object>> queryRows(String datasetId, Map<String, Object> params, Integer limit) {
+        assertDynamicSqlEnabled();
         Map<String, Object> dataset = datasetRepository.getDataset(datasetId).toMap();
         String sql = stringValue(dataset.get("querySql"));
         assertReadonlySql(sql);
@@ -152,6 +158,13 @@ public class ReportService {
         String normalized = sql == null ? "" : sql.trim().toLowerCase(java.util.Locale.ROOT);
         if (!normalized.startsWith(READONLY_SQL_PREFIX) || normalized.contains(";")) {
             throw new IllegalArgumentException("Report dataset only supports single SELECT SQL");
+        }
+    }
+
+    private void assertDynamicSqlEnabled() {
+        if (!dynamicSqlEnabled) {
+            throw new IllegalStateException(
+                    "Dynamic report SQL is disabled until an isolated read-only reporting datasource is configured");
         }
     }
 

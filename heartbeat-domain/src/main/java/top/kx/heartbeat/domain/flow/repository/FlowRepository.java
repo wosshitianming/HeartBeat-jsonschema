@@ -66,6 +66,8 @@ public interface FlowRepository {
      */
     void activateVersion(String flowId, int versionNo);
 
+    void deactivate(String flowId);
+
     /**
      * 更新流程定义当前激活运行时部署信息
      */

@@ -27,7 +27,8 @@ import java.util.stream.Collectors;
 @Repository
 public class PayOrderRepositoryImpl implements PayOrderRepository {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Resource
+    private ObjectMapper objectMapper;
 
     @Resource
     private PayOrderDOMapper orderMapper;

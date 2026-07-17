@@ -9,6 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import top.kx.heartbeat.support.MySqlIntegrationTestSupport;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -17,7 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("local")
-class AdminPlatformApiTest {
+class AdminPlatformApiTest extends MySqlIntegrationTestSupport {
 
     @Autowired
     private MockMvc mockMvc;
@@ -31,8 +32,8 @@ class AdminPlatformApiTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"admin\",\"password\":\"admin123\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.tokenType").value("Bearer"))
-                .andExpect(jsonPath("$.data.user.username").value("admin"));
+                .andExpect(jsonPath("$.data.tokens.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.data.user.fields.username").value("admin"));
 
         mockMvc.perform(get("/api/v1/auth/me"))
                 .andExpect(status().isOk())

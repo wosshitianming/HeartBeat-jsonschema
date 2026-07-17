@@ -1,5 +1,7 @@
 package top.kx.heartbeat.interfaces.common.response;
 
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -24,7 +26,17 @@ public class DynamicRecordResponse {
     /**
      * 记录字段集合。
      */
+    @JsonIgnore
     private Map<String, Object> fields;
+
+    /**
+     * Preserves the original flat JSON contract while keeping a typed response
+     * object at the interface boundary.
+     */
+    @JsonAnyGetter
+    public Map<String, Object> jsonFields() {
+        return fields == null ? Collections.emptyMap() : fields;
+    }
 
     /**
      * 将动态记录转换为响应对象。

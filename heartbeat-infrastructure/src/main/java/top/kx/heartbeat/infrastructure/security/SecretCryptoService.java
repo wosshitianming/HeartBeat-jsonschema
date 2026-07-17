@@ -35,7 +35,7 @@ public class SecretCryptoService {
 
     public String encryptIfPlain(String value) {
         String text = value == null ? "" : value.trim();
-        if (StringUtils.isEmpty(text) || text.startsWith(PREFIX) || text.startsWith(LEGACY_PREFIX)) {
+        if (StringUtils.isEmpty(text) || isEncrypted(text)) {
             return text;
         }
         try {
@@ -47,7 +47,7 @@ public class SecretCryptoService {
 
     public String decryptIfCipher(String value) {
         String text = value == null ? "" : value.trim();
-        if (!text.startsWith(PREFIX) && !text.startsWith(LEGACY_PREFIX)) {
+        if (!isEncrypted(text)) {
             return text;
         }
         try {
@@ -71,6 +71,15 @@ public class SecretCryptoService {
             return "****";
         }
         return plain.substring(0, 2) + "****" + plain.substring(plain.length() - 2);
+    }
+
+    public boolean isEncrypted(String value) {
+        String text = value == null ? "" : value.trim();
+        return text.startsWith(PREFIX) || text.startsWith(LEGACY_PREFIX);
+    }
+
+    public String redact(String value) {
+        return StringUtils.isBlank(value) ? "" : "******";
     }
 
     private byte[] encryptGcm(String value) throws Exception {

@@ -5,13 +5,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import top.kx.heartbeat.application.platform.PlatformAdministrationService;
+import top.kx.heartbeat.infrastructure.tenant.TenantContext;
+import top.kx.heartbeat.support.MySqlIntegrationTestSupport;
 
 @SpringBootTest(properties = {
         "heartbeat.security.dev-auto-login=false",
         "heartbeat.security.dev-header-enabled=false"
 })
 @ActiveProfiles("local")
-class TypedAdminApplicationServiceTest {
+class TypedAdminApplicationServiceTest extends MySqlIntegrationTestSupport {
 
     @Autowired
     private PlatformAdministrationService platformAdministrationService;
@@ -47,13 +49,16 @@ class TypedAdminApplicationServiceTest {
 
     @Test
     void typedReadOnlyResourcesAreExplicitlyAvailable() {
-        platformAdministrationService.listTenants();
-        platformAdministrationService.listPosts();
-        platformAdministrationService.listDictTypes();
-        platformAdministrationService.listDictData();
-        platformAdministrationService.listNotices();
-        platformAdministrationService.listOperationLogs();
-        platformAdministrationService.listOnlineSessions();
-        platformAdministrationService.listOauthClients();
+        TenantContext.runAsTenant(1L, () -> {
+            platformAdministrationService.listTenants();
+            platformAdministrationService.listPosts();
+            platformAdministrationService.listDictTypes();
+            platformAdministrationService.listDictData();
+            platformAdministrationService.listNotices();
+            platformAdministrationService.listOperationLogs();
+            platformAdministrationService.listOnlineSessions();
+            platformAdministrationService.listOauthClients();
+            return null;
+        });
     }
 }

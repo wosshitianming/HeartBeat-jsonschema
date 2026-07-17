@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "heartbeat.security.jwt")
 public class JwtProperties {
 
-    private String secret = "heartbeat-dev-secret-change-in-production-32bytes-min";
+    private String secret;
     private long accessTokenMinutes = 120;
     private long refreshTokenDays = 7;
 }

@@ -6,10 +6,7 @@ import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+import java.sql.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -25,7 +22,7 @@ class EnterpriseMySqlUpgradeTest {
                     .withPassword("heartbeat-test");
 
     @Test
-    void flywayCanUpgradeFromPlatformToolingToV8BusinessSchema() throws Exception {
+    void flywayCanUpgradeFromPlatformToolingToLatestBusinessSchema() throws Exception {
         Flyway phaseOne = Flyway.configure()
                 .dataSource(MYSQL.getJdbcUrl(), MYSQL.getUsername(), MYSQL.getPassword())
                 .locations("classpath:db/migration/mysql")
@@ -41,6 +38,18 @@ class EnterpriseMySqlUpgradeTest {
         Flyway.configure()
                 .dataSource(MYSQL.getJdbcUrl(), MYSQL.getUsername(), MYSQL.getPassword())
                 .locations("classpath:db/migration/mysql")
+                .target("9")
+                .load()
+                .migrate();
+
+        try (Connection connection = connect()) {
+            assertEquals("9", currentVersion(connection));
+            insertLegacyFlowLedger(connection);
+        }
+
+        Flyway.configure()
+                .dataSource(MYSQL.getJdbcUrl(), MYSQL.getUsername(), MYSQL.getPassword())
+                .locations("classpath:db/migration/mysql")
                 .load()
                 .migrate();
 
@@ -49,7 +58,25 @@ class EnterpriseMySqlUpgradeTest {
             assertTrue(tableExists(connection, "wf_process_definition"));
             assertTrue(tableExists(connection, "pay_order"));
             assertTrue(tableExists(connection, "mobile_app_version"));
-            assertEquals("8", currentVersion(connection));
+            assertEquals("15", currentVersion(connection));
+            assertEquals(9101L, queryLong(connection,
+                    "select event_seq from hb_flow_run_event where id = 9101"));
+            assertEquals(9101L, queryLong(connection,
+                    "select last_event_seq from hb_flow_run where id = 9001"));
+        }
+    }
+
+    private void insertLegacyFlowLedger(Connection connection) throws Exception {
+        try (Statement statement = connection.createStatement()) {
+            statement.executeUpdate("insert into hb_flow_definition "
+                    + "(id, tenant_id, name, code, status, create_by, update_by) "
+                    + "values (9001, 1, 'Legacy flow', 'legacy_flow_v10', 'ONLINE', 0, 0)");
+            statement.executeUpdate("insert into hb_flow_run "
+                    + "(id, tenant_id, flow_id, version_no, trigger_type, status, create_by, update_by) "
+                    + "values (9001, 1, 9001, 1, 'MANUAL', 'RUNNING', 0, 0)");
+            statement.executeUpdate("insert into hb_flow_run_event "
+                    + "(id, tenant_id, run_id, node_id, node_type, event_type, create_by, update_by) "
+                    + "values (9101, 1, 9001, 'node_1', 'HTTP', 'ACTIVITY_COMPLETED', 0, 0)");
         }
     }
 
@@ -74,6 +101,14 @@ class EnterpriseMySqlUpgradeTest {
                 assertTrue(resultSet.next());
                 return resultSet.getString(1);
             }
+        }
+    }
+
+    private long queryLong(Connection connection, String sql) throws Exception {
+        try (PreparedStatement statement = connection.prepareStatement(sql);
+             ResultSet resultSet = statement.executeQuery()) {
+            assertTrue(resultSet.next());
+            return resultSet.getLong(1);
         }
     }
 }

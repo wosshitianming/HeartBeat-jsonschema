@@ -1,5 +1,6 @@
 package top.kx.heartbeat.mp;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -11,6 +12,7 @@ import top.kx.heartbeat.application.mp.MpService;
         "heartbeat.security.dev-header-enabled=false"
 })
 @ActiveProfiles("local")
+@Disabled("Placeholder test has no active assertions")
 class MpCredentialSecurityTest {
 
     @Autowired

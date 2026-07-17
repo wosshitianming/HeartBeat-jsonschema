@@ -1,24 +1,27 @@
 import {
-  actionsForResource,
-  getResourceDefinition,
-  isResourceReadOnly,
-  payloadDisplay
+    actionsForResource,
+    getResourceDefinition,
+    isResourceReadOnly,
+    payloadDisplay
 } from '../../domain/admin/resourceDefinitions'
 import {
-  appPathForMenu,
-  filterNavigableTree,
-  findMenuById,
-  firstAvailableMenu,
-  isNavigableMenu,
-  resolveTopModuleIdByPath
+    appPathForMenu,
+    filterNavigableTree,
+    findMenuById,
+    firstAvailableMenu,
+    isNavigableMenu,
+    resolveTopModuleIdByPath
 } from '../../domain/admin/navigationPolicy'
 
 export function categoryFromPermission(permission = '') {
-  if (permission.startsWith('system:')) return '系统管理'
-  if (permission.startsWith('monitor:')) return '系统监控'
-  if (permission.startsWith('tool:')) return '系统工具'
-  if (permission.startsWith('structure:')) return '数据配置'
-  return '平台菜单'
+    if (permission.startsWith('dashboard:')) return '工作台'
+    if (permission.startsWith('system:')) return '平台治理'
+    if (permission.startsWith('structure:') || permission.startsWith('flow:')) return '数据与自动化'
+    if (permission.startsWith('biz:workflow')) return '审批中心'
+    if (permission.startsWith('biz:')) return '业务中心'
+    if (permission.startsWith('monitor:')) return '运行保障'
+    if (permission.startsWith('tool:')) return '开发工具'
+    return '平台功能'
 }
 
 function moduleFromRoute(route) {
@@ -87,19 +90,26 @@ function containsMenuId(nodes, menuId) {
 
 export function resourceFromModule(module) {
   const permission = module?.permissionPrefix || ''
-  if (module?.key === 'system-menu' || permission.startsWith('system:menu')) return 'menus'
-  if (permission.startsWith('system:user')) return 'users'
-  if (permission.startsWith('system:dept')) return 'depts'
-  if (permission.startsWith('system:post')) return 'posts'
-  if (permission.startsWith('system:role')) return 'roles'
-  if (permission.startsWith('system:dict')) return 'dict-types'
-  if (permission.startsWith('system:config')) return 'configs'
-  if (permission.startsWith('system:notice')) return 'notices'
-  if (permission.startsWith('monitor:operlog')) return 'oper-logs'
-  if (permission.startsWith('monitor:loginlog')) return 'login-logs'
-  if (permission.startsWith('monitor:online')) return 'online-sessions'
-  if (permission.startsWith('monitor:server')) return null
-  if (permission.startsWith('tool:job')) return 'jobs'
+    const key = module?.key || ''
+    const identity = `${key} ${permission}`
+    if (key === 'system-menu' || identity.includes('system:menu')) return 'menus'
+    if (identity.includes('system:tenant')) return 'tenants'
+    if (identity.includes('system:user')) return 'users'
+    if (identity.includes('system:dept')) return 'depts'
+    if (identity.includes('system:post')) return 'posts'
+    if (identity.includes('system:role')) return 'roles'
+    if (key === 'system-dict-data' || identity.includes('system:dict-data')) return 'dict-data'
+    if (key === 'system-dict-type') return 'dict-types'
+    if (identity.includes('system:dict')) return 'dict-types'
+    if (identity.includes('system:config')) return 'configs'
+    if (identity.includes('system:notice')) return 'notices'
+    if (identity.includes('system:oauth')) return 'oauth-clients'
+    if (identity.includes('system:social')) return 'social-providers'
+    if (identity.includes('monitor:operlog')) return 'oper-logs'
+    if (identity.includes('monitor:loginlog')) return 'login-logs'
+    if (identity.includes('monitor:online')) return 'online-sessions'
+    if (identity.includes('monitor:server')) return null
+    if (identity.includes('tool:job')) return null
   return null
 }
 
@@ -115,11 +125,12 @@ export function recordFromResource(resource, item) {
   if (resource === 'menus') {
     return {
       ...base,
-      名称: item.name,
-      类型: item.type || 'MENU',
-      路径: item.path || '—',
-      权限标识: item.permission || '—',
-      状态: item.status || 'ACTIVE'
+        菜单编码: item.menuCode || '—',
+        名称: item.menuName || item.name || '—',
+        类型: item.menuType || item.type || 'MENU',
+        路径: item.routePath || item.path || '—',
+        权限模式: item.permissionMode || 'RELATION',
+        状态: item.status || 'ENABLED'
     }
   }
   if (resource === 'users') {
@@ -129,25 +140,26 @@ export function recordFromResource(resource, item) {
       昵称: item.nickname || '—',
       '部门 ID': item.deptId || '—',
       邮箱: item.email || '—',
-      状态: item.status || 'ACTIVE'
+        状态: item.status || 'ENABLED'
     }
   }
   if (resource === 'depts') {
     return {
       ...base,
-      部门名称: item.name || '—',
-      部门编码: item.code || '—',
+        部门名称: item.deptName || item.name || '—',
+        部门编码: item.deptCode || item.code || '—',
       '上级 ID': item.parentId || '—',
-      状态: item.status || 'ACTIVE'
+        '负责人 ID': item.leaderUserId || '—',
+        状态: item.status || 'ENABLED'
     }
   }
   if (resource === 'posts') {
     return {
       ...base,
-      岗位名称: item.name || '—',
-      岗位编码: item.code || '—',
+        岗位名称: item.postName || '—',
+        岗位编码: item.postCode || '—',
       排序: item.sortNo ?? '—',
-      状态: item.status || 'ACTIVE'
+        状态: item.status || 'ENABLED'
     }
   }
   if (resource === 'roles') {
@@ -156,70 +168,121 @@ export function recordFromResource(resource, item) {
       角色名称: item.name || '—',
       权限字符: item.code || '—',
       数据范围: item.dataScope || '—',
-      状态: item.status || 'ACTIVE'
+        状态: item.status || 'ENABLED'
     }
   }
   if (resource === 'dict-types') {
     return {
       ...base,
-      字典名称: item.name || '—',
-      字典类型: item.code || '—',
+        字典名称: item.dictName || '—',
+        字典类型: item.dictCode || '—',
       备注: item.description || '—',
-      状态: item.status || 'ACTIVE'
+        状态: item.status || 'ENABLED'
+    }
+  }
+    if (resource === 'dict-data') {
+        return {
+            ...base,
+            '字典类型 ID': item.dictTypeId ?? '—',
+            标签: item.itemLabel || '—',
+            键值: item.itemValue ?? '—',
+            排序: item.sortNo ?? '—',
+            状态: item.status || 'ENABLED'
     }
   }
   if (resource === 'configs') {
     return {
       ...base,
-      参数名称: item.name || '—',
-      参数键名: item.code || '—',
-      参数键值: payloadDisplay(item.payload),
-      状态: item.status || 'ACTIVE'
+        参数名称: item.configName || '—',
+        参数键名: item.configKey || '—',
+        参数键值: item.encrypted ? '已加密' : (item.configValue ?? '—'),
+        类型: item.valueType || 'STRING',
+        状态: item.status || 'ENABLED'
     }
   }
   if (resource === 'notices') {
     return {
       ...base,
-      公告标题: item.name || '—',
-      公告类型: item.code || '—',
-      状态: item.status || 'ACTIVE',
-      备注: item.description || '—'
+        公告标题: item.noticeTitle || '—',
+        公告类型: item.noticeType || '—',
+        发布状态: item.publishStatus || '—',
+        发布时间: item.publishedAt || '—',
+        公告内容: item.noticeContent || '—'
     }
   }
   if (resource === 'jobs') {
     return {
       ...base,
-      任务名称: item.name || '—',
-      任务编码: item.code || '—',
-      'Cron 表达式': payloadDisplay(item.payload),
-      状态: item.status || 'ACTIVE'
+        任务名称: item.jobName || item.name || '—',
+        任务编码: item.jobCode || item.code || '—',
+        'Cron 表达式': item.cronExpression || payloadDisplay(item.payload),
+        状态: item.status || 'ENABLED'
+    }
+  }
+    if (resource === 'tenants') {
+        return {
+            ...base,
+            租户编码: item.tenantCode || '—',
+            租户名称: item.tenantName || '—',
+            租户类型: item.tenantType || '—',
+            域名: item.domain || '—',
+            联系人: item.contactName || '—',
+            状态: item.status || 'ENABLED'
+        }
+    }
+    if (resource === 'oauth-clients') {
+        return {
+            ...base,
+            '客户端 ID': item.clientId || '—',
+            客户端名称: item.clientName || '—',
+            客户端类型: item.clientType || '—',
+            授权范围: item.scopes || '—',
+            自动授权: item.autoApprove === undefined ? '—' : (item.autoApprove ? '是' : '否'),
+            状态: item.status || 'ENABLED'
+        }
+    }
+    if (resource === 'social-providers') {
+        return {
+            ...base,
+            提供方编码: item.providerCode || '—',
+            提供方名称: item.providerName || '—',
+            类型: item.providerType || 'OAUTH2',
+            '客户端 ID': item.clientId || '—',
+            启用: item.enabled === undefined ? '—' : (item.enabled ? '是' : '否'),
+            状态: item.status || 'ENABLED'
     }
   }
   if (resource === 'oper-logs') {
     return {
       ...base,
-      操作人: item.name || '—',
-      模块: item.code || '—',
-      结果: item.status || '—',
-      说明: item.description || '—'
+        操作人: item.operatorName || item.operatorId || '—',
+        模块: item.moduleCode || '—',
+        操作: item.operationName || item.operationType || '—',
+        请求路径: item.requestPath || '—',
+        结果: item.resultStatus || '—',
+        耗时: item.durationMs == null ? '—' : `${item.durationMs} ms`
     }
   }
   if (resource === 'login-logs') {
     return {
       ...base,
-      用户名: item.name || '—',
-      账号: item.code || '—',
-      结果: item.status || '—',
-      说明: item.description || '—'
+        用户名: item.username || '—',
+        登录方式: item.loginType || '—',
+        '登录 IP': item.loginIp || '—',
+        结果: item.resultStatus || '—',
+        失败原因: item.failureReason || '—',
+        登录时间: item.loggedAt || item.createTime || '—'
     }
   }
   if (resource === 'online-sessions') {
     return {
       ...base,
-      用户: item.name || '—',
-      会话标识: item.code || '—',
+        '用户 ID': item.userId || '—',
+        会话标识: item.sessionId || '—',
+        设备: item.deviceName || item.deviceType || '—',
+        '登录 IP': item.loginIp || '—',
       状态: item.status || '—',
-      说明: item.description || '—'
+        最后访问: item.lastAccessAt || '—'
     }
   }
 
@@ -227,7 +290,7 @@ export function recordFromResource(resource, item) {
     ...base,
     名称: item.name || '—',
     编码: item.code || '—',
-    状态: item.status || 'ACTIVE',
+      状态: item.status || 'ENABLED',
     说明: item.description || '—'
   }
 }
@@ -245,48 +308,57 @@ export function toResourceFormValues(resource, row) {
   const source = row?.raw || {}
   const values = {
     ...definition.emptyValues,
-    ...source,
-    type: source.type || source.menuType || definition.emptyValues.type,
-    visible: source.visible === undefined ? definition.emptyValues.visible : String(source.visible)
+      ...source
   }
 
-  if (resource === 'configs' || resource === 'jobs') {
-    values.payload = payloadDisplay(source.payload)
-    if (values.payload === '—') values.payload = definition.emptyValues.payload || ''
-  }
+    if (resource === 'menus') {
+        values.menuCode = source.menuCode || definition.emptyValues.menuCode
+        values.menuName = source.menuName || source.name || definition.emptyValues.menuName
+        values.menuType = source.menuType || source.type || definition.emptyValues.menuType
+        values.routePath = source.routePath || source.path || definition.emptyValues.routePath
+        values.componentPath = source.componentPath || source.component || definition.emptyValues.componentPath
+        values.permissionMode = source.permissionMode || definition.emptyValues.permissionMode
+        values.visible = source.visible === undefined ? definition.emptyValues.visible : String(source.visible)
+        values.keepAlive = source.keepAlive === undefined ? definition.emptyValues.keepAlive : String(source.keepAlive)
+    }
 
-  return values
-}
-
-function normalizePayload(resource, value) {
   if (resource === 'configs') {
-    if (!value) return '{}'
-    try {
-      JSON.parse(value)
-      return value
-    } catch {
-      return JSON.stringify({ value })
-    }
+      values.configName = source.configName || definition.emptyValues.configName
+      values.configKey = source.configKey || definition.emptyValues.configKey
+      values.configValue = source.configValue ?? definition.emptyValues.configValue
+      values.encrypted = source.encrypted === undefined
+          ? definition.emptyValues.encrypted
+          : String(source.encrypted)
   }
-  if (resource === 'jobs') {
-    if (!value) return '{}'
-    try {
-      JSON.parse(value)
-      return value
-    } catch {
-      return JSON.stringify({ cron: value })
+
+    if (resource === 'social-providers') {
+        values.enabled = source.enabled === undefined ? definition.emptyValues.enabled : String(source.enabled)
+        values.appSecretCipher = ''
     }
-  }
-  return value || '{}'
+
+    return values
 }
 
 export function buildResourcePayload(resource, values, mode) {
   const payload = { ...values }
 
   if (resource === 'menus') {
-    payload.visible = values.visible === true || values.visible === 'true'
-    payload.sortNo = Number(values.sortNo || 0)
-    return payload
+      return {
+          parentId: values.parentId,
+          menuCode: values.menuCode,
+          menuName: values.menuName,
+          menuType: values.menuType,
+          routePath: values.routePath,
+          componentPath: values.componentPath,
+          redirectPath: values.redirectPath,
+          icon: values.icon,
+          visible: values.visible === true || values.visible === 'true',
+          keepAlive: values.keepAlive === true || values.keepAlive === 'true',
+          externalLink: values.externalLink,
+          permissionMode: values.permissionMode || 'RELATION',
+          sortNo: Number(values.sortNo || 0),
+          status: values.status || 'ENABLED'
+      }
   }
 
   if (resource === 'users') {
@@ -294,10 +366,51 @@ export function buildResourcePayload(resource, values, mode) {
     return payload
   }
 
-  if (resource === 'configs' || resource === 'jobs') {
-    payload.payload = normalizePayload(resource, values.payload)
-    payload.sortNo = Number(values.sortNo || 0)
-    return payload
+    if (resource === 'depts') {
+        return {
+            parentId: values.parentId,
+            deptName: values.name,
+            deptCode: values.code,
+            leaderUserId: values.leaderUserId,
+            phone: values.phone,
+            email: values.email,
+            sortNo: Number(values.sortNo || 0),
+            status: values.status || 'ENABLED'
+        }
+    }
+
+    if (resource === 'configs') {
+        return {
+            configName: values.configName,
+            configKey: values.configKey,
+            configValue: values.configValue,
+            valueType: values.valueType || 'STRING',
+            encrypted: values.encrypted === true || values.encrypted === 'true',
+            configGroup: values.configGroup || 'system',
+            description: values.description,
+            status: values.status || 'ENABLED'
+        }
+    }
+
+    if (resource === 'social-providers') {
+        const socialPayload = {
+            providerCode: values.providerCode,
+            providerName: values.providerName,
+            providerType: values.providerType || 'OAUTH2',
+            clientId: values.clientId,
+            appKey: values.appKey,
+            appSecretCipher: values.appSecretCipher,
+            authorizeUrl: values.authorizeUrl,
+            tokenUrl: values.tokenUrl,
+            userInfoUrl: values.userInfoUrl,
+            scopes: values.scopes,
+            enabled: values.enabled === true || values.enabled === 'true',
+            status: values.status || 'ENABLED'
+        }
+        if (mode === 'edit' && !String(values.appSecretCipher || '').trim()) {
+            delete socialPayload.appSecretCipher
+        }
+        return socialPayload
   }
 
   payload.sortNo = Number(values.sortNo || 0)

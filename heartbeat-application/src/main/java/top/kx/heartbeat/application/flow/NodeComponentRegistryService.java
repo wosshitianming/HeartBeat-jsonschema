@@ -4,8 +4,10 @@ package top.kx.heartbeat.application.flow;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import top.kx.heartbeat.application.flow.runtime.NodeExecutorRegistry;
 import top.kx.heartbeat.domain.flow.model.*;
 import top.kx.heartbeat.domain.flow.repository.NodeComponentRepository;
+import top.kx.heartbeat.domain.flow.validation.FlowDslValidator;
 
 import javax.annotation.Resource;
 import java.util.*;
@@ -23,6 +25,12 @@ public class NodeComponentRegistryService {
      */
     @Resource
     private NodeComponentRepository repository;
+
+    /**
+     * 包含 Spring 自动发现代码节点的执行器注册表。
+     */
+    @Resource
+    private NodeExecutorRegistry nodeExecutorRegistry;
 
     /**
      * 注册系统内置节点组件。
@@ -45,8 +53,24 @@ public class NodeComponentRegistryService {
      * @return 启用节点组件列表
      */
     public List<NodeComponentManifest> listActive() {
-        // 查询全部启用节点组件。
-        return repository.findAllActive();
+        Map<String, NodeComponentManifest> catalog = new LinkedHashMap<>();
+        merge(catalog, repository.findAllActive());
+        // 代码声明是运行时契约，同类型版本时覆盖历史数据库副本。
+        merge(catalog, builtInComponents());
+        merge(catalog, nodeExecutorRegistry.codeManifests());
+        return new ArrayList<>(catalog.values());
+    }
+
+    private void merge(Map<String, NodeComponentManifest> catalog, List<NodeComponentManifest> manifests) {
+        if (manifests == null) {
+            return;
+        }
+        for (NodeComponentManifest manifest : manifests) {
+            if (manifest == null || !NodeComponentStatus.ACTIVE.matches(manifest.getStatus())) {
+                continue;
+            }
+            catalog.put(FlowDslValidator.manifestKey(manifest.getType(), manifest.getVersion()), manifest);
+        }
     }
 
     /**

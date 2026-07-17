@@ -1,6 +1,7 @@
 import LayoutHeader from './LayoutHeader'
 import LayoutSider from './LayoutSider'
 import TagsView from './TagsView'
+import './AdminLayout.css'
 
 export default function AdminLayout({
   structureMode,

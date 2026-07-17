@@ -1,5 +1,6 @@
 package top.kx.heartbeat.application.mp;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.kx.heartbeat.application.common.model.DomainRecord;
@@ -11,6 +12,7 @@ import top.kx.heartbeat.application.mp.request.MpMaterialRequest;
 import top.kx.heartbeat.application.mp.request.MpMenuRequest;
 
 import javax.annotation.Resource;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -42,7 +44,9 @@ public class MpService {
      * @return 处理后的业务结果。
      */
     public List<RecordResponse> listAccounts() {
-        return RecordResponse.fromMaps(maps(accountRepository.listAccounts()));
+        return accountRepository.listAccounts().stream()
+                .map(this::maskedAccount)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -52,7 +56,7 @@ public class MpService {
      * @return 处理后的业务结果。
      */
     public RecordResponse getAccount(String id) {
-        return RecordResponse.from(accountRepository.getAccount(id));
+        return maskedAccount(accountRepository.getAccount(id));
     }
 
     /**
@@ -63,7 +67,7 @@ public class MpService {
      */
     @Transactional
     public RecordResponse saveAccount(MpAccountRequest request) {
-        return RecordResponse.from(accountRepository.saveAccount(request));
+        return maskedAccount(accountRepository.saveAccount(request));
     }
 
     /**
@@ -149,5 +153,17 @@ public class MpService {
      */
     private List<Map<String, Object>> maps(List<DomainRecord> records) {
         return records.stream().map(DomainRecord::toMap).collect(Collectors.toList());
+    }
+
+    private RecordResponse maskedAccount(DomainRecord record) {
+        Map<String, Object> account = new LinkedHashMap<>(record.toMap());
+        account.put("appSecret", redact(account.get("appSecret")));
+        account.put("token", redact(account.get("token")));
+        account.put("aesKey", redact(account.get("aesKey")));
+        return RecordResponse.from(account);
+    }
+
+    private String redact(Object value) {
+        return StringUtils.isBlank(value == null ? null : String.valueOf(value)) ? "" : "******";
     }
 }

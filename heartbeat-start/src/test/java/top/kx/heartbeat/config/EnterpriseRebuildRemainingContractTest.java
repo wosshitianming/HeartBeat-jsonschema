@@ -68,14 +68,13 @@ class EnterpriseRebuildRemainingContractTest {
 
     @Test
     void remainingBusinessTablesUseAutoIncrementLongPrimaryKeys() throws IOException {
-        String combinedSql = readIfExists(projectRoot().resolve("heartbeat-start/src/main/resources/schema.sql"))
-                + "\n"
-                + readSqlDirectory(projectRoot().resolve("heartbeat-start/src/main/resources/db/migration/mysql"));
+        String combinedSql = readSqlDirectory(
+                projectRoot().resolve("heartbeat-start/src/main/resources/db/migration/mysql"));
         List<String> failures = new ArrayList<String>();
         for (String table : AUTO_ID_TABLES) {
             String body = tableBody(combinedSql, table);
             if (body == null) {
-                failures.add(table + " is missing from schema.sql and Flyway migrations");
+                failures.add(table + " is missing from Flyway migrations");
                 continue;
             }
             if (!hasAutoIncrementLongId(body)) {

@@ -9,18 +9,17 @@ import top.kx.heartbeat.domain.auth.CurrentUserProvider;
 import top.kx.heartbeat.domain.flow.model.*;
 import top.kx.heartbeat.domain.flow.repository.FlowRepository;
 import top.kx.heartbeat.domain.flow.repository.FlowRunRepository;
-import top.kx.heartbeat.domain.flow.repository.NodeComponentRepository;
 import top.kx.heartbeat.domain.flow.validation.FlowDslValidator;
 import top.kx.heartbeat.domain.flow.validation.FlowValidationIssue;
 import top.kx.heartbeat.domain.flow.validation.FlowValidationResult;
 
 import javax.annotation.Resource;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * 流程应用服务。
@@ -40,10 +39,10 @@ public class FlowApplicationService {
     private CurrentUserProvider currentUserProvider;
 
     /**
-     * 节点组件仓储。
+     * 节点组件目录。
      */
     @Resource
-    private NodeComponentRepository componentRepository;
+    private NodeComponentRegistryService componentRegistryService;
 
     /**
      * 流程调试执行器。
@@ -68,6 +67,12 @@ public class FlowApplicationService {
      */
     @Resource
     private FlowRunRepository flowRunRepository;
+
+    @Resource
+    private FlowRunIdGenerator flowRunIdGenerator;
+
+    @Resource
+    private FlowRunLaunchService flowRunLaunchService;
 
     /**
      * 流程 DSL 校验领域服务。
@@ -106,12 +111,21 @@ public class FlowApplicationService {
      */
     @Transactional
     public FlowDefinition saveDraft(FlowDefinition draft) {
+        if (draft == null) throw new IllegalArgumentException("流程草稿不能为空");
         // 获取当前时间。
         Instant now = Instant.now();
+        FlowDefinition existing = StringUtils.isBlank(draft.getId())
+                ? null : flowRepository.findById(draft.getId()).orElse(null);
         // 判断是否需要初始化流程标识。
-        if (StringUtils.isBlank(draft.getId())) {
+        if (existing == null) {
             // 写入流程创建时间。
             draft.setCreateTime(now);
+        } else {
+            draft.setCreateTime(existing.getCreateTime());
+            draft.setActiveVersionNo(existing.getActiveVersionNo());
+            draft.setRuntimeEngine(existing.getRuntimeEngine());
+            draft.setActiveProcessDefinitionId(existing.getActiveProcessDefinitionId());
+            draft.setActiveDeploymentId(existing.getActiveDeploymentId());
         }
         // 判断是否需要初始化流程编码。
         if (StringUtils.isBlank(draft.getCode())) {
@@ -119,7 +133,12 @@ public class FlowApplicationService {
             draft.setCode("flow_" + UUID.randomUUID().toString().replace("-", ""));
         }
         // 根据是否已有激活版本设置流程定义状态。
-        draft.setStatus(resolveDraftStatus(draft).getCode());
+        if (existing != null && (FlowDefinitionStatus.ONLINE.getCode().equals(existing.getStatus())
+                || FlowDefinitionStatus.OFFLINE.getCode().equals(existing.getStatus()))) {
+            draft.setStatus(existing.getStatus());
+        } else {
+            draft.setStatus(resolveDraftStatus(draft).getCode());
+        }
         // 写入流程更新时间。
         draft.setUpdateTime(now);
         // 保存流程定义草稿。
@@ -134,7 +153,7 @@ public class FlowApplicationService {
      */
     public RecordResponse compile(FlowDefinition flow) {
         // 查询全部启用节点组件。
-        List<NodeComponentManifest> manifests = componentRepository.findAllActive();
+        List<NodeComponentManifest> manifests = componentRegistryService.listActive();
         // 编译流程定义。
         FlowBpmnCompileResult result = flowBpmnCompiler.compile(flow, manifests);
         // 兜底空流程对象，避免统计节点数量时空指针。
@@ -170,7 +189,7 @@ public class FlowApplicationService {
         // 查询流程定义。
         FlowDefinition flow = get(flowId);
         // 查询全部启用节点组件。
-        List<NodeComponentManifest> manifests = componentRepository.findAllActive();
+        List<NodeComponentManifest> manifests = componentRegistryService.listActive();
         // 编译 Flow DSL 到 BPMN。
         FlowBpmnCompileResult compileResult = flowBpmnCompiler.compile(flow, manifests);
         // 判断流程是否通过编译。
@@ -197,11 +216,11 @@ public class FlowApplicationService {
         // 写入流程 DSL 快照。
         version.setFlowDsl(flow);
         // 写入编译报告摘要。
-        version.setCompileReport("valid");
+        version.setCompileReport("{\"valid\":true,\"issueCount\":0}");
         // 写入流程版本状态。
         version.setStatus(FlowVersionStatus.PUBLISHED.getCode());
         // 写入运行时引擎。
-        version.setRuntimeEngine(FlowRuntimeEngine.FLOWABLE.getCode());
+        version.setRuntimeEngine(flowRuntimeFacade.productionEngine().getCode());
         // 写入 BPMN XML。
         version.setBpmnXml(compileResult.getBpmnXml());
         // 写入 BPMN 摘要。
@@ -211,7 +230,7 @@ public class FlowApplicationService {
         // 写入编译状态。
         version.setCompileStatus("COMPILED");
         // 写入发布人。
-        version.setPublishedBy("system");
+        version.setPublishedBy(currentUserProvider.currentUserId());
         // 写入发布时间。
         version.setPublishedAt(Instant.now());
         // 保存流程版本。
@@ -253,12 +272,27 @@ public class FlowApplicationService {
     @Transactional
     public FlowDefinition activate(String flowId, int versionNo) {
         // 校验指定版本是否存在。
-        flowRepository.findVersion(flowId, versionNo)
+        FlowVersion version = flowRepository.findVersion(flowId, versionNo)
                 // 版本不存在时抛出业务异常。
                 .orElseThrow(() -> new IllegalArgumentException("流程版本不存在: v" + versionNo));
+        if (!"DEPLOYED".equals(version.getCompileStatus())
+                || (requiresFlowableDeployment(version)
+                && (StringUtils.isBlank(version.getDeploymentId())
+                || StringUtils.isBlank(version.getProcessDefinitionId())))) {
+            throw new IllegalStateException("流程版本尚未完成生产部署: v" + versionNo);
+        }
         // 激活指定流程版本。
         flowRepository.activateVersion(flowId, versionNo);
+        flowRepository.updateActiveRuntimeDeployment(flowId, version.getRuntimeEngine(),
+                version.getDeploymentId(), version.getProcessDefinitionId());
         // 返回最新流程定义详情。
+        return get(flowId);
+    }
+
+    @Transactional
+    public FlowDefinition deactivate(String flowId) {
+        get(flowId);
+        flowRepository.deactivate(flowId);
         return get(flowId);
     }
 
@@ -286,6 +320,16 @@ public class FlowApplicationService {
     public FlowRun run(String flowId, Map<String, Object> input) {
         // 查询流程定义。
         FlowDefinition flow = get(flowId);
+        if (!FlowDefinitionStatus.ONLINE.getCode().equals(flow.getStatus())) {
+            throw new IllegalStateException("流程未启用，不能执行生产运行");
+        }
+        if (flow.getActiveVersionNo() == null) throw new IllegalStateException("流程尚未发布生产版本");
+        FlowVersion version = flowRepository.findVersion(flowId, flow.getActiveVersionNo())
+                .orElseThrow(() -> new IllegalStateException("当前激活流程版本不存在"));
+        if (!"DEPLOYED".equals(version.getCompileStatus())
+                || (requiresFlowableDeployment(version) && StringUtils.isBlank(version.getProcessDefinitionId()))) {
+            throw new IllegalStateException("当前激活流程版本尚未完成生产部署");
+        }
         // 构建流程启动命令。
         FlowStartCommand command = new FlowStartCommand();
         // 写入租户标识。
@@ -293,15 +337,16 @@ public class FlowApplicationService {
         // 写入流程定义标识。
         command.setFlowId(flowId);
         // 写入 HeartBeat 运行标识。
-        command.setRunId(nextNumericId());
+        command.setRunId(flowRunIdGenerator.nextId());
         // 写入流程版本号。
-        command.setVersionNo(flow.getActiveVersionNo());
+        command.setVersionNo(version.getVersionNo());
+        command.setFlowVersionId(version.getId());
         // 写入流程定义快照。
-        command.setFlowDefinition(flow);
+        command.setFlowDefinition(version.getFlowDsl() == null ? flow : version.getFlowDsl());
         // 写入运行时流程定义标识。
-        command.setProcessDefinitionId(flow.getActiveProcessDefinitionId());
+        command.setProcessDefinitionId(version.getProcessDefinitionId());
         // 写入运行时流程定义键。
-        command.setProcessDefinitionKey(flow.getCode());
+        command.setProcessDefinitionKey(StringUtils.defaultIfBlank(version.getProcessDefinitionKey(), flow.getCode()));
         // 写入触发类型。
         command.setTriggerType(FlowTriggerType.MANUAL);
         // 写入幂等键。
@@ -310,10 +355,7 @@ public class FlowApplicationService {
         command.setBusinessKey("flow:" + flowId + ":" + command.getIdempotencyKey());
         // 写入运行输入载荷。
         command.setPayload(input == null ? new LinkedHashMap<>() : input);
-        // 启动流程运行。
-        FlowRun run = flowRuntimeFacade.start(command);
-        // 保存初始运行记录。
-        return flowRunRepository.saveRun(run);
+        return flowRunLaunchService.start(command, flowRunLaunchService.createPending(command));
     }
 
     /**
@@ -327,6 +369,13 @@ public class FlowApplicationService {
         return flowRunRepository.findRun(runId)
                 // 运行不存在时抛出业务异常。
                 .orElseThrow(() -> new IllegalArgumentException("流程运行不存在: " + runId));
+    }
+
+    private boolean requiresFlowableDeployment(FlowVersion version) {
+        String engine = StringUtils.defaultIfBlank(
+                version == null ? null : version.getRuntimeEngine(),
+                flowRuntimeFacade.productionEngine().getCode());
+        return FlowRuntimeEngine.FLOWABLE.getCode().equals(engine);
     }
 
     /**
@@ -349,8 +398,22 @@ public class FlowApplicationService {
     public void cancel(String runId, String reason) {
         // 查询流程运行详情。
         FlowRun run = runDetail(runId);
+        if (!FlowRunStatus.isCancelable(run.getStatus())) {
+            throw new IllegalStateException("当前流程运行状态不允许取消: " + run.getStatus());
+        }
         // 取消生产态流程。
         flowRuntimeFacade.cancel(run, reason);
+        FlowRun projected = flowRunRepository.findRun(runId).orElse(run);
+        if (FlowRunStatus.isCancelable(projected.getStatus())) {
+            Instant finishedAt = Instant.now();
+            projected.setStatus(FlowRunStatus.CANCELED.getCode());
+            projected.setErrorMessage(reason);
+            projected.setFinishedAt(finishedAt);
+            if (projected.getStartedAt() != null) {
+                projected.setElapsedMs(Duration.between(projected.getStartedAt(), finishedAt).toMillis());
+            }
+            flowRunRepository.saveRun(projected);
+        }
     }
 
     /**
@@ -383,7 +446,7 @@ public class FlowApplicationService {
      */
     private FlowValidationResult validate(FlowDefinition flow) {
         // 查询全部启用节点组件。
-        List<NodeComponentManifest> manifests = componentRepository.findAllActive();
+        List<NodeComponentManifest> manifests = componentRegistryService.listActive();
         // 使用流程 DSL 校验领域服务执行校验。
         return validator.validate(flow, manifests);
     }
@@ -405,20 +468,6 @@ public class FlowApplicationService {
         target.setProcessDefinitionKey(source.getProcessDefinitionKey());
         // 写入编译状态。
         target.setCompileStatus(source.getCompileStatus());
-    }
-
-    /**
-     * 生成数据库友好的数字型字符串标识。
-     *
-     * @return 数字型字符串标识
-     */
-    private String nextNumericId() {
-        // 生成毫秒级时间前缀。
-        long prefix = System.currentTimeMillis() * 100000L;
-        // 生成随机后缀。
-        int suffix = ThreadLocalRandom.current().nextInt(100000);
-        // 返回数字型字符串标识。
-        return String.valueOf(prefix + suffix);
     }
 
     /**

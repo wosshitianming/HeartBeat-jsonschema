@@ -4,6 +4,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import top.kx.heartbeat.domain.flow.model.FlowVersion;
+import top.kx.heartbeat.infrastructure.tenant.TenantContext;
 
 /**
  * Flowable 租户解析器。
@@ -26,8 +27,7 @@ public class FlowableTenantResolver {
      * @return Flowable 租户标识
      */
     public String resolveTenantId(FlowVersion version) {
-        // 当前版本领域模型尚未暴露 tenantId，返回默认租户。
-        return defaultTenantId;
+        return TenantContext.getRequiredTenantIdString();
     }
 
     /**

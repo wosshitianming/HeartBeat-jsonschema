@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.kx.heartbeat.infrastructure.persistence.mapper.flow.FlowRunRuntimeMapper">
+
+    <sql id="RunRuntimeColumns">
+        id
+        , run_no, engine, engine_instance_id, process_definition_id, flow_version_id,
+    trigger_id, trigger_key, idempotency_key, idempotency_scope, business_key,
+    correlation_key, parent_run_id, root_run_id, retry_from_run_id, retry_no,
+    retry_reason, tenant_id
+    </sql>
+
+    <select id="selectRunForUpdate" resultType="map">
+        SELECT id,
+               tenant_id,
+               flow_id,
+               run_no,
+               engine,
+               engine_instance_id,
+               process_definition_id,
+               flow_version_id,
+               trigger_id,
+               trigger_key,
+               idempotency_key,
+               idempotency_scope,
+               business_key,
+               correlation_key,
+               parent_run_id,
+               root_run_id,
+               retry_from_run_id,
+               retry_no,
+               retry_reason,
+               version_no,
+               trigger_type,
+               status,
+               input_summary,
+               output_summary,
+               error_message,
+               started_at,
+               finished_at,
+               elapsed_ms
+        FROM hb_flow_run
+        WHERE id = #{id}
+          AND tenant_id = #{tenantId}
+            FOR UPDATE
+    </select>
+
+    <select id="selectRunIdByEngineInstanceId" resultType="long">
+        SELECT id
+        FROM hb_flow_run
+        WHERE tenant_id = #{tenantId}
+          AND engine_instance_id = #{engineInstanceId}
+        ORDER BY id DESC LIMIT 1
+    </select>
+
+    <select id="summarize" resultType="map">
+        SELECT COUNT(*) AS total_runs,
+        SUM(CASE WHEN status IN ('CREATED','RUNNING','PROCESSING') THEN 1 ELSE 0 END) AS running_runs,
+        SUM(CASE WHEN status = 'WAITING' THEN 1 ELSE 0 END) AS waiting_runs,
+        SUM(CASE WHEN status = 'SUCCESS' THEN 1 ELSE 0 END) AS success_runs,
+        SUM(CASE WHEN status IN ('FAILED','TIMEOUT') THEN 1 ELSE 0 END) AS failed_runs,
+        SUM(CASE WHEN status = 'CANCELED' THEN 1 ELSE 0 END) AS canceled_runs,
+        COALESCE(AVG(elapsed_ms), 0) AS average_duration_ms
+        FROM hb_flow_run
+        WHERE tenant_id = #{tenantId}
+        <if test="flowId != null">AND flow_id = #{flowId}</if>
+        <if test="startedAfter != null">AND started_at &gt;= #{startedAfter}</if>
+        <if test="startedBefore != null">AND started_at &lt;= #{startedBefore}</if>
+    </select>
+
+    <update id="updateRunRuntime">
+        UPDATE hb_flow_run
+        SET run_no                = #{values.runNo},
+            engine                = #{values.engine},
+            engine_instance_id    = #{values.engineInstanceId},
+            process_definition_id = #{values.processDefinitionId},
+            flow_version_id       = #{values.flowVersionId},
+            trigger_id            = #{values.triggerId},
+            trigger_key           = #{values.triggerKey},
+            idempotency_key       = #{values.idempotencyKey},
+            idempotency_scope     = #{values.idempotencyScope},
+            business_key          = #{values.businessKey},
+            correlation_key       = #{values.correlationKey},
+            parent_run_id         = #{values.parentRunId},
+            root_run_id           = #{values.rootRunId},
+            retry_from_run_id     = #{values.retryFromRunId},
+            retry_no              = #{values.retryNo},
+            retry_reason          = #{values.retryReason}
+        WHERE id = #{id}
+          AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectLastEventSequenceForUpdate" resultType="long">
+        SELECT last_event_seq
+        FROM hb_flow_run
+        WHERE id = #{id}
+          AND tenant_id = #{tenantId}
+            FOR UPDATE
+    </select>
+
+    <update id="updateLastEventSequence">
+        UPDATE hb_flow_run
+        SET last_event_seq = #{eventSeq}
+        WHERE id = #{id}
+          AND tenant_id = #{tenantId}
+    </update>
+
+    <update id="updateEventRuntime">
+        UPDATE hb_flow_run_event
+        SET event_seq          = #{values.eventSeq},
+            engine_activity_id = #{values.engineActivityId},
+            execution_id       = #{values.executionId},
+            task_id            = #{values.taskId},
+            source_node_id     = #{values.sourceNodeId},
+            target_node_id     = #{values.targetNodeId},
+            edge_id            = #{values.edgeId},
+            token_id           = #{values.tokenId},
+            attempt_no         = #{values.attemptNo},
+            selected_ports     = #{values.selectedPorts},
+            input_payload_ref  = #{values.inputPayloadRef},
+            output_payload_ref = #{values.outputPayloadRef},
+            event_summary      = #{values.eventSummary},
+            error_code         = #{values.errorCode}
+        WHERE id = #{id}
+          AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="selectRunRuntime" resultType="map">
+        SELECT
+        <include refid="RunRuntimeColumns"/>
+        FROM hb_flow_run
+        WHERE id = #{id} AND tenant_id = #{tenantId}
+    </select>
+
+    <select id="selectRunRuntimes" resultType="map">
+        SELECT
+        <include refid="RunRuntimeColumns"/>
+        FROM hb_flow_run
+        WHERE tenant_id = #{tenantId} AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+
+    <select id="selectEventRuntimes" resultType="map">
+        SELECT id, event_seq, engine_activity_id, execution_id, task_id, source_node_id,
+        target_node_id, edge_id, token_id, attempt_no, selected_ports, input_payload_ref,
+        output_payload_ref, event_summary, error_code
+        FROM hb_flow_run_event
+        WHERE tenant_id = #{tenantId} AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+
+</mapper>

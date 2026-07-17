@@ -231,6 +231,39 @@ class MybatisFlexMigrationGuardTest {
         }
     }
 
+    @Test
+    void stringAuditFieldsUseVarcharJdbcBindings() throws IOException {
+        Path root = findProjectRoot();
+        Path mapperXmlRoot = root.resolve("heartbeat-infrastructure/src/main/resources/mapper-xml");
+        List<String> violations = new ArrayList<>();
+
+        try (Stream<Path> paths = Files.walk(mapperXmlRoot)) {
+            paths.filter(path -> path.toString().endsWith(".xml"))
+                    .filter(path -> !"SysLoginLogDOMapper.xml".equals(path.getFileName().toString()))
+                    .forEach(path -> {
+                        try {
+                            String content = new String(Files.readAllBytes(path), StandardCharsets.UTF_8);
+                            if (content.contains("createBy,jdbcType=BIGINT")
+                                    || content.contains("updateBy,jdbcType=BIGINT")) {
+                                violations.add(root.relativize(path).toString());
+                            }
+                        } catch (IOException ex) {
+                            throw new IllegalStateException("Cannot read mapper XML " + path, ex);
+                        }
+                    });
+        }
+
+        assertTrue(violations.isEmpty(),
+                "String audit fields must use VARCHAR JDBC bindings:\n" + String.join("\n", violations));
+
+        Path loginLogMapper = mapperXmlRoot.resolve("sys/SysLoginLogDOMapper.xml");
+        String loginLogXml = new String(Files.readAllBytes(loginLogMapper), StandardCharsets.UTF_8);
+        assertTrue(loginLogXml.contains("column=\"create_by\" jdbcType=\"BIGINT\" property=\"createBy\""));
+        assertTrue(loginLogXml.contains("column=\"update_by\" jdbcType=\"BIGINT\" property=\"updateBy\""));
+        assertTrue(!loginLogXml.contains("createBy,jdbcType=VARCHAR"));
+        assertTrue(!loginLogXml.contains("updateBy,jdbcType=VARCHAR"));
+    }
+
     private List<SourceFile> productionSources() throws IOException {
         Path projectRoot = findProjectRoot();
         List<SourceFile> sources = new ArrayList<>();

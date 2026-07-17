@@ -8,6 +8,7 @@ import top.kx.heartbeat.application.flow.runtime.*;
 import top.kx.heartbeat.domain.flow.model.FlowNode;
 
 import javax.annotation.Resource;
+import java.util.Map;
 
 //import org.flowable.engine.delegate.Expression;
 
@@ -36,6 +37,12 @@ public class FlowableNodeDelegate implements JavaDelegate {
      */
     @SuppressWarnings("unused")
     private Expression flowExecutorId;
+
+    @SuppressWarnings("unused")
+    private Expression flowNodeVersion;
+
+    @SuppressWarnings("unused")
+    private Expression flowNodeConfigBase64;
 
     /**
      * Flowable 字段注入的运行模式。
@@ -70,19 +77,24 @@ public class FlowableNodeDelegate implements JavaDelegate {
     public void execute(DelegateExecution execution) {
         // 构建 HeartBeat 节点。
         FlowNode node = createNode(execution);
-        // 判断是否为外部 I/O 节点。
-        if (externalIoCommandDispatcher.supports(node)) {
-            // 派发外部 I/O 命令。
-            NodeExecutionOutcome outcome = externalIoCommandDispatcher.dispatch(execution, node, variableCodec.readPayload(execution));
-            // 写回外部 I/O 等待输出。
-            variableCodec.writeOutcome(execution, outcome);
-            // 结束当前 delegate。
+        Map<String, Object> payload = variableCodec.readPayload(execution);
+        String runtimeMode = variableCodec.resolveRuntimeMode(execution);
+        if ("EXTERNAL_IO_PREPARE".equals(runtimeMode)) {
+            externalIoCommandDispatcher.dispatch(execution, node, payload);
             return;
+        }
+        if ("EXTERNAL_IO_RESULT".equals(runtimeMode)) {
+            variableCodec.writeOutcome(execution, externalIoCommandDispatcher.applyResult(execution, node));
+            return;
+        }
+        if ("EXTERNAL_IO".equals(runtimeMode) || externalIoCommandDispatcher.supports(node)) {
+            throw new IllegalStateException("旧版 EXTERNAL_IO BPMN 不包含等待节点，请重新发布流程版本");
         }
         // 查询节点执行器。
         NodeExecutor executor = nodeExecutorRegistry.getRequired(variableCodec.resolveExecutorId(execution, node.getType()));
         // 构建节点执行上下文。
-        NodeExecutionContext context = new NodeExecutionContext(execution.getProcessInstanceId(), node, variableCodec.readPayload(execution), variableCodec.readVariables(execution));
+        NodeExecutionContext context = new NodeExecutionContext(
+                variableCodec.readRunId(execution), node, payload, variableCodec.readVariables(execution, payload));
         // 执行 HeartBeat 节点。
         NodeExecutionResult result = executor.execute(context);
         // 写回节点执行输出。
@@ -102,6 +114,8 @@ public class FlowableNodeDelegate implements JavaDelegate {
         node.setId(variableCodec.resolveNodeId(execution));
         // 写入节点类型。
         node.setType(variableCodec.resolveNodeType(execution));
+        node.setVersion(variableCodec.resolveNodeVersion(execution));
+        node.setConfig(variableCodec.resolveNodeConfig(execution));
         // 返回流程节点。
         return node;
     }

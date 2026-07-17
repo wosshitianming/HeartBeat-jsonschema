@@ -1,5 +1,6 @@
 package top.kx.heartbeat.infrastructure.platform.repository;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Repository;
 import top.kx.heartbeat.application.common.model.DomainRecord;
 import top.kx.heartbeat.application.platform.port.PlatformSocialRepository;
@@ -11,6 +12,7 @@ import top.kx.heartbeat.infrastructure.persistence.entity.auth.AuthSocialProvide
 import top.kx.heartbeat.infrastructure.persistence.entity.auth.AuthSocialProviderDOExample;
 import top.kx.heartbeat.infrastructure.persistence.mapper.auth.AuthSocialBindingDOMapper;
 import top.kx.heartbeat.infrastructure.persistence.mapper.auth.AuthSocialProviderDOMapper;
+import top.kx.heartbeat.infrastructure.security.SecretCryptoService;
 import top.kx.heartbeat.infrastructure.tenant.TenantContext;
 
 import javax.annotation.Resource;
@@ -27,6 +29,8 @@ public class PlatformSocialRepositoryImpl implements PlatformSocialRepository {
     private AuthSocialProviderDOMapper socialProviderMapper;
     @Resource
     private AuthSocialBindingDOMapper socialBindingMapper;
+    @Resource
+    private SecretCryptoService secretCryptoService;
 
     /**
      * 查询列表数据，保持返回结构稳定并便于前端直接消费，通过 Mapper 完成平台管理数据访问。
@@ -44,7 +48,7 @@ public class PlatformSocialRepositoryImpl implements PlatformSocialRepository {
                 // 使用流式转换批量映射数据，减少中间状态暴露。
                 .stream()
                 // 使用流式转换批量映射数据，减少中间状态暴露。
-                .map(this::recordProvider)
+                .map(this::recordProviderForManagement)
                 // 使用流式转换批量映射数据，减少中间状态暴露。
                 .collect(Collectors.toList());
     }
@@ -60,7 +64,7 @@ public class PlatformSocialRepositoryImpl implements PlatformSocialRepository {
         AuthSocialProviderDO row = socialProviderRow(request);
         touch(row, true);
         socialProviderMapper.insertSelective(row);
-        return recordProvider(row);
+        return recordProviderForManagement(row);
     }
 
     /**
@@ -87,7 +91,7 @@ public class PlatformSocialRepositoryImpl implements PlatformSocialRepository {
             }
             persisted = first(socialProviderMapper.selectByExample(example)).orElse(null);
         }
-        return recordProvider(persisted == null ? row : persisted);
+        return recordProviderForManagement(persisted == null ? row : persisted);
     }
 
     /**
@@ -123,7 +127,7 @@ public class PlatformSocialRepositoryImpl implements PlatformSocialRepository {
                 // 使用流式转换批量映射数据，减少中间状态暴露。
                 .stream()
                 // 使用流式转换批量映射数据，减少中间状态暴露。
-                .map(this::recordProvider)
+                .map(this::recordProviderForPublic)
                 // 使用流式转换批量映射数据，减少中间状态暴露。
                 .collect(Collectors.toList());
     }
@@ -143,7 +147,7 @@ public class PlatformSocialRepositoryImpl implements PlatformSocialRepository {
                 .andStatusEqualTo("ENABLED")
                 .andEnabledEqualTo(Boolean.TRUE)
                 .andDeleteMarkerEqualTo(0L);
-        return first(socialProviderMapper.selectByExample(example)).map(this::recordProvider);
+        return first(socialProviderMapper.selectByExample(example)).map(this::recordProviderForRuntime);
     }
 
     /**
@@ -254,7 +258,8 @@ public class PlatformSocialRepositoryImpl implements PlatformSocialRepository {
         // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setAppKey(safeRequest.getAppKey());
         // 设置持久化字段，保证数据库记录具备完整业务属性。
-        row.setAppSecretCipher(safeRequest.getAppSecretCipher());
+        String appSecret = StringUtils.trimToNull(safeRequest.getAppSecretCipher());
+        row.setAppSecretCipher(appSecret == null ? null : secretCryptoService.encryptIfPlain(appSecret));
         // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setAuthorizeUrl(safeRequest.getAuthorizeUrl());
         // 设置持久化字段，保证数据库记录具备完整业务属性。
@@ -265,6 +270,7 @@ public class PlatformSocialRepositoryImpl implements PlatformSocialRepository {
         row.setScopes(safeRequest.getScopes());
         // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setEnabled(safeRequest.getEnabled());
+        row.setAutoRegister(safeRequest.getAutoRegister());
         // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setStatus(safeRequest.getStatus());
         // 返回已经完成封装的业务结果。
@@ -295,6 +301,9 @@ public class PlatformSocialRepositoryImpl implements PlatformSocialRepository {
                 // 设置持久化字段，保证数据库记录具备完整业务属性。
                 row.setStatus("ENABLED");
             }
+            if (row.getAutoRegister() == null) {
+                row.setAutoRegister(Boolean.FALSE);
+            }
         }
         // 设置持久化字段，保证数据库记录具备完整业务属性。
         row.setUpdateTime(now);
@@ -306,14 +315,31 @@ public class PlatformSocialRepositoryImpl implements PlatformSocialRepository {
      * @param row 待写入或转换的数据库记录。
      * @return 处理后的业务结果。
      */
-    private DomainRecord recordProvider(AuthSocialProviderDO row) {
+    private DomainRecord recordProviderForManagement(AuthSocialProviderDO row) {
+        Map<String, Object> values = providerValues(row);
+        values.put("appSecretCipher", row == null ? "" : secretCryptoService.redact(row.getAppSecretCipher()));
+        return DomainRecord.of(values);
+    }
+
+    private DomainRecord recordProviderForPublic(AuthSocialProviderDO row) {
+        return DomainRecord.of(providerValues(row));
+    }
+
+    private DomainRecord recordProviderForRuntime(AuthSocialProviderDO row) {
+        Map<String, Object> values = providerValues(row);
+        values.put("appSecret", row == null ? "" : secretCryptoService.decryptIfCipher(row.getAppSecretCipher()));
+        return DomainRecord.of(values);
+    }
+
+    private Map<String, Object> providerValues(AuthSocialProviderDO row) {
         // 创建有序字段容器，保证响应或领域记录的字段顺序稳定。
         Map<String, Object> values = new LinkedHashMap<>();
         // 先处理空值或缺省场景，避免后续业务流程出现空指针。
         if (row == null) {
             // 返回已经完成封装的业务结果。
-            return DomainRecord.of(values);
+            return values;
         }
+        migratePlainSecret(row);
         // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("id", row.getId());
         // 写入对外字段，保持调用方依赖的响应结构稳定。
@@ -330,10 +356,9 @@ public class PlatformSocialRepositoryImpl implements PlatformSocialRepository {
         values.put("providerType", row.getProviderType());
         // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("clientId", row.getClientId());
+        values.put("appId", row.getClientId());
         // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("appKey", row.getAppKey());
-        // 写入对外字段，保持调用方依赖的响应结构稳定。
-        values.put("appSecretCipher", row.getAppSecretCipher());
         // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("authorizeUrl", row.getAuthorizeUrl());
         // 写入对外字段，保持调用方依赖的响应结构稳定。
@@ -344,14 +369,27 @@ public class PlatformSocialRepositoryImpl implements PlatformSocialRepository {
         values.put("scopes", row.getScopes());
         // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("enabled", row.getEnabled());
+        values.put("autoRegister", row.getAutoRegister());
         // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("status", row.getStatus());
         // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("createTime", row.getCreateTime());
         // 写入对外字段，保持调用方依赖的响应结构稳定。
         values.put("updateTime", row.getUpdateTime());
-        // 返回已经完成封装的业务结果。
-        return DomainRecord.of(values);
+        return values;
+    }
+
+    private void migratePlainSecret(AuthSocialProviderDO row) {
+        if (row == null || StringUtils.isBlank(row.getAppSecretCipher())
+                || secretCryptoService.isEncrypted(row.getAppSecretCipher())) {
+            return;
+        }
+        String encrypted = secretCryptoService.encryptIfPlain(row.getAppSecretCipher());
+        AuthSocialProviderDO patch = new AuthSocialProviderDO();
+        patch.setId(row.getId());
+        patch.setAppSecretCipher(encrypted);
+        socialProviderMapper.updateByPrimaryKeySelective(patch);
+        row.setAppSecretCipher(encrypted);
     }
 
     /**
@@ -434,7 +472,7 @@ public class PlatformSocialRepositoryImpl implements PlatformSocialRepository {
      */
     private Long longValue(Object value) {
         // 先处理空值或缺省场景，避免后续业务流程出现空指针。
-        if (value == null || String.valueOf(value).trim().isEmpty()) {
+        if (value == null || StringUtils.isBlank(String.valueOf(value))) {
             // 返回已经完成封装的业务结果。
             return null;
         }

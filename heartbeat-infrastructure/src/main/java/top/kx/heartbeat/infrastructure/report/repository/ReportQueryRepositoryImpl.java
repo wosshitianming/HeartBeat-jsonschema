@@ -22,7 +22,8 @@ import java.util.stream.Collectors;
 @Repository
 public class ReportQueryRepositoryImpl implements ReportQueryRepository {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Resource
+    private ObjectMapper objectMapper;
 
     @Resource
     private ReportQueryMapper queryMapper;

@@ -52,8 +52,9 @@ $env:SPRING_PROFILES_ACTIVE="prod"
 $env:MYSQL_HOST="127.0.0.1"
 $env:MYSQL_PORT="3306"
 $env:MYSQL_DB="heartbeat"
-$env:MYSQL_USERNAME="root"
-$env:MYSQL_PASSWORD="root"
+$env:MYSQL_USERNAME="heartbeat_app"
+$env:MYSQL_PASSWORD="<database-password>"
+$env:JWT_SECRET="<at-least-32-random-bytes>"
 mvn -pl heartbeat-start -am spring-boot:run
 ```
 
@@ -62,7 +63,7 @@ mvn -pl heartbeat-start -am spring-boot:run
 模块脚本修改后执行：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File heartbeat-start\src\main\resources\db\build-sql-bundles.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build-enterprise-sql.ps1
 ```
 
 应用启动时会幂等补齐默认菜单和基础种子，但不会代替正式 DDL 安装。

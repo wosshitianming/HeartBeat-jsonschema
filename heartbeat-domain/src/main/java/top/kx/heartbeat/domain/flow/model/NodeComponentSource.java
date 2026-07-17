@@ -13,6 +13,11 @@ public enum NodeComponentSource {
     DATABASE("DATABASE", "数据库注册"),
 
     /**
+     * Spring 托管的 Java 代码节点。
+     */
+    CODE("CODE", "Java 代码"),
+
+    /**
      * 系统内置来源。
      */
     BUILTIN("BUILTIN", "系统内置");

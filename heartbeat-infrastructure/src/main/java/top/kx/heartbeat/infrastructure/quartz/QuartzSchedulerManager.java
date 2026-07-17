@@ -100,7 +100,9 @@ public class QuartzSchedulerManager implements QuartzJobScheduler {
             scheduler.deleteJob(jobKey);
         }
         // 计算当前分支的中间结果，供后续判断或组装使用。
-        JobDetail jobDetail = JobBuilder.newJob(HeartbeatQuartzJob.class)
+        Class<? extends Job> jobClass = job.isConcurrent()
+                ? HeartbeatQuartzJob.class : HeartbeatNonConcurrentQuartzJob.class;
+        JobDetail jobDetail = JobBuilder.newJob(jobClass)
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。
                 .withIdentity(jobKey)
                 // 承接上一行判断后的处理动作，保持当前业务分支语义完整。

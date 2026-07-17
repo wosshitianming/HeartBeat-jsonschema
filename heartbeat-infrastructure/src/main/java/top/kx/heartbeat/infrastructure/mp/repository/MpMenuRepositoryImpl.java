@@ -25,7 +25,8 @@ import java.util.stream.Collectors;
 @Repository
 public class MpMenuRepositoryImpl implements MpMenuRepository {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Resource
+    private ObjectMapper objectMapper;
 
     @Resource
     private MpMenuDOMapper menuDOMapper;

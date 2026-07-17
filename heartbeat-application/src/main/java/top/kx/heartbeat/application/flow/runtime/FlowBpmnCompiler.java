@@ -1,5 +1,7 @@
 package top.kx.heartbeat.application.flow.runtime;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import top.kx.heartbeat.domain.flow.model.FlowDefinition;
@@ -23,6 +25,12 @@ import java.util.*;
  */
 @Service
 public class FlowBpmnCompiler {
+
+    private static final String EXTERNAL_IO_MESSAGE_NAME = "io.node.completed";
+
+    private static final String EXTERNAL_IO_PREPARE = "EXTERNAL_IO_PREPARE";
+
+    private static final String EXTERNAL_IO_RESULT = "EXTERNAL_IO_RESULT";
 
     /**
      * BPMN XML 命名空间。
@@ -59,6 +67,9 @@ public class FlowBpmnCompiler {
      */
     @Resource
     private FlowDslValidator validator;
+
+    @Resource
+    private ObjectMapper objectMapper;
 
     /**
      * 编译 Flow DSL 为 BPMN XML。
@@ -144,16 +155,16 @@ public class FlowBpmnCompiler {
      * @param flow 流程定义
      */
     private void appendMessages(StringBuilder xml, FlowDefinition flow) {
-        // 遍历流程节点。
+        Set<String> messageNames = new LinkedHashSet<>();
         for (FlowNode node : flow.getNodes()) {
-            // 判断是否为消息等待节点。
-            if (!isWaitMessageNode(node)) {
-                // 非消息等待节点跳过。
-                continue;
+            if (isWaitMessageNode(node)) {
+                messageNames.add(String.valueOf(configValue(node, "messageName", "heartbeat_" + node.getId())));
             }
-            // 解析消息名称。
-            String messageName = String.valueOf(configValue(node, "messageName", "heartbeat_" + node.getId()));
-            // 写入消息定义。
+            if (isExternalIoNode(node)) {
+                messageNames.add(EXTERNAL_IO_MESSAGE_NAME);
+            }
+        }
+        for (String messageName : messageNames) {
             xml.append("  <message id=\"").append(escape(safeId(messageName))).append("\" name=\"").append(escape(messageName)).append("\" />\n");
         }
     }
@@ -239,8 +250,12 @@ public class FlowBpmnCompiler {
             // 结束当前节点写入。
             return;
         }
+        if (isExternalIoNode(node)) {
+            appendExternalIoNode(xml, node, elementId, executorId);
+            return;
+        }
         // 写入服务任务节点。
-        appendServiceTask(xml, node, elementId, executorId);
+        appendServiceTask(xml, node, elementId, executorId, "INLINE");
     }
 
     /**
@@ -251,7 +266,8 @@ public class FlowBpmnCompiler {
      * @param elementId BPMN 元素标识
      * @param executorId 节点执行器标识
      */
-    private void appendServiceTask(StringBuilder xml, FlowNode node, String elementId, String executorId) {
+    private void appendServiceTask(StringBuilder xml, FlowNode node, String elementId,
+                                   String executorId, String runtimeMode) {
         // 写入服务任务开始标签。
         xml.append("    <serviceTask id=\"").append(elementId).append("\" name=\"").append(escape(label(node))).append("\" flowable:delegateExpression=\"${flowableNodeDelegate}\">\n");
         // 写入节点标识扩展字段。
@@ -260,14 +276,34 @@ public class FlowBpmnCompiler {
         xml.append("        <flowable:field name=\"flowNodeId\"><flowable:string>").append(escape(node.getId())).append("</flowable:string></flowable:field>\n");
         // 写入 HeartBeat 节点类型字段。
         xml.append("        <flowable:field name=\"flowNodeType\"><flowable:string>").append(escape(node.getType())).append("</flowable:string></flowable:field>\n");
+        xml.append("        <flowable:field name=\"flowNodeVersion\"><flowable:string>").append(escape(node.getVersion())).append("</flowable:string></flowable:field>\n");
         // 写入 HeartBeat 执行器标识字段。
         xml.append("        <flowable:field name=\"flowExecutorId\"><flowable:string>").append(escape(executorId)).append("</flowable:string></flowable:field>\n");
+        xml.append("        <flowable:field name=\"flowNodeConfigBase64\"><flowable:string>")
+                .append(escape(base64(toJson(node.getConfig())))).append("</flowable:string></flowable:field>\n");
         // 写入执行模式字段。
-        xml.append("        <flowable:field name=\"runtimeMode\"><flowable:string>").append(isExternalIoNode(node) ? "EXTERNAL_IO" : "INLINE").append("</flowable:string></flowable:field>\n");
+        xml.append("        <flowable:field name=\"runtimeMode\"><flowable:string>").append(escape(runtimeMode)).append("</flowable:string></flowable:field>\n");
         // 写入扩展元素结束标签。
         xml.append("      </extensionElements>\n");
         // 写入服务任务结束标签。
         xml.append("    </serviceTask>\n");
+    }
+
+    private void appendExternalIoNode(StringBuilder xml, FlowNode node, String elementId, String executorId) {
+        String waitElementId = elementId + "__io_wait";
+        String resultElementId = externalIoResultElementId(node);
+        appendServiceTask(xml, node, elementId, executorId, EXTERNAL_IO_PREPARE);
+        xml.append("    <intermediateCatchEvent id=\"").append(waitElementId).append("\" name=\"")
+                .append(escape(label(node))).append(" - wait\">\n");
+        appendWaitRegistrationListener(xml);
+        xml.append("      <messageEventDefinition messageRef=\"")
+                .append(escape(safeId(EXTERNAL_IO_MESSAGE_NAME))).append("\" />\n");
+        xml.append("    </intermediateCatchEvent>\n");
+        appendServiceTask(xml, node, resultElementId, executorId, EXTERNAL_IO_RESULT);
+        xml.append("    <sequenceFlow id=\"").append(elementId).append("__io_prepared\" sourceRef=\"")
+                .append(elementId).append("\" targetRef=\"").append(waitElementId).append("\" />\n");
+        xml.append("    <sequenceFlow id=\"").append(elementId).append("__io_completed\" sourceRef=\"")
+                .append(waitElementId).append("\" targetRef=\"").append(resultElementId).append("\" />\n");
     }
 
     /**
@@ -370,17 +406,53 @@ public class FlowBpmnCompiler {
             // 解析连线标识。
             String edgeId = edgeElementId(edge);
             // 写入连线开始标签。
-            xml.append("    <sequenceFlow id=\"").append(edgeId).append("\" sourceRef=\"").append(nodeElementId(source)).append("\" targetRef=\"").append(nodeElementId(target)).append("\">");
+            xml.append("    <sequenceFlow id=\"").append(edgeId).append("\" sourceRef=\"")
+                    .append(outboundElementId(source)).append("\" targetRef=\"").append(nodeElementId(target)).append("\">");
             // 判断是否需要写入条件表达式。
             if (isConditionNode(source)) {
                 // 编码条件表达式。
                 String encodedExpression = base64(String.valueOf(configValue(source, "expression", "")));
                 // 写入受控条件表达式。
                 xml.append("\n      <conditionExpression xsi:type=\"tFormalExpression\"><![CDATA[${flowConditionEvaluator.matchesEncoded(execution, '").append(escape(edge.getId())).append("', '").append(escape(edge.getSourcePort())).append("', '").append(encodedExpression).append("')}]]></conditionExpression>\n    ");
+            } else if (isExternalIoNode(source)) {
+                String sourcePort = StringUtils.defaultIfBlank(edge.getSourcePort(), "out");
+                xml.append("\n      <conditionExpression xsi:type=\"tFormalExpression\"><![CDATA[${flowConditionEvaluator.matches(execution, '")
+                        .append(escape(edge.getId())).append("', '").append(escape(sourcePort))
+                        .append("')}]]></conditionExpression>\n    ");
             }
             // 写入连线结束标签。
             xml.append("</sequenceFlow>\n");
         }
+        appendExternalIoFailureFallbacks(xml, flow);
+    }
+
+    private void appendExternalIoFailureFallbacks(StringBuilder xml, FlowDefinition flow) {
+        for (FlowNode node : flow.getNodes()) {
+            if (!isExternalIoNode(node) || hasOutgoingPort(flow, node.getId(), "error")) {
+                continue;
+            }
+            String endElementId = nodeElementId(node) + "__io_failed";
+            String edgeElementId = nodeElementId(node) + "__io_failure_fallback";
+            xml.append("    <endEvent id=\"").append(endElementId).append("\" name=\"")
+                    .append(escape(label(node))).append(" - failed\" />\n");
+            xml.append("    <sequenceFlow id=\"").append(edgeElementId).append("\" sourceRef=\"")
+                    .append(externalIoResultElementId(node)).append("\" targetRef=\"")
+                    .append(endElementId).append("\">\n")
+                    .append("      <conditionExpression xsi:type=\"tFormalExpression\"><![CDATA[${flowConditionEvaluator.matches(execution, '")
+                    .append(edgeElementId).append("', 'error')}]]></conditionExpression>\n")
+                    .append("    </sequenceFlow>\n");
+        }
+    }
+
+    private boolean hasOutgoingPort(FlowDefinition flow, String nodeId, String portId) {
+        if (flow.getEdges() == null) return false;
+        for (FlowEdge edge : flow.getEdges()) {
+            if (StringUtils.equals(nodeId, edge.getSource())
+                    && StringUtils.equalsIgnoreCase(portId, edge.getSourcePort())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -569,8 +641,14 @@ public class FlowBpmnCompiler {
         // 读取节点类型。
         String type = node.getType();
         // 判断节点类型是否为长耗时外部 I/O。
-        return StringUtils.contains(type, ".http.") || StringUtils.contains(type, ".mysql.") || StringUtils.contains(type, ".redis.") || StringUtils.contains(type, ".mq.")
-                || StringUtils.contains(type, ":http.") || StringUtils.contains(type, ":mysql.") || StringUtils.contains(type, ":redis.") || StringUtils.contains(type, ":mq.");
+        return StringUtils.containsIgnoreCase(type, ".http.")
+                || StringUtils.containsIgnoreCase(type, ".mysql.")
+                || StringUtils.containsIgnoreCase(type, ".redis.")
+                || StringUtils.containsIgnoreCase(type, ".mq.")
+                || StringUtils.containsIgnoreCase(type, ":http.")
+                || StringUtils.containsIgnoreCase(type, ":mysql.")
+                || StringUtils.containsIgnoreCase(type, ":redis.")
+                || StringUtils.containsIgnoreCase(type, ":mq.");
     }
 
     /**
@@ -626,6 +704,22 @@ public class FlowBpmnCompiler {
     private String nodeElementId(FlowNode node) {
         // 返回节点元素标识。
         return "node_" + safeId(node.getId());
+    }
+
+    private String externalIoResultElementId(FlowNode node) {
+        return nodeElementId(node) + "__io_result";
+    }
+
+    private String outboundElementId(FlowNode node) {
+        return isExternalIoNode(node) ? externalIoResultElementId(node) : nodeElementId(node);
+    }
+
+    private String toJson(Object value) {
+        try {
+            return objectMapper.writeValueAsString(value == null ? Collections.emptyMap() : value);
+        } catch (JsonProcessingException ex) {
+            throw new IllegalStateException("节点配置序列化失败", ex);
+        }
     }
 
     /**

@@ -95,4 +95,17 @@ public enum FlowRunStatus {
         // 比较外部编码与当前枚举编码。
         return this.code.equals(code);
     }
+
+    public static boolean isRetryable(String code) {
+        return FAILED.matches(code) || TIMEOUT.matches(code);
+    }
+
+    public static boolean isCancelable(String code) {
+        return CREATED.matches(code) || RUNNING.matches(code) || WAITING.matches(code)
+                || "PROCESSING".equals(code);
+    }
+
+    public static boolean isTerminal(String code) {
+        return SUCCESS.matches(code) || FAILED.matches(code) || CANCELED.matches(code) || TIMEOUT.matches(code);
+    }
 }
